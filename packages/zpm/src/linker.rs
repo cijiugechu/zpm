@@ -180,7 +180,7 @@ pub async fn link_project() -> Result<(), Error> {
         let physical_package_data = cache.get(&locator.physical_locator())
             .expect("Failed to find physical package data");
 
-        let package_dependencies = resolution.dependencies.iter().map(|(ident, descriptor)| {
+        let mut package_dependencies: BTreeMap<Ident, PnpDependencyTarget> = resolution.dependencies.iter().map(|(ident, descriptor)| {
             let dependency_resolution = tree.descriptor_to_locator.get(descriptor)
                 .expect("Failed to find dependency resolution");
 
@@ -192,6 +192,9 @@ pub async fn link_project() -> Result<(), Error> {
 
             (ident.clone(), dependency_target)
         }).collect();
+
+        package_dependencies.entry(locator.ident.clone())
+            .or_insert(PnpDependencyTarget::Simple(locator.reference.clone()));
 
         let package_peers = resolution.peer_dependencies.keys()
             .cloned()
