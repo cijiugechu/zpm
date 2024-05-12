@@ -30,6 +30,9 @@ pub enum Error {
     #[error("Missing semver tag ({0})")]
     MissingSemverTag(String),
 
+    #[error("Package not found ({0}, at {1})")]
+    PackageNotFound(Ident, String),
+
     #[error("No candidates found for {0:?}")]
     NoCandidatesFound(Range),
 
@@ -51,7 +54,7 @@ pub enum Error {
     #[error("Invalid workspace pattern ({0})")]
     InvalidWorkspacePattern(String),
 
-    #[error("Remote registry error")]
+    #[error("Remote registry error ({0})")]
     RemoteRegistryError(Arc<reqwest::Error>),
 
     #[error("Internal serialization error")]
@@ -75,7 +78,7 @@ pub enum Error {
     #[error("Unknown error")]
     UnknownError(Arc<Box<dyn std::error::Error + Send + Sync>>),
 
-    #[error("Package conversion error")]
+    #[error("Package conversion error ({0})")]
     PackageConversionError(Arc<Box<dyn std::error::Error + Send + Sync>>),
 
     #[error("Workspace not found ({0})")]

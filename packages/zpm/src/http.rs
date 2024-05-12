@@ -22,3 +22,19 @@ static HTTP_CLIENT: Lazy<Result<Client, Error>> = Lazy::new(|| {
 pub fn http_client() -> Result<Client, Error> {
     HTTP_CLIENT.clone()
 }
+
+pub fn is_too_many_open_files(err: &dyn std::error::Error) -> bool {
+    let mut source = err.source();
+
+    while let Some(err) = source {
+        if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
+            if io_err.raw_os_error() == Some(24) {
+                return true;
+            }
+        }
+
+        source = err.source();
+    }
+
+    false
+}

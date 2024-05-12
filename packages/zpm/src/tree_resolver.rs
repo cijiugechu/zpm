@@ -115,7 +115,7 @@ impl TreeResolver {
                 .contains(&dependency_descriptor.ident);
 
             let dependency_locator = self.descriptor_to_locator.get(&dependency_descriptor)
-                .expect(format!("Expected locator for descriptor: {:?}", dependency_descriptor).as_str());
+                .expect(format!("Expected locator for descriptor: {:?}; in {:?}", dependency_descriptor, &self.descriptor_to_locator).as_str());
 
             let pkg = self.original_workspace_definitions.get(dependency_locator)
                 .or(self.locator_resolutions.get(dependency_locator))

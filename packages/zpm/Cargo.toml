@@ -39,6 +39,7 @@ hex = "0.4.3"
 serde_yaml = "0.9.34"
 blake2 = { version = "0.10.6" }
 serde_with = "3.8.1"
+clap = { version = "4.5.4", features = ["derive"] }
 
 [[bench]]
 name = "json"

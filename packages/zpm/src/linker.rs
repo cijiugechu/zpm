@@ -160,9 +160,13 @@ struct PnpState {
     dependency_tree_roots: Vec<PnpDependencyTreeRoot>,
 }
 
+pub fn pnp_path() -> Option<Path> {
+    Some(project::root().unwrap().with_join_str(".pnp.cjs"))
+}
+
 pub async fn link_project() -> Result<(), Error> {
     let project_root = project::root()?;
-    let pnp_path = project_root.with_join_str(".pnp.cjs");
+    let pnp_path = pnp_path().unwrap();
 
     let cache
         = project::cache().await?;

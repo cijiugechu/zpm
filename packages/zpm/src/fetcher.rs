@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tar::Archive;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
-use crate::{cache::PACKAGE_CACHE, error::Error, hash::Sha256, http::http_client, primitives::{Ident, Locator, Reference}, project, semver};
+use crate::{cache::PACKAGE_CACHE, config::registry_url_for, error::Error, hash::Sha256, http::http_client, primitives::{Ident, Locator, Reference}, project, semver};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PackageData {
@@ -144,7 +144,7 @@ pub async fn fetch(locator: &Locator) -> Result<PackageData, Error> {
 pub async fn fetch_semver(locator: &Locator, ident: &Ident, version: &semver::Version) -> Result<PackageData, Error> {
     let (path, data, checksum) = PACKAGE_CACHE.upsert_blob(locator.clone(), &".zip", || async {
         let client = http_client()?;
-        let url = format!("https://registry.npmjs.org/{}/-/{}-{}.tgz", ident, ident.name(), version.to_string());
+        let url = format!("{}/{}/-/{}-{}.tgz", registry_url_for(ident), ident, ident.name(), version.to_string());
 
         let response = client.get(url.clone()).send().await
             .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;

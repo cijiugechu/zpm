@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, fmt, marker::PhantomData, str::FromSt
 use bincode::{Decode, Encode};
 use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer, Serialize};
 
-use crate::{error::Error, git::{resolve_git_treeish, GitRange}, http::http_client, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, project, semver};
+use crate::{config, error::Error, git::{resolve_git_treeish, GitRange}, http::http_client, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, project, semver};
 
 /**
  * Contains the information we keep in the lockfile for a given package.
@@ -77,7 +77,7 @@ pub async fn resolve_git(ident: Ident, git_range: GitRange) -> Result<Resolution
 
 pub async fn resolve_semver_tag(ident: Ident, tag: String) -> Result<Resolution, Error> {
     let client = http_client()?;
-    let url = format!("https://registry.npmjs.org/{}", ident);
+    let url = format!("{}/{}", config::registry_url_for(&ident), ident);
 
     let response = client.get(url.clone()).send().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
@@ -182,10 +182,14 @@ pub async fn resolve_semver(ident: Ident, range: semver::Range) -> Result<Resolu
     }
 
     let client = http_client()?;
-    let url = format!("https://registry.npmjs.org/{}", ident);
+    let url = format!("{}/{}", config::registry_url_for(&ident), ident);
 
     let response = client.get(url.clone()).send().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
+
+    if response.status().as_u16() == 404 {
+        return Err(Error::PackageNotFound(ident, url));
+    }
  
     let registry_text = response.text().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;

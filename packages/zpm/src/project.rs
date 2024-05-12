@@ -1,19 +1,18 @@
 use std::{collections::{HashMap, HashSet}, sync::Arc};
 
-use arca::Path;
+use arca::{Path, ToArcaPath};
 use cached::proc_macro::once;
 use futures::{stream::FuturesUnordered, StreamExt};
 use zpm_macros::track_time;
 
-use crate::{error::Error, fetcher::PackageData, hash::Sha256, lockfile::{self, Lockfile}, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, resolver::Resolution, tree_resolver::TreeResolver};
+use crate::{error::Error, fetcher::PackageData, hash::Sha256, http::is_too_many_open_files, lockfile::{self, Lockfile}, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, resolver::Resolution, tree_resolver::TreeResolver};
 
 static LOCKFILE_NAME: &str = "yarn.lock";
 static MANIFEST_NAME: &str = "package.json";
 
 #[once]
 pub fn current_dir() -> Result<Path, Error> {
-    let args: Vec<String> = std::env::args().collect();
-    Ok(Path::from(&args[1]))
+    Ok(std::env::current_dir().unwrap().to_arca())
 }
 
 pub fn root() -> Result<Path, Error> {
@@ -219,15 +218,15 @@ impl ResolutionManager {
                 
                 Err(err) => {
                     if let Error::RemoteRegistryError(err) = &err {
-                        if err.is_connect() {
+                        if is_too_many_open_files(err) && resolution_limit > 1 {
                             self.queue.push(descriptor);
                             resolution_limit -= 1;
     
                             continue;
                         }
                     }
-    
-                    println!("{} - resolve failed: {:?}", descriptor, err)
+
+                    println!("{} - resolution failed: {}", descriptor, err.to_string())
                 }
             }
     
@@ -334,7 +333,7 @@ pub async fn cache() -> Result<HashMap<Locator, PackageData>, Error> {
 
             Err(err) => {
                 if let Error::RemoteRegistryError(err) = &err {
-                    if err.is_connect() {
+                    if is_too_many_open_files(err) && fetch_limit > 1 {
                         queue.push(locator);
                         fetch_limit -= 1;
 
@@ -343,7 +342,7 @@ pub async fn cache() -> Result<HashMap<Locator, PackageData>, Error> {
                 }
 
                 if let Error::IoError(err) = &err {
-                    if err.raw_os_error() == Some(24) {
+                    if is_too_many_open_files(err) && fetch_limit > 1 {
                         queue.push(locator);
                         fetch_limit -= 1;
 
@@ -351,7 +350,7 @@ pub async fn cache() -> Result<HashMap<Locator, PackageData>, Error> {
                     }
                 }
 
-                println!("{} - fetch failed: {:?}", locator, err)
+                println!("{} - fetch failed: {}", locator, err.to_string())
             }
         }
 
