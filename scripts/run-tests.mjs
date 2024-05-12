@@ -29,11 +29,11 @@ const resultPath = require.resolve(`../test-results.md`);
 const statusKind = {
   passed: {
     tag: `<!-- test:passed -->`,
-    img: `https://img.shields.io/badge/passed-green`,
+    label: `✅`,
   },
   failed: {
     tag: `<!-- test:failed -->`,
-    img: `https://img.shields.io/badge/failed-red`,
+    label: `❌`,
   },
 };
 
@@ -80,15 +80,16 @@ const sortedTestSuites = Object.entries(testSuites).sort((a, b) => a[0].localeCo
 let output = `# Test Results\n\n`;
 
 for (const [testSuite, tests] of sortedTestSuites) {
+  output += `![](./scripts/suite.png) `;
   for (const [name, status] of tests) {
     output += `![](./scripts/${status}.png) `;
   }
 }
 
-output += `\n\n<table>\n`;
+output += `\n\n`;
 
 for (const [testSuite, tests] of sortedTestSuites) {
-  output += `\n<tr><th colspan=2>\n\n<!-- test:suite -->${testSuite}\n\n</th></tr><tr><td colspan=2>\n\n`;
+  output += `\n<table><tr><th colspan=2>\n\n<!-- test:suite -->${testSuite}\n\n</th></tr><tr><td colspan=2>\n\n`;
 
   for (const [name, status] of tests) {
     output += `![](./scripts/${status}.png) `;
@@ -97,10 +98,10 @@ for (const [testSuite, tests] of sortedTestSuites) {
   output += `\n\n</td></tr>`;
 
   for (const [name, status] of tests) {
-    output += `<tr><td><img src="${statusKind[status].img}"/></td><td>\n\n${statusKind[status].tag}${name}\n</td></tr>\n`;
+    output += `<tr><td>${statusKind[status].label}</td><td>\n\n${statusKind[status].tag}${name}\n\n</td></tr>`;
   }
-}
 
-output += `</table>\n`;
+  output += `</table>\n`;
+}
 
 fs.writeFileSync(resultPath, output);
