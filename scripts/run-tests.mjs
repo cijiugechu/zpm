@@ -7,6 +7,7 @@ import path            from 'path';
 const require = createRequire(import.meta.url);
 
 const berryPath = process.env.BERRY_PATH || path.join(os.homedir(), `berry`);
+const txtPath = require.resolve(`../test-results.txt`);
 
 const child = p.spawnSync(`yarn`, [`test:integration`, `--json`, ...process.argv.slice(2)], {
   cwd: berryPath,
@@ -24,36 +25,31 @@ const child = p.spawnSync(`yarn`, [`test:integration`, `--json`, ...process.argv
 });
 
 const result = JSON.parse(child.stdout);
-const resultPath = require.resolve(`../test-results.md`);
 
-const statusKind = {
-  passed: {
-    tag: `<!-- test:passed -->`,
-    img: `https://img.shields.io/badge/passed-green`,
-  },
-  failed: {
-    tag: `<!-- test:failed -->`,
-    img: `https://img.shields.io/badge/failed-red`,
-  },
+const kindToChar = {
+  passed: `🟩`,
+  failed: `🟥`,
 };
 
-const statusList = Object.entries(statusKind);
+const charToKind = {
+  [`🟩`]: `passed`,
+  [`🟥`]: `failed`,
+};
 
 const testSuites = {};
+let activeTestSuite;
 
-let testSuite;
+for (const line of fs.readFileSync(txtPath, `utf8`).split(/\n/)) {
+  if (!line)
+    continue;
 
-for (const line of fs.readFileSync(resultPath, `utf8`).split(/\n/)) {
-  if (line.startsWith(`<!-- test:suite -->`)) {
-    testSuite = line.slice(19);
+  const firstChar = [...line][0];
+
+  if (Object.prototype.hasOwnProperty.call(charToKind, firstChar)) {
+    testSuites[activeTestSuite] ??= {};
+    testSuites[activeTestSuite][line.slice(firstChar.length + 1)] = charToKind[firstChar];
   } else {
-    for (const [status, {tag}] of statusList) {
-      if (line.startsWith(tag)) {
-        testSuites[testSuite] ??= {};
-        testSuites[testSuite][line.slice(tag.length)] = status;
-        break;
-      }
-    }
+    activeTestSuite = line.replace(/^\[[^\]]*\] */, ``);
   }
 }
 
@@ -61,11 +57,13 @@ for (const testSuite of result.testResults) {
   const fileName = path.relative(berryPath, testSuite.name);
 
   for (const test of testSuite.assertionResults) {
-    if (!Object.prototype.hasOwnProperty.call(statusKind, test.status))
+    if (!Object.prototype.hasOwnProperty.call(kindToChar, test.status))
       continue;
 
+    const fullName = test.ancestorTitles.concat(test.title).join(` ► `);
+
     testSuites[fileName] ??= {};
-    testSuites[fileName][test.fullName] = test.status;
+    testSuites[fileName][fullName] = test.status;
   }
 }
 
@@ -77,31 +75,24 @@ const sortedTestSuites = Object.entries(testSuites).sort((a, b) => a[0].localeCo
   return [[testSuite, sortedTests]];
 });
 
-let output = `# Test Results\n\n`;
+function generateTxt() {
+  let txt = ``;
 
-for (const [testSuite, tests] of sortedTestSuites) {
-  output += `![](./scripts/suite.png) `;
-  for (const [name, status] of tests) {
-    output += `![](./scripts/${status}.png) `;
+  for (const [testSuite, tests] of sortedTestSuites) {
+    const passingTests = tests.filter(([, status]) => status === `passed`).length;
+    const totalTests = tests.length;
+
+    txt += `[${passingTests} / ${totalTests}] ${testSuite}\n\n`;
+
+    for (const [name, status] of tests) {
+      txt += `${kindToChar[status]} ${name}\n`;
+    }
+
+    txt += `\n`;
   }
+
+  return txt.slice(0, -1);
 }
 
-output += `\n\n`;
-
-for (const [testSuite, tests] of sortedTestSuites) {
-  output += `<h3>\n\n<!-- test:suite -->${testSuite}\n\n</h3><table><tr><td colspan=2>\n\n`;
-
-  for (const [name, status] of tests) {
-    output += `![](./scripts/${status}.png) `;
-  }
-
-  output += `\n\n</td></tr>`;
-
-  for (const [name, status] of tests) {
-    output += `<tr><td width=36><img width=8 height=8 src="./scripts/${status}.png"/></td><td>\n\n${statusKind[status].tag}${name}\n</td></tr>`;
-  }
-
-  output += `</table>\n`;
-}
-
-fs.writeFileSync(resultPath, output);
+//fs.writeFileSync(mdPath, generateMd());
+fs.writeFileSync(txtPath, generateTxt());
