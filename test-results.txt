@@ -1380,61 +1380,61 @@
 🟥 Plugins ► typescript ► Removing types ► it should not automatically remove @types from peerDependencies without tsconfig or tsEnableAutoTypes
 🟥 Plugins ► typescript ► Removing types ► it should not automatically remove @types peerDependencies from the current workspace without tsconfig.json present or tsEnableAutoTypes
 
-[0 / 41] packages/acceptance-tests/pkg-tests-specs/sources/pnp-esm.test.ts
+[34 / 41] packages/acceptance-tests/pkg-tests-specs/sources/pnp-esm.test.ts
 
-🟥 Plug'n'Play - ESM ► it should allow absolute imports with search params
-🟥 Plug'n'Play - ESM ► it should allow extensionless commonjs imports
-🟥 Plug'n'Play - ESM ► it should allow extensionless files with {"type": "module"}
-🟥 Plug'n'Play - ESM ► it should allow relative imports with search params
-🟥 Plug'n'Play - ESM ► it should be able to import a dependency
-🟥 Plug'n'Play - ESM ► it should be able to import a node builtin
-🟥 Plug'n'Play - ESM ► it should be able to import a node builtin through the node: protocol
-🟥 Plug'n'Play - ESM ► it should be able to import the PnP API
+🟩 Plug'n'Play - ESM ► it should allow absolute imports with search params
+🟩 Plug'n'Play - ESM ► it should allow extensionless commonjs imports
+🟩 Plug'n'Play - ESM ► it should allow extensionless files with {"type": "module"}
+🟩 Plug'n'Play - ESM ► it should allow relative imports with search params
+🟩 Plug'n'Play - ESM ► it should be able to import a dependency
+🟩 Plug'n'Play - ESM ► it should be able to import a node builtin
+🟩 Plug'n'Play - ESM ► it should be able to import a node builtin through the node: protocol
+🟩 Plug'n'Play - ESM ► it should be able to import the PnP API
 🟥 Plug'n'Play - ESM ► it should enter ESM mode when target is ESM but the cwd doesn't have a pnpapi
-🟥 Plug'n'Play - ESM ► it should load commonjs with an unknown extension
-🟥 Plug'n'Play - ESM ► it should load extensionless commonjs files as an entrypoint
-🟥 Plug'n'Play - ESM ► it should load symlinked extensionless commonjs files as an entrypoint
+🟩 Plug'n'Play - ESM ► it should load commonjs with an unknown extension
+🟩 Plug'n'Play - ESM ► it should load extensionless commonjs files as an entrypoint
+🟩 Plug'n'Play - ESM ► it should load symlinked extensionless commonjs files as an entrypoint
 🟥 Plug'n'Play - ESM ► it should not allow unknown extensions with {type: "module"}
 🟥 Plug'n'Play - ESM ► it should not resolve extensions
 🟥 Plug'n'Play - ESM ► it should not resolve JSON modules without an import assertion/attribute
-🟥 Plug'n'Play - ESM ► it should preserve search params in the resolve result (cache busting)
-🟥 Plug'n'Play - ESM ► it should resolve JSON modules with an import assertion/attribute
-🟥 Plug'n'Play - ESM ► it should respect exports
-🟥 Plug'n'Play - ESM ► it should set the main module
-🟥 Plug'n'Play - ESM ► it should support dynamic imports in commonjs mode
-🟥 Plug'n'Play - ESM ► it should support dynamic imports in ESM mode
+🟩 Plug'n'Play - ESM ► it should preserve search params in the resolve result (cache busting)
+🟩 Plug'n'Play - ESM ► it should resolve JSON modules with an import assertion/attribute
+🟩 Plug'n'Play - ESM ► it should respect exports
+🟩 Plug'n'Play - ESM ► it should set the main module
+🟩 Plug'n'Play - ESM ► it should support dynamic imports in commonjs mode
+🟩 Plug'n'Play - ESM ► it should support dynamic imports in ESM mode
 🟥 Plug'n'Play - ESM ► it should support ESM binaries
-🟥 Plug'n'Play - ESM ► it should support named exports in commonjs files
-🟥 Plug'n'Play - ESM ► it should support relative imports
-🟥 Plug'n'Play - ESM ► it should suppress the experimental ESM loader warning
-🟥 Plug'n'Play - ESM ► it should throw ERR_MODULE_NOT_FOUND when dynamically importing a nonexistent file
-🟥 Plug'n'Play - ESM ► it should throw ERR_MODULE_NOT_FOUND when statically importing a nonexistent file
-🟥 Plug'n'Play - ESM ► it should throw ERR_PACKAGE_PATH_NOT_EXPORTED when subpath isn't exported
-🟥 Plug'n'Play - ESM ► it should throw ERR_REQUIRE_ESM when requiring a .mjs file
-🟥 Plug'n'Play - ESM ► it should throw ERR_REQUIRE_ESM when requiring a file with type=module
-🟥 Plug'n'Play - ESM ► it should use legacy resolve when exports is missing
-🟥 Plug'n'Play - ESM ► private import mappings ► it should allow importing files regardless of parent URL
+🟩 Plug'n'Play - ESM ► it should support named exports in commonjs files
+🟩 Plug'n'Play - ESM ► it should support relative imports
+🟩 Plug'n'Play - ESM ► it should suppress the experimental ESM loader warning
+🟩 Plug'n'Play - ESM ► it should throw ERR_MODULE_NOT_FOUND when dynamically importing a nonexistent file
+🟩 Plug'n'Play - ESM ► it should throw ERR_MODULE_NOT_FOUND when statically importing a nonexistent file
+🟩 Plug'n'Play - ESM ► it should throw ERR_PACKAGE_PATH_NOT_EXPORTED when subpath isn't exported
+🟩 Plug'n'Play - ESM ► it should throw ERR_REQUIRE_ESM when requiring a .mjs file
+🟩 Plug'n'Play - ESM ► it should throw ERR_REQUIRE_ESM when requiring a file with type=module
+🟩 Plug'n'Play - ESM ► it should use legacy resolve when exports is missing
+🟩 Plug'n'Play - ESM ► private import mappings ► it should allow importing files regardless of parent URL
 🟥 Plug'n'Play - ESM ► private import mappings ► it should not allow mapping to another private mapping
-🟥 Plug'n'Play - ESM ► private import mappings ► it should support conditions
-🟥 Plug'n'Play - ESM ► private import mappings ► it should support mapping to a dependency
-🟥 Plug'n'Play - ESM ► private import mappings ► it should support private import mappings
-🟥 Plug'n'Play - ESM ► private import mappings ► it should support wildcards
-🟥 Plug'n'Play - ESM ► private import mappings ► it should use legacy resolve when mapping to a dependency without an exports field
-🟥 Plug'n'Play - ESM ► private import mappings ► it should use the closest manifest
+🟩 Plug'n'Play - ESM ► private import mappings ► it should support conditions
+🟩 Plug'n'Play - ESM ► private import mappings ► it should support mapping to a dependency
+🟩 Plug'n'Play - ESM ► private import mappings ► it should support private import mappings
+🟩 Plug'n'Play - ESM ► private import mappings ► it should support wildcards
+🟩 Plug'n'Play - ESM ► private import mappings ► it should use legacy resolve when mapping to a dependency without an exports field
+🟩 Plug'n'Play - ESM ► private import mappings ► it should use the closest manifest
 🟥 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
-🟥 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
+🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[33 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[44 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
-🟥 Plug'n'Play ► it should allow external modules to require internal ones
-🟥 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
-🟥 Plug'n'Play ► it should allow other PnP projects to require files from this one
+🟩 Plug'n'Play ► it should allow external modules to require internal ones
+🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
+🟩 Plug'n'Play ► it should allow other PnP projects to require files from this one
 🟩 Plug'n'Play ► it should allow other PnP projects to spawn inline scripts in this one
 🟩 Plug'n'Play ► it should allow packages to define whether they should be unplugged (false)
 🟥 Plug'n'Play ► it should allow packages to define whether they should be unplugged (true)
 🟩 Plug'n'Play ► it should allow packages to require themselves
 🟥 Plug'n'Play ► it should allow picking the unplugged packages by locator
-🟥 Plug'n'Play ► it should allow scripts outside of the dependency tree to require files within the dependency tree
+🟩 Plug'n'Play ► it should allow scripts outside of the dependency tree to require files within the dependency tree
 🟥 Plug'n'Play ► it should allow unplugging a deep package from a pnp installation
 🟥 Plug'n'Play ► it should allow unplugging a simple package from a pnp installation
 🟥 Plug'n'Play ► it should allow unplugging multiple identically named packages from a pnp installation
@@ -1442,9 +1442,9 @@
 🟩 Plug'n'Play ► it should be able to require files from a different dependency tree
 🟥 Plug'n'Play ► it should be able to resolve a dependency using a module instance without an id
 🟩 Plug'n'Play ► it should be able to resolve an absolute file from a module in an ignored folder
-🟥 Plug'n'Play ► it should be able to resolve relative preloads
+🟩 Plug'n'Play ► it should be able to resolve relative preloads
 🟩 Plug'n'Play ► it should correctly resolve an absolute path even when the issuer doesn't exist
-🟥 Plug'n'Play ► it should emit a warning for circular dependency exports access
+🟩 Plug'n'Play ► it should emit a warning for circular dependency exports access
 🟩 Plug'n'Play ► it should export the PnP API through the 'pnpapi' name
 🟩 Plug'n'Play ► it should expose 'findPnpApi' in the 'module' builtin
 🟩 Plug'n'Play ► it should expose the PnP version through 'process.versions.pnp'
@@ -1462,7 +1462,7 @@
 🟥 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (simple)
 🟩 Plug'n'Play ► it should install packages with peer dependencies within a node_modules directory (even if within the .pnp folder)
 🟩 Plug'n'Play ► it should install the packages within a node_modules directory (even if within the cache)
-🟥 Plug'n'Play ► it should load modules that haven't been loaded
+🟩 Plug'n'Play ► it should load modules that haven't been loaded
 🟥 Plug'n'Play ► it should make it possible to copy the pnp file and cache from one place to another
 🟥 Plug'n'Play ► it should mention which ancestor broke the peer dependency chain
 🟩 Plug'n'Play ► it should not automatically unplug all packages
@@ -1479,7 +1479,7 @@
 🟥 Plug'n'Play ► it should not touch the .pnp.cjs file when it already exists and is up-to-date
 🟥 Plug'n'Play ► it should not use the wrong pnpapi for a path owned by another pnpapi
 🟩 Plug'n'Play ► it should not warn when the peer dependency resolution is compatible
-🟥 Plug'n'Play ► it should output the "reloading the API instance" warning using process.emitWarning
+🟩 Plug'n'Play ► it should output the "reloading the API instance" warning using process.emitWarning
 🟥 Plug'n'Play ► it should pick the most specific locator
 🟥 Plug'n'Play ► it should properly forward the NODE_OPTIONS environment variable
 🟥 Plug'n'Play ► it should properly unplug a package with peer dependencies
@@ -1489,15 +1489,15 @@
 🟩 Plug'n'Play ► it should resolve two identical packages with the same object (easy)
 🟩 Plug'n'Play ► it should resolve virtual paths passed to process.dlopen
 🟥 Plug'n'Play ► it should respect pnpIgnorePatterns when using findPnpApi
-🟥 Plug'n'Play ► it should respect user provided conditions
+🟩 Plug'n'Play ► it should respect user provided conditions
 🟩 Plug'n'Play ► it should return the path to the PnP file when calling require.resolve('pnpapi')
 🟥 Plug'n'Play ► it should run scripts using a Node version that auto-injects the hook
 🟥 Plug'n'Play ► it should run the install scripts anew if the unplugged folder is removed
 🟥 Plug'n'Play ► it should set bytesRead on Windows when input is a pipe and EOF is thrown
-🟥 Plug'n'Play ► it should support circular requires
+🟩 Plug'n'Play ► it should support circular requires
 🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (different dependency trees)
 🟥 Plug'n'Play ► it should support the 'paths' option from require.resolve (same dependency tree)
-🟥 Plug'n'Play ► it should support user patched fs
+🟩 Plug'n'Play ► it should support user patched fs
 🟩 Plug'n'Play ► it should take trailing slashes inside the packageLocations of the PnP serialized state into account when resolving packages
 🟩 Plug'n'Play ► it should take trailing slashes into account when resolving paths
 🟥 Plug'n'Play ► it should terminate when the 'paths' option from require.resolve includes empty string and there is no .pnp.cjs in the working dir

@@ -264,6 +264,9 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
     std::fs::write(project.pnp_path().to_path_buf(), script)
         .map_err(Arc::new)?;
 
+    std::fs::write(project.pnp_loader_path().to_path_buf(), std::include_str!("pnp.loader.mjs"))
+        .map_err(Arc::new)?;
+
     Ok(())
 }
 

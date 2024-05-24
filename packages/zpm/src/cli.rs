@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+
 use clap::{Parser, Subcommand};
 use tokio::process::Command;
 
@@ -12,10 +14,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Install {},
-    Node {
-        #[arg(short, long)]
-        eval: Option<String>,
-    },
+
+    #[command(external_subcommand)]
+    External(Vec<String>),
 }
 
 pub async fn run_cli() -> Result<(), Error> {
@@ -46,21 +47,38 @@ pub async fn run_cli() -> Result<(), Error> {
                 .await?;
         }
 
-        Some(Commands::Node {eval}) => {
+        Some(Commands::External(args)) => {
             let project
                 = project::Project::new(None)?;
 
-            let mut command = Command::new("node");
+            match args[0].as_str() {
+                "node" => {
+                    let mut command = Command::new("node");
 
-            if let Some(pnp_path) = project.pnp_path().if_exists() {
-                command.env("NODE_OPTIONS", format!("--require {}", pnp_path.to_string()));
-            }
+                    command.args(&args[1..]);
 
-            if let Some(eval) = eval {
-                command.arg("-e").arg(eval);
-            }
+                    let mut node_options = std::env::var("NODE_OPTIONS")
+                        .unwrap_or_else(|_| "".to_string());
 
-            command.status().await.unwrap();
+                    if let Some(pnp_path) = project.pnp_path().if_exists() {
+                        node_options = format!("{} --require {}", node_options, pnp_path.to_string());
+                    }
+
+                    if let Some(pnp_loader_path) = project.pnp_loader_path().if_exists() {
+                        node_options = format!("{} --experimental-loader {}", node_options, pnp_loader_path.to_string());
+                    }
+
+                    if node_options.len() > 0 {
+                        command.env("NODE_OPTIONS", node_options);
+                    }
+        
+                    command.status().await.unwrap();
+                },
+
+                _ => {
+                    panic!("Unknown external subcommand: {}", args[0]);
+                }
+            };
         }
     }
 

@@ -84,6 +84,10 @@ impl Project {
         self.root.with_join_str(".pnp.cjs")
     }
 
+    pub fn pnp_loader_path(&self) -> Path {
+        self.root.with_join_str(".pnp.loader.mjs")
+    }
+
     pub fn lockfile(&self) -> Result<Lockfile, Error> {
         let lockfile_path
             = self.root.with_join_str(LOCKFILE_NAME);
