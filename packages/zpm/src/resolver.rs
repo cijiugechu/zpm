@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, fmt, marker::PhantomData, str::FromSt
 use bincode::{Decode, Encode};
 use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer, Serialize};
 
-use crate::{config, error::Error, fetcher::{fetch_folder_with_manifest, fetch_tarball_with_manifest, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
+use crate::{config, error::Error, fetcher::{fetch_folder_with_manifest, fetch_local_tarball_with_manifest, fetch_remote_tarball_with_manifest, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
 
 pub struct ResolveResult {
     pub resolution: Resolution,
@@ -66,6 +66,9 @@ pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, pa
         Range::Link(path)
             => resolve_link(&descriptor.ident, path, &descriptor.parent),
 
+        Range::Url(url)
+            => resolve_url(context, descriptor.ident, url).await,
+
         Range::Tarball(path)
             => resolve_tarball(context, descriptor.ident, path, &descriptor.parent, parent_data).await,
 
@@ -100,11 +103,20 @@ pub fn resolve_link(ident: &Ident, path: &str, parent: &Option<Locator>) -> Resu
     Ok(ResolveResult::new(resolution))
 }
 
+pub async fn resolve_url<'a>(context: InstallContext<'a>, ident: Ident, url: &str) -> Result<ResolveResult, Error> {
+    let locator = Locator::new(ident.clone(), Reference::Url(url.to_string()));
+
+    let (resolution, package_data)
+        = fetch_remote_tarball_with_manifest(context, &locator, url).await?;
+
+    Ok(ResolveResult::new_with_data(resolution, package_data))
+}
+
 pub async fn resolve_tarball<'a>(context: InstallContext<'a>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     let locator = Locator::new_bound(ident, Reference::Tarball(path.to_string()), parent.clone().map(Arc::new));
 
     let (resolution, package_data)
-        = fetch_tarball_with_manifest(context, &locator, path, &parent.clone().map(Arc::new), parent_data).await?;
+        = fetch_local_tarball_with_manifest(context, &locator, path, &parent.clone().map(Arc::new), parent_data).await?;
 
     Ok(ResolveResult::new_with_data(resolution, package_data))
 }

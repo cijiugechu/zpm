@@ -140,8 +140,11 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
         Reference::Portal(path)
             => fetch_portal(path, &locator.parent, parent_data),
 
+        Reference::Url(url)
+            => Ok(fetch_remote_tarball_with_manifest(context, &locator, url).await?.1),
+
         Reference::Tarball(path)
-            => Ok(fetch_tarball_with_manifest(context, &locator, path, &locator.parent, parent_data).await?.1),
+            => Ok(fetch_local_tarball_with_manifest(context, &locator, path, &locator.parent, parent_data).await?.1),
 
         Reference::Folder(path)
             => Ok(fetch_folder_with_manifest(context, &locator, path, &locator.parent, parent_data).await?.1),
@@ -191,7 +194,42 @@ pub fn fetch_portal(path: &str, parent: &Option<Arc<Locator>>, parent_data: Opti
     })
 }
 
-pub async fn fetch_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
+pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, url: &str) -> Result<(Resolution, PackageData), Error> {
+    let (path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
+        let client = http_client()?;
+        let response = client.get(url).send().await
+            .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
+
+        let archive = response.bytes().await
+            .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
+
+        convert_tar_gz_to_zip(&locator.ident, archive)
+    }).await?;
+
+    let first_entry = first_entry_from_zip(&data);
+    let manifest = first_entry
+        .and_then(|entry|
+            serde_json::from_slice::<Manifest>(&entry.data)
+                .map_err(Arc::new)
+                .map_err(Error::InvalidJsonData)
+        )?;
+
+    let resolution = Resolution {
+        version: manifest.version,
+        locator: locator.clone(),
+        dependencies: manifest.dependencies.unwrap_or_default(),
+        peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
+        optional_dependencies: HashSet::new(),
+    };
+
+    Ok((resolution, PackageData::Zip {
+        path,
+        data,
+        checksum,
+    }))
+}
+
+pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a tarball package");
     let parent_data = parent_data

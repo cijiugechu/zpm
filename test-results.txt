@@ -19,7 +19,7 @@
 🟥 Auth tests ► it should normalize registries url keys
 🟥 Auth tests ► it should support non-base64 encoded authentication ident
 
-[66 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
+[72 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
 
 🟩 Basic tests ► w/ the node-modules linker ► it should allow accessing a package via too many slashes
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly create resolution mounting points when using the link protocol
@@ -34,14 +34,14 @@
 🟩 Basic tests ► w/ the node-modules linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the node-modules linker ► it should fallback to the regular dependency if the peer dependency isn't met
 🟩 Basic tests ► w/ the node-modules linker ► it should install from archives on the filesystem
-🟥 Basic tests ► w/ the node-modules linker ► it should install from files on the internet
+🟩 Basic tests ► w/ the node-modules linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the node-modules linker ► it should install from local directories
 🟩 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the filesystem
-🟥 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the internet
+🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the node-modules linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the node-modules linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
 🟩 Basic tests ► w/ the node-modules linker ► it should prefer peer dependencies when a package also has the same regular dependency
@@ -60,14 +60,14 @@
 🟩 Basic tests ► w/ the pnp linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the pnp linker ► it should fallback to the regular dependency if the peer dependency isn't met
 🟩 Basic tests ► w/ the pnp linker ► it should install from archives on the filesystem
-🟥 Basic tests ► w/ the pnp linker ► it should install from files on the internet
+🟩 Basic tests ► w/ the pnp linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the pnp linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the filesystem
-🟥 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the internet
+🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the pnp linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the pnp linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
 🟩 Basic tests ► w/ the pnp linker ► it should prefer peer dependencies when a package also has the same regular dependency
@@ -86,14 +86,14 @@
 🟩 Basic tests ► w/ the pnpm linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the pnpm linker ► it should fallback to the regular dependency if the peer dependency isn't met
 🟩 Basic tests ► w/ the pnpm linker ► it should install from archives on the filesystem
-🟥 Basic tests ► w/ the pnpm linker ► it should install from files on the internet
+🟩 Basic tests ► w/ the pnpm linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the pnpm linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the filesystem
-🟥 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the internet
+🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the pnpm linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the pnpm linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
 🟩 Basic tests ► w/ the pnpm linker ► it should prefer peer dependencies when a package also has the same regular dependency
@@ -1590,10 +1590,10 @@
 🟩 Protocols ► link: ► it shouldn't cause the paths to be discarded when covered by other fetchers (alphabetical after)
 🟩 Protocols ► link: ► it shouldn't cause the paths to be discarded when covered by other fetchers (alphabetical before)
 
-[1 / 8] packages/acceptance-tests/pkg-tests-specs/sources/protocols/npm.test.js
+[3 / 8] packages/acceptance-tests/pkg-tests-specs/sources/protocols/npm.test.js
 
-🟥 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (fragment)
-🟥 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (query)
+🟩 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (fragment)
+🟩 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (query)
 🟥 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (semver)
 🟥 Protocols ► npm: ► it should allow fetching packages that have an unconventional url (tag)
 🟥 Protocols ► npm: ► it should allow fetching packages that have an unconventional url without specifying version

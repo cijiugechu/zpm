@@ -34,6 +34,9 @@ pub enum Range {
     #[try_pattern(pattern = r"(\.{0,2}/.*)")]
     Folder(String),
 
+    #[try_pattern(pattern = r"(https?://.*(?:/.*|\.tgz|\.tar\.gz))")]
+    Url(String),
+
     #[try_pattern(prefix = "patch:")]
     Patch(String),
 
@@ -73,6 +76,7 @@ yarn_serialization_protocol!(Range, "", {
             Range::Portal(portal) => format!("portal:{}", portal),
             Range::Tarball(file) => format!("file:{}", file),
             Range::Folder(file) => format!("file:{}", file),
+            Range::Url(url) => url.to_string(),
             Range::WorkspaceSemver(semver) => format!("workspace:{}", semver),
             Range::WorkspaceMagic(magic) => format!("workspace:{}", magic),
             Range::WorkspacePath(path) => format!("workspace:{}", path),
