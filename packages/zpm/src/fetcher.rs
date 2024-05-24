@@ -1,12 +1,10 @@
-use std::{fmt::{self, Display, Formatter}, io::{Cursor, Read, Write}, sync::Arc};
+use std::{collections::HashSet, fmt::{self, Display, Formatter}, io::{Cursor, Read}, sync::Arc};
 
 use arca::Path;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use tar::Archive;
-use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
-use crate::{config::registry_url_for, error::Error, hash::Sha256, http::http_client, install::InstallContext, primitives::{Ident, Locator, Reference}, semver};
+use crate::{config::registry_url_for, error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::first_entry_from_zip};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PackageData {
@@ -94,71 +92,44 @@ impl PackageData {
     }
 }
 
-fn ignore_tar_entry(p: &str, mut strip_components: u8) -> Option<&str> {
-    if p.starts_with('/') {
-        return None;
-    }
+fn convert_tar_gz_to_zip(ident: &Ident, tar_gz_data: Bytes) -> Result<Vec<u8>, Error> {
+    let mut decompressed = vec![];
 
-    let mut skip = 0;
+    flate2::read::GzDecoder::new(Cursor::new(tar_gz_data))
+        .read_to_end(&mut decompressed)
+        .map_err(Arc::new)
+        .map_err(Error::IoError)?;
 
-    for segment in p.split('/') {
-        if segment == ".." {
-            return None;
-        } else if strip_components > 0 {
-            strip_components -= 1;
-            skip += segment.len() + 1;
-        }
-    }
+    let entries = crate::zip::entries_from_tar(&decompressed)?;
+    let entries = crate::zip::strip_first_segment(entries);
 
-    if skip >= p.len() {
-        return None;
-    }
+    let manifest_entry = entries.iter().find(|entry| entry.name == "package.json")
+        .ok_or(Error::MissingPackageManifest)?;
 
-    Some(&p[skip..])
+    let manifest: Manifest = serde_json::from_slice(&manifest_entry.data)
+        .map_err(Arc::new)
+        .map_err(Error::InvalidJsonData)?;
+
+    let entries = crate::zip::normalize_entries(entries);
+    let entries = crate::zip::prefix_entries(entries, format!("node_modules/{}", ident.as_str()));
+
+    Ok(crate::zip::craft_zip(&entries))
 }
 
-fn convert_tar_gz_to_zip(ident: &Ident, tar_gz_data: Bytes) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-    // Create a GzDecoder to decompress the tar.gz data.
-    let tar_gz_cursor = Cursor::new(tar_gz_data);
-    let gz_decoder = flate2::bufread::GzDecoder::new(tar_gz_cursor);
+fn convert_folder_to_zip(ident: &Ident, folder_path: &Path) -> Result<Vec<u8>, Error> {
+    let entries = crate::zip::entries_from_folder(folder_path.to_path_buf())?;
 
-    // Create a new tar Archive with the decoder.
-    let mut archive = Archive::new(gz_decoder);
+    let manifest_entry = entries.iter().find(|entry| entry.name == "package.json")
+        .ok_or(Error::MissingPackageManifest)?;
 
-    // Prepare to write the zip file into a byte buffer.
-    let mut zip_buffer = Cursor::new(Vec::new());
-    let mut zip = ZipWriter::new(&mut zip_buffer);
+    let manifest: Manifest = serde_json::from_slice(&manifest_entry.data)
+        .map_err(Arc::new)
+        .map_err(Error::InvalidJsonData)?;
 
-    // Iterate over each file in the tar archive.
-    for file in archive.entries()? {
-        let mut file = file?;
+    let entries = crate::zip::normalize_entries(entries);
+    let entries = crate::zip::prefix_entries(entries, format!("node_modules/{}", ident.as_str()));
 
-        let file_name = file.path()?.into_owned();
-        let file_name_str = file_name.to_str().ok_or("Invalid UTF-8 in file name")?;
-
-        if let Some(file_name_str) = ignore_tar_entry(file_name_str, 1) {
-            let file_name_str = format!("node_modules/{}/{}", ident.as_str(), file_name_str);
-
-            // Start a new file in the zip archive.
-            zip.start_file(file_name_str, FileOptions::default()
-                .compression_method(CompressionMethod::Deflated))?;
-
-            // Copy contents from the tar file to the zip file.
-            let mut contents = Vec::new();
-            file.read_to_end(&mut contents)?;
-            zip.write_all(&contents)?;
-        }
-    }
-
-    // Finalize the zip archive.
-    zip.finish()?;
-    drop(zip);
-
-    // Retrieve the internal buffer of the zip writer.
-    let zip_data = zip_buffer.into_inner();
-
-    // Convert Vec<u8> to Bytes and return.
-    Ok(zip_data)
+    Ok(crate::zip::craft_zip(&entries))
 }
 
 pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
@@ -168,6 +139,12 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
 
         Reference::Portal(path)
             => fetch_portal(path, &locator.parent, parent_data),
+
+        Reference::Tarball(path)
+            => Ok(fetch_tarball_with_manifest(context, &locator, path, &locator.parent, parent_data).await?.1),
+
+        Reference::Folder(path)
+            => Ok(fetch_folder_with_manifest(context, &locator, path, &locator.parent, parent_data).await?.1),
 
         Reference::Semver(version)
             => fetch_semver(context, &locator, &locator.ident, &version).await,
@@ -182,7 +159,7 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
     }
 }
 
-pub fn fetch_link(path: &String, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
+pub fn fetch_link(path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a linked package");
     let parent_data = parent_data
@@ -198,7 +175,7 @@ pub fn fetch_link(path: &String, parent: &Option<Arc<Locator>>, parent_data: Opt
     })
 }
 
-pub fn fetch_portal(path: &String, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
+pub fn fetch_portal(path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a portal package");
     let parent_data = parent_data
@@ -214,7 +191,7 @@ pub fn fetch_portal(path: &String, parent: &Option<Arc<Locator>>, parent_data: O
     })
 }
 
-pub async fn fetch_tarball<'a>(context: InstallContext<'a>, locator: &Locator, path: &String, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
+pub async fn fetch_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a tarball package");
     let parent_data = parent_data
@@ -229,39 +206,66 @@ pub async fn fetch_tarball<'a>(context: InstallContext<'a>, locator: &Locator, p
             .map_err(Arc::new)?;
 
         convert_tar_gz_to_zip(&locator.ident, Bytes::from(archive))
-            .map_err(|err| Error::PackageConversionError(Arc::new(err)))
     }).await?;
 
-    Ok(PackageData::Zip {
+    let first_entry = first_entry_from_zip(&data);
+    let manifest = first_entry
+        .and_then(|entry|
+            serde_json::from_slice::<Manifest>(&entry.data)
+                .map_err(Arc::new)
+                .map_err(Error::InvalidJsonData)
+        )?;
+
+    let resolution = Resolution {
+        version: manifest.version,
+        locator: locator.clone(),
+        dependencies: manifest.dependencies.unwrap_or_default(),
+        peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
+        optional_dependencies: HashSet::new(),
+    };
+
+    Ok((resolution, PackageData::Zip {
         path,
         data,
         checksum,
-    })
+    }))
 }
 
-pub async fn fetch_directory<'a>(context: InstallContext<'a>, locator: &Locator, path: &String, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
+pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a tarball package");
     let parent_data = parent_data
         .expect("The parent data is required for retrieving the path of a tarball package");
 
-    let tarball_path = parent_data.path()
+    let folder_path = parent_data.path()
         .with_join(&parent_data.source_dir(parent))
         .with_join_str(&path);
 
     let (path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
-        let archive = std::fs::read(tarball_path.to_path_buf())
-            .map_err(Arc::new)?;
-
-        convert_tar_gz_to_zip(&locator.ident, Bytes::from(archive))
-            .map_err(|err| Error::PackageConversionError(Arc::new(err)))
+        convert_folder_to_zip(&locator.ident, &folder_path)
     }).await?;
 
-    Ok(PackageData::Zip {
+    let first_entry = first_entry_from_zip(&data);
+    let manifest = first_entry
+        .and_then(|entry|
+            serde_json::from_slice::<Manifest>(&entry.data)
+                .map_err(Arc::new)
+                .map_err(Error::InvalidJsonData)
+        )?;
+
+    let resolution = Resolution {
+        version: manifest.version,
+        locator: locator.clone(),
+        dependencies: manifest.dependencies.unwrap_or_default(),
+        peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
+        optional_dependencies: HashSet::new(),
+    };
+
+    Ok((resolution, PackageData::Zip {
         path,
         data,
         checksum,
-    })
+    }))
 }
 
 pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, ident: &Ident, version: &semver::Version) -> Result<PackageData, Error> {
@@ -276,7 +280,6 @@ pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, id
             .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
 
         convert_tar_gz_to_zip(ident, archive)
-            .map_err(|err| Error::PackageConversionError(Arc::new(err)))
     }).await?;
 
     Ok(PackageData::Zip {

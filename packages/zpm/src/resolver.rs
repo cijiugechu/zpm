@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, fmt, marker::PhantomData, str::FromSt
 use bincode::{Decode, Encode};
 use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer, Serialize};
 
-use crate::{config, error::Error, fetcher::{fetch_tarball, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, read_manifest, Manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
+use crate::{config, error::Error, fetcher::{fetch_folder_with_manifest, fetch_tarball_with_manifest, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
 
 pub struct ResolveResult {
     pub resolution: Resolution,
@@ -53,21 +53,27 @@ pub struct Resolution {
 }
 
 pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
-    match descriptor.range.clone() {
+    match &descriptor.range {
         Range::Git(range)
             => resolve_git(descriptor.ident, range).await,
 
         Range::Semver(range)
-            => resolve_semver(descriptor.ident, range).await,
+            => resolve_semver(&descriptor.ident, range).await,
 
         Range::SemverAlias(ident, range)
             => resolve_semver(ident, range).await,
 
         Range::Link(path)
-            => resolve_link(descriptor.ident, descriptor.parent, path),
+            => resolve_link(&descriptor.ident, path, &descriptor.parent),
+
+        Range::Tarball(path)
+            => resolve_tarball(context, descriptor.ident, path, &descriptor.parent, parent_data).await,
+
+        Range::Folder(path)
+            => resolve_folder(context, descriptor.ident, path, &descriptor.parent, parent_data).await,
 
         Range::Portal(path)
-            => resolve_portal(descriptor.ident, descriptor.parent, path, parent_data),
+            => resolve_portal(&descriptor.ident, path, &descriptor.parent, parent_data),
 
         Range::SemverTag(tag)
             => resolve_semver_tag(descriptor.ident, tag).await,
@@ -82,10 +88,10 @@ pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, pa
     }
 }
 
-pub fn resolve_link(ident: Ident, parent: Option<Locator>, path: String) -> Result<ResolveResult, Error> {
+pub fn resolve_link(ident: &Ident, path: &str, parent: &Option<Locator>) -> Result<ResolveResult, Error> {
     let resolution = Resolution {
         version: semver::Version::new(),
-        locator: Locator::new_bound(ident.clone(), Reference::Link(path), parent.map(Arc::new)),
+        locator: Locator::new_bound(ident.clone(), Reference::Link(path.to_string()), parent.clone().map(Arc::new)),
         dependencies: HashMap::new(),
         peer_dependencies: HashMap::new(),
         optional_dependencies: HashSet::new(),
@@ -94,22 +100,25 @@ pub fn resolve_link(ident: Ident, parent: Option<Locator>, path: String) -> Resu
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_tarball<'a>(context: InstallContext<'a>, locator: &Locator, path: &String, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
-    let package_data
-        = fetch_tarball(context, locator, path, parent, parent_data).await?;
+pub async fn resolve_tarball<'a>(context: InstallContext<'a>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+    let locator = Locator::new_bound(ident, Reference::Tarball(path.to_string()), parent.clone().map(Arc::new));
 
-    let resolution = Resolution {
-        version: semver::Version::new(),
-        locator: locator.clone(),
-        dependencies: HashMap::new(),
-        peer_dependencies: HashMap::new(),
-        optional_dependencies: HashSet::new(),
-    };
+    let (resolution, package_data)
+        = fetch_tarball_with_manifest(context, &locator, path, &parent.clone().map(Arc::new), parent_data).await?;
 
     Ok(ResolveResult::new_with_data(resolution, package_data))
 }
 
-pub fn resolve_portal(ident: Ident, parent: Option<Locator>, path: String, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+pub async fn resolve_folder<'a>(context: InstallContext<'a>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+    let locator = Locator::new_bound(ident, Reference::Folder(path.to_string()), parent.clone().map(Arc::new));
+
+    let (resolution, package_data)
+        = fetch_folder_with_manifest(context, &locator, path, &parent.clone().map(Arc::new), parent_data).await?;
+
+    Ok(ResolveResult::new_with_data(resolution, package_data))
+}
+
+pub fn resolve_portal(ident: &Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     let parent = parent.as_ref()
         .expect("The parent locator is required for resolving a portal package");
     let parent_data = parent_data
@@ -125,7 +134,7 @@ pub fn resolve_portal(ident: Ident, parent: Option<Locator>, path: String, paren
 
     let resolution = Resolution {
         version: semver::Version::new(),
-        locator: Locator::new_bound(ident.clone(), Reference::Portal(path), Some(Arc::new(parent.clone()))),
+        locator: Locator::new_bound(ident.clone(), Reference::Portal(path.to_string()), Some(Arc::new(parent.clone()))),
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
@@ -134,11 +143,11 @@ pub fn resolve_portal(ident: Ident, parent: Option<Locator>, path: String, paren
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_git(ident: Ident, git_range: GitRange) -> Result<ResolveResult, Error> {
+pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveResult, Error> {
     let commit = resolve_git_treeish(&git_range).await?;
 
     let locator = Locator::new(ident, Reference::Git(GitRange {
-        repo: git_range.repo,
+        repo: git_range.repo.clone(),
         treeish: crate::git::GitTreeish::Commit(commit),
     }));
 
@@ -153,7 +162,7 @@ pub async fn resolve_git(ident: Ident, git_range: GitRange) -> Result<ResolveRes
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver_tag(ident: Ident, tag: String) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver_tag(ident: Ident, tag: &str) -> Result<ResolveResult, Error> {
     let client = http_client()?;
     let url = format!("{}/{}", config::registry_url_for(&ident), ident);
 
@@ -173,8 +182,8 @@ pub async fn resolve_semver_tag(ident: Ident, tag: String) -> Result<ResolveResu
     let mut registry_data: RegistryMetadata = serde_json::from_str(registry_text.as_str())
         .map_err(Arc::new)?;
 
-    let version = registry_data.dist_tags.get(tag.as_str())
-        .ok_or(Error::MissingSemverTag(tag))?;
+    let version = registry_data.dist_tags.get(tag)
+        .ok_or_else(|| Error::MissingSemverTag(tag.to_string()))?;
 
     let manifest = registry_data.versions.remove(&version).unwrap();
 
@@ -189,7 +198,7 @@ pub async fn resolve_semver_tag(ident: Ident, tag: String) -> Result<ResolveResu
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver(ident: Ident, range: semver::Range) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver(ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
     pub struct FindField<'a, T> {
         field: &'a str,
         nested: T,
@@ -263,7 +272,7 @@ pub async fn resolve_semver(ident: Ident, range: semver::Range) -> Result<Resolv
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
 
     if response.status().as_u16() == 404 {
-        return Err(Error::PackageNotFound(ident, url));
+        return Err(Error::PackageNotFound(ident.clone(), url));
     }
  
     let registry_text = response.text().await
@@ -281,14 +290,14 @@ pub async fn resolve_semver(ident: Ident, range: semver::Range) -> Result<Resolv
     });
 
     let (version, manifest) = manifest_result
-        .map_err(|_| Error::NoCandidatesFound(Range::Semver(range)))?;
+        .map_err(|_| Error::NoCandidatesFound(Range::Semver(range.clone())))?;
 
     let transitive_dependencies = manifest.dependencies.clone()
         .unwrap_or_default();
 
     let resolution = Resolution {
         version: manifest.version,
-        locator: Locator::new(ident, Reference::Semver(version)),
+        locator: Locator::new(ident.clone(), Reference::Semver(version)),
         dependencies: transitive_dependencies,
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),

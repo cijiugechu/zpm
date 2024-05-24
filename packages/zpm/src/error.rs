@@ -39,6 +39,9 @@ pub enum Error {
     #[error("I/O error")]
     IoError(#[from] Arc<std::io::Error>),
 
+    #[error("UTF-8 error")]
+    Utf8Error(#[from] Arc<std::str::Utf8Error>),
+
     #[error("Invalid JSON data")]
     InvalidJsonData(#[from] Arc<serde_json::Error>),
 
@@ -89,6 +92,12 @@ pub enum Error {
 
     #[error("Unknown error")]
     UnknownError(Arc<Box<dyn std::error::Error + Send + Sync>>),
+
+    #[error("Invalid tar file path ({0})")]
+    InvalidTarFilePath(String),
+
+    #[error("Missing package manifest")]
+    MissingPackageManifest,
 
     #[error("Package conversion error ({0})")]
     PackageConversionError(Arc<Box<dyn std::error::Error + Send + Sync>>),

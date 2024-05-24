@@ -26,11 +26,13 @@ pub enum Range {
     #[try_pattern(prefix = "portal:")]
     Portal(String),
 
-    #[try_pattern(prefix = "file:", pattern = r"(.*\.tgz)")]
+    #[try_pattern(prefix = "file:", pattern = r"(.*\.(?:tgz|tar\.gz))")]
+    #[try_pattern(pattern = r"(\.{0,2}/.*\.(?:tgz|tar\.gz))")]
     Tarball(String),
 
     #[try_pattern(prefix = "file:")]
-    Directory(String),
+    #[try_pattern(pattern = r"(\.{0,2}/.*)")]
+    Folder(String),
 
     #[try_pattern(prefix = "patch:")]
     Patch(String),
@@ -54,7 +56,7 @@ pub enum Range {
 impl Range {
     pub fn must_bind(&self) -> bool {
         match &self {
-            Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Directory(_) | Range::Patch(_) => true,
+            Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) => true,
             _ => false,
         }
     }
@@ -70,7 +72,7 @@ yarn_serialization_protocol!(Range, "", {
             Range::Link(link) => format!("link:{}", link),
             Range::Portal(portal) => format!("portal:{}", portal),
             Range::Tarball(file) => format!("file:{}", file),
-            Range::Directory(file) => format!("file:{}", file),
+            Range::Folder(file) => format!("file:{}", file),
             Range::WorkspaceSemver(semver) => format!("workspace:{}", semver),
             Range::WorkspaceMagic(magic) => format!("workspace:{}", magic),
             Range::WorkspacePath(path) => format!("workspace:{}", path),

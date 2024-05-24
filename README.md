@@ -6,11 +6,19 @@ It's a work in progress and is not meant to be used in production.
 
 ## Differences in architecture
 
-### Many things are global to the process
+### Redesigned steps
 
-The Berry codebase used `Configuration` and `Project` to store most information about the process and the project. It made it theoretically possible to instantiate multiple projects in the same process, but in practice this was rarely used.
+The Berry codebase uses a fairly sequential architecture: resolution, then fetching, then linking. The zpm codebase, on the other hand, interlaces the resolution and the fetching. There are a few reasons for this:
 
-In zpm I tried a different approach where everything is global to the process and lazily computed. For instance, the `project::root()` function will return the path to the project root based on the current working directory and cache it for the remainder of the process. Similarly, `project::lockfile()` will parse the lockfile relative to `project::root()` and cache the result.
+- Various non-semver protocols require fetching to be able to resolve the dependencies (git dependencies, `file:` dependencies), so in practice even with separate steps we need a way to call one step from the other.
+
+- Rust doesn't have great and efficient primitives to handle mutating a single store from multiple places (in practice we'd have to use `Arc<Mutex<Store>>` or something similar, but that kills some of the benefits of running the fetch in parallel).
+
+- One of the goals of the project is to make commands as fast as we can. By interlacing the resolution and the fetching, we can start fetching the first package as soon as we know we need it, rather than waiting for the resolution to be done.
+
+### Serialization protocol
+
+Many types are using the `yarn_serialization_protocol` macro. String serialization required a lot of boilerplate to support Serde, TryFrom, and FromStr, and I wanted to have a single place where all those details were handled (with the idea that this would also allow us to standardize things like color management).
 
 ### JSON lockfile
 

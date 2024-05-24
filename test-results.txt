@@ -19,7 +19,7 @@
 🟥 Auth tests ► it should normalize registries url keys
 🟥 Auth tests ► it should support non-base64 encoded authentication ident
 
-[51 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
+[66 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
 
 🟩 Basic tests ► w/ the node-modules linker ► it should allow accessing a package via too many slashes
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly create resolution mounting points when using the link protocol
@@ -31,16 +31,16 @@
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly install a single scoped dependency that contains no sub-dependencies
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly install a soft-link
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly install an inter-dependency loop
-🟥 Basic tests ► w/ the node-modules linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
+🟩 Basic tests ► w/ the node-modules linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the node-modules linker ► it should fallback to the regular dependency if the peer dependency isn't met
-🟥 Basic tests ► w/ the node-modules linker ► it should install from archives on the filesystem
+🟩 Basic tests ► w/ the node-modules linker ► it should install from archives on the filesystem
 🟥 Basic tests ► w/ the node-modules linker ► it should install from files on the internet
-🟥 Basic tests ► w/ the node-modules linker ► it should install from local directories
+🟩 Basic tests ► w/ the node-modules linker ► it should install from local directories
 🟩 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
-🟥 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from a local directory
-🟥 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the filesystem
+🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from a local directory
+🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟥 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the node-modules linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the node-modules linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
@@ -57,16 +57,16 @@
 🟩 Basic tests ► w/ the pnp linker ► it should correctly install a single scoped dependency that contains no sub-dependencies
 🟩 Basic tests ► w/ the pnp linker ► it should correctly install a soft-link
 🟩 Basic tests ► w/ the pnp linker ► it should correctly install an inter-dependency loop
-🟥 Basic tests ► w/ the pnp linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
+🟩 Basic tests ► w/ the pnp linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the pnp linker ► it should fallback to the regular dependency if the peer dependency isn't met
-🟥 Basic tests ► w/ the pnp linker ► it should install from archives on the filesystem
+🟩 Basic tests ► w/ the pnp linker ► it should install from archives on the filesystem
 🟥 Basic tests ► w/ the pnp linker ► it should install from files on the internet
-🟥 Basic tests ► w/ the pnp linker ► it should install from local directories
+🟩 Basic tests ► w/ the pnp linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
-🟥 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from a local directory
-🟥 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the filesystem
+🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from a local directory
+🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟥 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the pnp linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the pnp linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
@@ -83,16 +83,16 @@
 🟩 Basic tests ► w/ the pnpm linker ► it should correctly install a single scoped dependency that contains no sub-dependencies
 🟩 Basic tests ► w/ the pnpm linker ► it should correctly install a soft-link
 🟩 Basic tests ► w/ the pnpm linker ► it should correctly install an inter-dependency loop
-🟥 Basic tests ► w/ the pnpm linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
+🟩 Basic tests ► w/ the pnpm linker ► it should fallback to dependencies if the parent doesn't provide the peer dependency
 🟩 Basic tests ► w/ the pnpm linker ► it should fallback to the regular dependency if the peer dependency isn't met
-🟥 Basic tests ► w/ the pnpm linker ► it should install from archives on the filesystem
+🟩 Basic tests ► w/ the pnpm linker ► it should install from archives on the filesystem
 🟥 Basic tests ► w/ the pnpm linker ► it should install from files on the internet
-🟥 Basic tests ► w/ the pnpm linker ► it should install from local directories
+🟩 Basic tests ► w/ the pnpm linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
 🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
 🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
-🟥 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from a local directory
-🟥 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the filesystem
+🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from a local directory
+🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟥 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the internet
 🟩 Basic tests ► w/ the pnpm linker ► it should not add the implicit self dependency if an explicit one already exists
 🟩 Basic tests ► w/ the pnpm linker ► it should not add the implicit self dependency if an explicit one already exists (aliases)
@@ -567,7 +567,7 @@
 🟥 Commands ► init ► it should create a new package.json in the specified directory even if said directory doesn't exist
 🟥 Commands ► init ► it should create a new package.json in the specified directory if it doesn't exist
 
-[0 / 35] packages/acceptance-tests/pkg-tests-specs/sources/commands/install.test.ts
+[3 / 35] packages/acceptance-tests/pkg-tests-specs/sources/commands/install.test.ts
 
 🟥 Commands ► install ► displays validation issues of nested workspaces
 🟥 Commands ► install ► it should accept to add files to the cache when using --immutable without --immutable-cache
@@ -575,9 +575,9 @@
 🟥 Commands ► install ► it should disable immutable installs when using `--mode=update-lockfile`
 🟥 Commands ► install ► it should enable --refresh-lockfile --immutable by default in public PR CIs
 🟥 Commands ► install ► it should fetch only required packages when using `--mode=update-lockfile`
-🟥 Commands ► install ► it should not enable --refresh-lockfile --immutable if the GH environment file is missing
-🟥 Commands ► install ► it should not enable --refresh-lockfile --immutable if the GH environment file is weird
-🟥 Commands ► install ► it should not enable --refresh-lockfile --immutable in private PR CIs
+🟩 Commands ► install ► it should not enable --refresh-lockfile --immutable if the GH environment file is missing
+🟩 Commands ► install ► it should not enable --refresh-lockfile --immutable if the GH environment file is weird
+🟩 Commands ► install ► it should not enable --refresh-lockfile --immutable in private PR CIs
 🟥 Commands ► install ► it should print a warning when using `enableScripts: false`
 🟥 Commands ► install ► it should print an info when `dependenciesMeta[].built: false`, even when using using `enableScripts: false`
 🟥 Commands ► install ► it should print regular messages as JSON items when using --json
@@ -978,7 +978,7 @@
 🟩 Dragon tests ► it should pass the dragon test 8
 🟩 Dragon tests ► it should pass the dragon test 9
 
-[5 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
+[8 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
 
 🟥 "exports" field ► "main" field and dot object array fallback "exports" field
 🟥 "exports" field ► "main" field and dot object conditional "exports" field
@@ -997,11 +997,11 @@
 🟥 "exports" field ► implicit "main" field
 🟩 "exports" field ► link: with exports (inside the project)
 🟩 "exports" field ► link: with exports (outside the project)
-🟥 "exports" field ► main field and only import top-level object conditional "exports" field
-🟥 "exports" field ► manifest not exported
+🟩 "exports" field ► main field and only import top-level object conditional "exports" field
+🟩 "exports" field ► manifest not exported
 🟥 "exports" field ► object subpath "exports" field
 🟥 "exports" field ► object subpath patterns "exports" field
-🟥 "exports" field ► only import top-level object conditional "exports" field
+🟩 "exports" field ► only import top-level object conditional "exports" field
 🟩 "exports" field ► pnpapi with exports
 🟥 "exports" field ► pnpIgnorePatterns with exports (issuer ignored)
 🟩 "exports" field ► pnpIgnorePatterns with exports (subpath ignored)
@@ -1015,7 +1015,7 @@
 🟥 autoClean ► it should remove inactive entries from the cache
 🟥 autoClean ► it shouldn't remove active entries from the cache
 
-[2 / 19] packages/acceptance-tests/pkg-tests-specs/sources/features/cache.test.ts
+[4 / 19] packages/acceptance-tests/pkg-tests-specs/sources/features/cache.test.ts
 
 🟥 Cache ► it should detect when the files checksum is incorrect
 🟥 Cache ► it should enforce checksum validation when their cache key is a different version but still above the threshold, if cacheMigrationMode=match-spec
@@ -1026,9 +1026,9 @@
 🟥 Cache ► it should ignore checksum mismatches and regenerate archives when their cache key is past the threshold, if cacheMigrationMode=required-only
 🟥 Cache ► it should ignore daylight saving time (DST)
 🟥 Cache ► it should ignore timezones
-🟥 Cache ► it should make packages installable even without network (global cache, with lockfile)
+🟩 Cache ► it should make packages installable even without network (global cache, with lockfile)
 🟩 Cache ► it should make packages installable even without network (global cache, without lockfile)
-🟥 Cache ► it should make packages installable even without network (local cache, with lockfile)
+🟩 Cache ► it should make packages installable even without network (local cache, with lockfile)
 🟩 Cache ► it should make packages installable even without network (local cache, without lockfile)
 🟥 Cache ► it should not confuse the cache key when merging an upgraded cache key branch into a feature branch
 🟥 Cache ► it should refetch archive when YARN_CHECKSUM_BEHAVIOR=reset and the files checksum is incorrect
@@ -1101,14 +1101,14 @@
 🟥 Features ► enableNetwork ► it should fix the 'latest' tag to reference the highest version found in the cache
 🟥 Features ► enableNetwork ► it should let Yarn reuse the package metadata from its cache
 
-[0 / 6] packages/acceptance-tests/pkg-tests-specs/sources/features/immutablePatterns.test.ts
+[1 / 6] packages/acceptance-tests/pkg-tests-specs/sources/features/immutablePatterns.test.ts
 
 🟥 Features ► immutablePatterns ► should detect changes within folders
 🟥 Features ► immutablePatterns ► should prevent reformatting of manifests when so configured
 🟥 Features ► immutablePatterns ► shouldn't allow specific paths to be created when the immutable flag is used
 🟥 Features ► immutablePatterns ► shouldn't allow specific paths to be updated when the immutable flag is used
 🟥 Features ► immutablePatterns ► shouldn't fail when a folder didn't change
-🟥 Features ► immutablePatterns ► shouldn't have an effect unless --immutable is set
+🟩 Features ► immutablePatterns ► shouldn't have an effect unless --immutable is set
 
 [0 / 4] packages/acceptance-tests/pkg-tests-specs/sources/features/initFields.test.ts
 
@@ -1163,11 +1163,11 @@
 🟥 Mirror ► enableMirror ► it should cache the file after the first download
 🟥 Mirror ► enableMirror ► it should download the packages everytime when disabled
 
-[0 / 6] packages/acceptance-tests/pkg-tests-specs/sources/features/packageExtensions.test.ts
+[1 / 6] packages/acceptance-tests/pkg-tests-specs/sources/features/packageExtensions.test.ts
 
 🟥 Features ► Package Extensions ► it should allow to add peer dependencies to a package
 🟥 Features ► Package Extensions ► it should allow to add regular dependencies to a package
-🟥 Features ► Package Extensions ► it should store the original packages to the lockfile
+🟩 Features ► Package Extensions ► it should store the original packages to the lockfile
 🟥 Features ► Package Extensions ► it should warn on unneeded package extensions (dependencies)
 🟥 Features ► Package Extensions ► it should warn on unneeded package extensions (peerDependenciesMeta)
 🟥 Features ► Package Extensions ► it should warn on unused package extensions
@@ -1212,14 +1212,14 @@
 🟥 Features ► Project detection ► it should move upward until it finds the project
 🟥 Features ► Project detection ► it shouldn't cross past lockfiles
 
-[0 / 9] packages/acceptance-tests/pkg-tests-specs/sources/features/prunedNativeDeps.test.ts
+[2 / 9] packages/acceptance-tests/pkg-tests-specs/sources/features/prunedNativeDeps.test.ts
 
 🟥 Features ► Pruned native deps ► should also validate other architectures than the current one if necessary when using --check-cache
 🟥 Features ► Pruned native deps ► should detect packages being tampered when using --check-cache
 🟥 Features ► Pruned native deps ► should only fetch other architectures when using --check-cache if they are already in the cache
 🟥 Features ► Pruned native deps ► should overfetch if requested to do so
-🟥 Features ► Pruned native deps ► should produce a stable lockfile, regardless of the architecture
-🟥 Features ► Pruned native deps ► should produce a stable PnP hook, regardless of the architecture
+🟩 Features ► Pruned native deps ► should produce a stable lockfile, regardless of the architecture
+🟩 Features ► Pruned native deps ► should produce a stable PnP hook, regardless of the architecture
 🟥 Features ► Pruned native deps ► should resolve all dependencies, regardless of the system
 🟥 Features ► Pruned native deps ► shouldn't break when using --check-cache with native packages
 🟥 Features ► Pruned native deps ► shouldn't fetch packages that it won't need
@@ -1271,12 +1271,12 @@
 🟥 Legacy tests ► it should import lock entries from v1 lockfiles preserving the alias
 🟥 Legacy tests ► it should import unconventional tarball entries
 
-[0 / 2] packages/acceptance-tests/pkg-tests-specs/sources/lock.test.ts
+[1 / 2] packages/acceptance-tests/pkg-tests-specs/sources/lock.test.ts
 
-🟥 Lock tests ► it should correctly lock dependencies
+🟩 Lock tests ► it should correctly lock dependencies
 🟥 Lock tests ► it shouldn't loose track of the resolutions when upgrading the lockfile version
 
-[9 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
+[11 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
 
 🟥 Node_Modules ► 'winLinkType: junctions' not-on Windows should use symlinks in node_modules directories
 🟥 Node_Modules ► 'winLinkType: symlinks' not-on Windows should use symlinks in node_modules directories
@@ -1322,9 +1322,9 @@
 🟥 Node_Modules ► should respect transitive peer dependencies
 🟥 Node_Modules ► should return real cwd for scripts inside workspaces
 🟥 Node_Modules ► should setup the right symlinks
-🟥 Node_Modules ► should skip linking incompatible package
+🟩 Node_Modules ► should skip linking incompatible package
 🟥 Node_Modules ► should still hoist direct dependencies from portal target to parent with nmHoistingLimits: dependencies
-🟥 Node_Modules ► should support 'yarn run' from within build scripts
+🟩 Node_Modules ► should support 'yarn run' from within build scripts
 🟥 Node_Modules ► should support aliases
 🟥 Node_Modules ► should support dependencies hoist border
 🟥 Node_Modules ► should support dependency via link: protocol to a missing folder
@@ -1424,7 +1424,7 @@
 🟥 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟥 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[30 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[33 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟥 Plug'n'Play ► it should allow external modules to require internal ones
 🟥 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1485,8 +1485,8 @@
 🟥 Plug'n'Play ► it should properly unplug a package with peer dependencies
 🟥 Plug'n'Play ► it should remove lingering folders from the node_modules even when they contain dot-folders
 🟥 Plug'n'Play ► it should remove the lingering node_modules folders
-🟥 Plug'n'Play ► it should resolve two identical packages with the same object (complex)
-🟥 Plug'n'Play ► it should resolve two identical packages with the same object (easy)
+🟩 Plug'n'Play ► it should resolve two identical packages with the same object (complex)
+🟩 Plug'n'Play ► it should resolve two identical packages with the same object (easy)
 🟩 Plug'n'Play ► it should resolve virtual paths passed to process.dlopen
 🟥 Plug'n'Play ► it should respect pnpIgnorePatterns when using findPnpApi
 🟥 Plug'n'Play ► it should respect user provided conditions
@@ -1508,7 +1508,7 @@
 🟥 Plug'n'Play ► it should throw when a path is controlled by multiple pnpapi instances
 🟩 Plug'n'Play ► it should throw when using require.resolve with unsupported options
 🟥 Plug'n'Play ► it should transparently support the "resolve" package
-🟥 Plug'n'Play ► it should update the .pnp.cjs file when it already exists but isn't up-to-date
+🟩 Plug'n'Play ► it should update the .pnp.cjs file when it already exists but isn't up-to-date
 🟩 Plug'n'Play ► it should use the regular Node resolution when requiring files outside of the pnp install tree
 🟥 Plug'n'Play ► it should warn when the peer dependency resolution is incompatible
 🟥 Plug'n'Play ► it should work when working inside a sandbox environment full of symlinks, and pnpEnableInlining is set to false

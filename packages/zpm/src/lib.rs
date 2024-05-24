@@ -17,3 +17,4 @@ pub mod resolver;
 pub mod semver;
 pub mod serialize;
 pub mod tree_resolver;
+pub mod zip;
