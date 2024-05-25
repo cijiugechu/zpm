@@ -192,7 +192,13 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
             .sorted()
             .collect::<Vec<_>>();
 
-        let package_location_abs = &physical_package_data.path()
+        let virtual_dir = match &locator.reference {
+            Reference::Virtual(_, hash) => format!("__virtual__/{}/0/", hash),
+            _ => "".to_string(),
+        };
+
+        let package_location_abs = physical_package_data.path()
+            .with_join_str(&virtual_dir)
             .with_join(&physical_package_data.source_dir(&locator));
 
         let mut package_location = project.root

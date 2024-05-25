@@ -140,7 +140,7 @@ impl TreeResolver {
             if !has_peer_dependencies {
                 self.resolve_peer_dependencies(
                     &dependency_descriptor,
-                    &parent_locator,
+                    &dependency_locator.clone(),
                     peer_slots,
                     top_locator,
                     is_optional,

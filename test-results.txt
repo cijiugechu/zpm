@@ -19,7 +19,7 @@
 🟥 Auth tests ► it should normalize registries url keys
 🟥 Auth tests ► it should support non-base64 encoded authentication ident
 
-[72 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
+[78 / 78] packages/acceptance-tests/pkg-tests-specs/sources/basic.test.js
 
 🟩 Basic tests ► w/ the node-modules linker ► it should allow accessing a package via too many slashes
 🟩 Basic tests ► w/ the node-modules linker ► it should correctly create resolution mounting points when using the link protocol
@@ -37,8 +37,8 @@
 🟩 Basic tests ► w/ the node-modules linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the node-modules linker ► it should install from local directories
 🟩 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
-🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
-🟥 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
+🟩 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
+🟩 Basic tests ► w/ the node-modules linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟩 Basic tests ► w/ the node-modules linker ► it should install the dependencies of any dependency fetched from the internet
@@ -63,8 +63,8 @@
 🟩 Basic tests ► w/ the pnp linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the pnp linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
-🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
-🟥 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
+🟩 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
+🟩 Basic tests ► w/ the pnp linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟩 Basic tests ► w/ the pnp linker ► it should install the dependencies of any dependency fetched from the internet
@@ -89,8 +89,8 @@
 🟩 Basic tests ► w/ the pnpm linker ► it should install from files on the internet
 🟩 Basic tests ► w/ the pnpm linker ► it should install from local directories
 🟩 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from top-level)
-🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
-🟥 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
+🟩 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (from within a dependency)
+🟩 Basic tests ► w/ the pnpm linker ► it should install in such a way that peer dependencies can be resolved (two levels deep)
 🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from a local directory
 🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the filesystem
 🟩 Basic tests ► w/ the pnpm linker ► it should install the dependencies of any dependency fetched from the internet
@@ -961,10 +961,10 @@
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires mismatched version of workspace-b
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires workspace-b, workspace-b requires workspace-a
 
-[7 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
+[6 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
 
 🟩 Dragon tests ► it should pass the dragon test 1
-🟩 Dragon tests ► it should pass the dragon test 10
+🟥 Dragon tests ► it should pass the dragon test 10
 🟥 Dragon tests ► it should pass the dragon test 11 with "nodeLinker: pnp"
 🟥 Dragon tests ► it should pass the dragon test 11 with "nodeLinker: pnpm"
 🟥 Dragon tests ► it should pass the dragon test 12
@@ -1424,7 +1424,7 @@
 🟥 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[44 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[47 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1457,9 +1457,9 @@
 🟩 Plug'n'Play ► it should generate the same hooks for two projects with the same configuration
 🟥 Plug'n'Play ► it should implicitly allow @types accesses if there are matching peer dependencies
 🟥 Plug'n'Play ► it should initialize a symlinked pnpapi module only once when working inside a sandbox environment full of symlinks
-🟥 Plug'n'Play ► it should install in such a way that two identical packages with different peer dependencies are different instances
+🟩 Plug'n'Play ► it should install in such a way that two identical packages with different peer dependencies are different instances
 🟩 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (complex)
-🟥 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (simple)
+🟩 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (simple)
 🟩 Plug'n'Play ► it should install packages with peer dependencies within a node_modules directory (even if within the .pnp folder)
 🟩 Plug'n'Play ► it should install the packages within a node_modules directory (even if within the cache)
 🟩 Plug'n'Play ► it should load modules that haven't been loaded
@@ -1482,7 +1482,7 @@
 🟩 Plug'n'Play ► it should output the "reloading the API instance" warning using process.emitWarning
 🟥 Plug'n'Play ► it should pick the most specific locator
 🟥 Plug'n'Play ► it should properly forward the NODE_OPTIONS environment variable
-🟥 Plug'n'Play ► it should properly unplug a package with peer dependencies
+🟩 Plug'n'Play ► it should properly unplug a package with peer dependencies
 🟥 Plug'n'Play ► it should remove lingering folders from the node_modules even when they contain dot-folders
 🟥 Plug'n'Play ► it should remove the lingering node_modules folders
 🟩 Plug'n'Play ► it should resolve two identical packages with the same object (complex)
@@ -1521,11 +1521,11 @@
 🟥 Plug'n'Play ► it shouldn't remove the lingering node_modules folders when they contain dot-folders
 🟥 Plug'n'Play ► should skip building incompatible package
 
-[14 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
+[15 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
 
 🟩 Plug'n'Play API ► it should expose VERSIONS
 🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return null when the specified path isn't a virtual
-🟥 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return the transformed path when possible
+🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return the transformed path when possible
 🟥 Plug'n'Play API ► Semantic Errors ► it should throw detailed errors when a builtin is not found and the 'considerBuiltins' option is set to false
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package dependencies
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package location
