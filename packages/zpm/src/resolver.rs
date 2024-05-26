@@ -50,6 +50,10 @@ pub struct Resolution {
     #[serde(rename = "optionalDependencies")]
     #[serde(skip_serializing_if = "HashSet::is_empty")]
     pub optional_dependencies: HashSet<Ident>,
+
+    #[serde(default)]
+    #[serde(skip_serializing_if = "HashSet::is_empty")]
+    pub missing_peer_dependencies: HashSet<Ident>,
 }
 
 pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
@@ -98,6 +102,7 @@ pub fn resolve_link(ident: &Ident, path: &str, parent: &Option<Locator>) -> Resu
         dependencies: HashMap::new(),
         peer_dependencies: HashMap::new(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -150,6 +155,7 @@ pub fn resolve_portal(ident: &Ident, path: &str, parent: &Option<Locator>, paren
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -169,6 +175,7 @@ pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveRe
         dependencies: HashMap::new(),
         peer_dependencies: HashMap::new(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -205,6 +212,7 @@ pub async fn resolve_semver_tag(ident: Ident, tag: &str) -> Result<ResolveResult
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -313,6 +321,7 @@ pub async fn resolve_semver(ident: &Ident, range: &semver::Range) -> Result<Reso
         dependencies: transitive_dependencies,
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -341,6 +350,7 @@ pub fn resolve_workspace_by_name(context: InstallContext, ident: Ident) -> Resul
                 dependencies,
                 peer_dependencies,
                 optional_dependencies: HashSet::new(),
+                missing_peer_dependencies: HashSet::new(),
             };
 
             Ok(ResolveResult::new(resolution))

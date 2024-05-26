@@ -93,7 +93,6 @@ impl TreeResolver {
             virtualized_descriptor: Descriptor,
             virtualized_locator: Locator,
 
-            missing_peer_dependencies: HashSet<Ident>,
             next_peer_slots: HashMap<Ident, Locator>,
 
             is_optional: bool,
@@ -171,7 +170,6 @@ impl TreeResolver {
                 virtualized_descriptor: virtualized_descriptor.clone(),
                 virtualized_locator: virtualized_locator.clone(),
 
-                missing_peer_dependencies: HashSet::new(),
                 next_peer_slots: HashMap::new(),
 
                 is_optional,
@@ -199,6 +197,7 @@ impl TreeResolver {
                 .peer_dependencies
                 .keys().cloned().sorted().collect();
 
+            let mut missing_peer_dependencies = HashSet::new();
             let mut peer_dependencies_to_remove = vec![];
 
             for peer_ident in peer_dependencies {
@@ -256,7 +255,7 @@ impl TreeResolver {
                 }
 
                 if peer_descriptor.range == Range::MissingPeerDependency {
-                    operation.missing_peer_dependencies.insert(peer_descriptor.ident.clone());
+                    missing_peer_dependencies.insert(peer_ident.clone());
                 }
 
                 operation.next_peer_slots.insert(
@@ -265,12 +264,14 @@ impl TreeResolver {
                 );
             }
 
-            let virtualized_peer_dependencies = &mut self.resolution_tree.locator_resolutions
-                .get_mut(&operation.virtualized_locator).unwrap()
-                .peer_dependencies;
+            let virtualized_resolution = self.resolution_tree.locator_resolutions
+                .get_mut(&operation.virtualized_locator).unwrap();
+
+            virtualized_resolution.missing_peer_dependencies
+                = missing_peer_dependencies;
 
             for peer_ident in peer_dependencies_to_remove {
-                virtualized_peer_dependencies.remove(&peer_ident);
+                virtualized_resolution.peer_dependencies.remove(&peer_ident);
             }
         }
 
@@ -406,12 +407,11 @@ impl TreeResolver {
                     .or_insert(HashSet::new());
             }
 
-            let virtualized_dependencies = &mut self.resolution_tree.locator_resolutions
-                .get_mut(&operation.virtualized_locator).unwrap()
-                .dependencies;
+            let virtualized_resolution = self.resolution_tree.locator_resolutions
+                .get_mut(&operation.virtualized_locator).unwrap();
 
-            for missing_peer_dependency in &operation.missing_peer_dependencies {
-                virtualized_dependencies.remove(missing_peer_dependency);
+            for missing_peer_dependency in &virtualized_resolution.missing_peer_dependencies {
+                virtualized_resolution.dependencies.remove(missing_peer_dependency);
             }
         }
     }

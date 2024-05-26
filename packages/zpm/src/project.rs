@@ -130,7 +130,7 @@ impl Project {
 
     pub fn package_cache(&self) -> DiskCache {
         let cache_path
-            = self.root.with_join_str("node_modules/.zpm");
+            = self.root.with_join_str(".yarn/cache");
 
         DiskCache::new(cache_path)
     }
@@ -175,26 +175,32 @@ impl Workspace {
 
         if let Some(patterns) = &self.manifest.workspaces {
             for pattern in patterns {
-                if !pattern.ends_with("/*") {
-                    return Err(Error::InvalidWorkspacePattern(pattern.to_string()));
-                }
+                if pattern.ends_with("/*") {
+                    let slice = &pattern[0..pattern.len() - 2];
 
-                let slice = &pattern[0..pattern.len() - 2];
-
-                let entries = self.path.with_join_str(slice).to_path_buf().read_dir()
-                    .map_err(Arc::new)?;
-
-                for entry in entries {
-                    let entry = entry
+                    let entries = self.path.with_join_str(slice).to_path_buf().read_dir()
                         .map_err(Arc::new)?;
-
-                    let entry_path = entry.file_name().into_string().unwrap();
-
-                    let mut path = self.path.with_join_str(slice);
-                    path.join_str(entry_path);
+    
+                    for entry in entries {
+                        let entry = entry
+                            .map_err(Arc::new)?;
+    
+                        let entry_path = entry.file_name().into_string().unwrap();
+    
+                        let mut path = self.path.with_join_str(slice);
+                        path.join_str(entry_path);
+    
+                        if path.with_join_str(MANIFEST_NAME).fs_is_file() {
+                            workspaces.push(Workspace::from_path(&self.path, path)?);
+                        }
+                    }
+                } else {
+                    let path = self.path.with_join_str(pattern);
 
                     if path.with_join_str(MANIFEST_NAME).fs_is_file() {
                         workspaces.push(Workspace::from_path(&self.path, path)?);
+                    } else {
+                        return Err(Error::InvalidWorkspacePattern(pattern.to_string()));
                     }
                 }
             }

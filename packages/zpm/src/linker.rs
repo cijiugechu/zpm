@@ -8,7 +8,7 @@ use serde_with::serde_as;
 use zip::ZipArchive;
 use zpm_macros::track_time;
 
-use crate::{error::Error, fetcher::{PackageData, PackageLinking}, install::Install, primitives::{Ident, Locator, Reference}, project::Project};
+use crate::{error::Error, fetcher::{PackageData, PackageLinking}, install::Install, misc::change_file, primitives::{Ident, Locator, Reference}, project::Project, yarn_serialization_protocol};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
@@ -119,12 +119,25 @@ fn get_linker_data(locator: &Locator, data: &PackageData) -> LinkerData {
 }
 
 #[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct PnpReference(Locator);
+
+yarn_serialization_protocol!(PnpReference, "", {
+    serialize(&self) {
+        match &self.0.parent {
+            Some(parent) => format!("{}::parent={}", self.0.reference, parent),
+            None => self.0.reference.to_string(),
+        }
+    }
+});
+
+#[serde_as]
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 enum PnpDependencyTarget {
-    Simple(Locator),
-    Alias((Ident, Locator)),
-    Missing,
+    Simple(PnpReference),
+    Alias((Ident, PnpReference)),
+    Missing(Option<()>),
 }
 
 #[serde_as]
@@ -156,7 +169,7 @@ struct PnpState {
     ignore_pattern_data: Option<String>,
 
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
-    package_registry_data: BTreeMap<Ident, BTreeMap<Locator, PnpPackageInformation>>,
+    package_registry_data: BTreeMap<Ident, BTreeMap<PnpReference, PnpPackageInformation>>,
     dependency_tree_roots: Vec<PnpDependencyTreeRoot>,
 }
 
@@ -164,7 +177,7 @@ struct PnpState {
 pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Result<(), Error> {
     let tree = &install.resolution_tree;
 
-    let mut package_registry_data: BTreeMap<Ident, BTreeMap<Locator, PnpPackageInformation>> = BTreeMap::new();
+    let mut package_registry_data: BTreeMap<Ident, BTreeMap<PnpReference, PnpPackageInformation>> = BTreeMap::new();
     let mut dependency_tree_roots = Vec::new();
 
     for (locator, resolution) in &tree.locator_resolutions {
@@ -176,16 +189,21 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
                 .expect("Failed to find dependency resolution");
 
             let dependency_target = if &dependency_resolution.ident == ident {
-                PnpDependencyTarget::Simple(dependency_resolution.clone())
+                PnpDependencyTarget::Simple(PnpReference(dependency_resolution.clone()))
             } else {
-                PnpDependencyTarget::Alias((dependency_resolution.ident.clone(), dependency_resolution.clone()))
+                PnpDependencyTarget::Alias((dependency_resolution.ident.clone(), PnpReference(dependency_resolution.clone())))
             };
 
             (ident.clone(), dependency_target)
         }).collect();
 
+        for peer in &resolution.missing_peer_dependencies {
+            package_dependencies.entry(peer.clone())
+                .or_insert(PnpDependencyTarget::Missing(None));
+        }
+
         package_dependencies.entry(locator.ident.clone())
-            .or_insert(PnpDependencyTarget::Simple(locator.clone()));
+            .or_insert(PnpDependencyTarget::Simple(PnpReference(locator.clone())));
 
         let package_peers = resolution.peer_dependencies.keys()
             .cloned()
@@ -224,7 +242,7 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
 
         package_registry_data.entry(locator.ident.clone())
             .or_default()
-            .insert(locator.clone(), PnpPackageInformation {
+            .insert(PnpReference(locator.clone()), PnpPackageInformation {
                 package_location,
                 package_dependencies,
                 package_peers,
@@ -254,6 +272,7 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
     };
 
     let script = vec![
+        "#!/usr/bin/env node\n",
         "/* eslint-disable */\n",
         "// @ts-nocheck\n",
         "\"use strict\";\n",
@@ -267,10 +286,10 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
         std::include_str!("pnp.tpl.cjs"),
     ].join("");
 
-    std::fs::write(project.pnp_path().to_path_buf(), script)
+    change_file(project.pnp_path().to_path_buf(), script, 0o755)
         .map_err(Arc::new)?;
 
-    std::fs::write(project.pnp_loader_path().to_path_buf(), std::include_str!("pnp.loader.mjs"))
+    change_file(project.pnp_loader_path().to_path_buf(), std::include_str!("pnp.loader.mjs"), 0o644)
         .map_err(Arc::new)?;
 
     Ok(())

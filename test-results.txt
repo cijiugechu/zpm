@@ -547,7 +547,7 @@
 🟥 Commands ► exec ► it should inject binaries the workspace has access to
 🟥 Commands ► exec ► it should preserve the exit code
 
-[2 / 10] packages/acceptance-tests/pkg-tests-specs/sources/commands/info.test.ts
+[3 / 10] packages/acceptance-tests/pkg-tests-specs/sources/commands/info.test.ts
 
 🟥 Commands ► info ► it should allow filtering packages by both glob ident and reference
 🟥 Commands ► info ► it should allow filtering packages by glob idents
@@ -557,7 +557,7 @@
 🟥 Commands ► info ► it should print info for the specified package
 🟥 Commands ► info ► it should print info for the transitive dependencies if -R,--recursive is set
 🟩 Commands ► info ► it should throw an error if the package is nowhere to be found
-🟥 Commands ► info ► it shouldn't print info for other workspaces by default
+🟩 Commands ► info ► it shouldn't print info for other workspaces by default
 🟩 Commands ► info ► it shouldn't print info for the transitive dependencies by default
 
 [0 / 4] packages/acceptance-tests/pkg-tests-specs/sources/commands/init.test.ts
@@ -961,7 +961,7 @@
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires mismatched version of workspace-b
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires workspace-b, workspace-b requires workspace-a
 
-[6 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
+[7 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
 
 🟩 Dragon tests ► it should pass the dragon test 1
 🟥 Dragon tests ► it should pass the dragon test 10
@@ -971,30 +971,30 @@
 🟥 Dragon tests ► it should pass the dragon test 13
 🟥 Dragon tests ► it should pass the dragon test 2
 🟩 Dragon tests ► it should pass the dragon test 3
-🟥 Dragon tests ► it should pass the dragon test 4
+🟩 Dragon tests ► it should pass the dragon test 4
 🟩 Dragon tests ► it should pass the dragon test 5
 🟩 Dragon tests ► it should pass the dragon test 6
 🟥 Dragon tests ► it should pass the dragon test 7
 🟩 Dragon tests ► it should pass the dragon test 8
 🟩 Dragon tests ► it should pass the dragon test 9
 
-[8 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
+[24 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
 
-🟥 "exports" field ► "main" field and dot object array fallback "exports" field
-🟥 "exports" field ► "main" field and dot object conditional "exports" field
-🟥 "exports" field ► "main" field and dot object conditional "exports" field with nested conditions
+🟩 "exports" field ► "main" field and dot object array fallback "exports" field
+🟩 "exports" field ► "main" field and dot object conditional "exports" field
+🟩 "exports" field ► "main" field and dot object conditional "exports" field with nested conditions
 🟥 "exports" field ► "main" field and object subpath patterns "exports" field
-🟥 "exports" field ► "main" field and string "exports" field
-🟥 "exports" field ► "main" field and top-level array fallback "exports" field
-🟥 "exports" field ► "main" field and top-level object conditional "exports" field
+🟩 "exports" field ► "main" field and string "exports" field
+🟩 "exports" field ► "main" field and top-level array fallback "exports" field
+🟩 "exports" field ► "main" field and top-level object conditional "exports" field
 🟥 "exports" field ► "main" field object subpath "exports" field
-🟥 "exports" field ► dot object array fallback "exports" field
-🟥 "exports" field ► dot object conditional "exports" field
-🟥 "exports" field ► dot object conditional "exports" field with nested conditions
-🟥 "exports" field ► dot-slash "main" field
-🟥 "exports" field ► dotless "main" field
-🟥 "exports" field ► dotted "main" field
-🟥 "exports" field ► implicit "main" field
+🟩 "exports" field ► dot object array fallback "exports" field
+🟩 "exports" field ► dot object conditional "exports" field
+🟩 "exports" field ► dot object conditional "exports" field with nested conditions
+🟩 "exports" field ► dot-slash "main" field
+🟩 "exports" field ► dotless "main" field
+🟩 "exports" field ► dotted "main" field
+🟩 "exports" field ► implicit "main" field
 🟩 "exports" field ► link: with exports (inside the project)
 🟩 "exports" field ► link: with exports (outside the project)
 🟩 "exports" field ► main field and only import top-level object conditional "exports" field
@@ -1006,9 +1006,9 @@
 🟥 "exports" field ► pnpIgnorePatterns with exports (issuer ignored)
 🟩 "exports" field ► pnpIgnorePatterns with exports (subpath ignored)
 🟩 "exports" field ► self-referencing with exports
-🟥 "exports" field ► string "exports" field
-🟥 "exports" field ► top-level array fallback "exports" field
-🟥 "exports" field ► top-level object conditional "exports" field
+🟩 "exports" field ► string "exports" field
+🟩 "exports" field ► top-level array fallback "exports" field
+🟩 "exports" field ► top-level object conditional "exports" field
 
 [0 / 2] packages/acceptance-tests/pkg-tests-specs/sources/features/autoClean.test.js
 
@@ -1276,7 +1276,7 @@
 🟩 Lock tests ► it should correctly lock dependencies
 🟥 Lock tests ► it shouldn't loose track of the resolutions when upgrading the lockfile version
 
-[11 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
+[13 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
 
 🟥 Node_Modules ► 'winLinkType: junctions' not-on Windows should use symlinks in node_modules directories
 🟥 Node_Modules ► 'winLinkType: symlinks' not-on Windows should use symlinks in node_modules directories
@@ -1295,11 +1295,11 @@
 🟥 Node_Modules ► should install dependencies in scoped workspaces
 🟥 Node_Modules ► should install one dependency
 🟥 Node_Modules ► should install project when portal is pointing to a workspace
-🟥 Node_Modules ► should install project when portal is used from the child workspace and have conflicts with root workspace dependencies
-🟥 Node_Modules ► should not create circular self-reference symlinks
+🟩 Node_Modules ► should install project when portal is used from the child workspace and have conflicts with root workspace dependencies
+🟩 Node_Modules ► should not create circular self-reference symlinks
 🟩 Node_Modules ► should not create duplicate copies of aliased packages
 🟥 Node_Modules ► should not create self-reference symlinks for workspaces excluded from focus
-🟩 Node_Modules ► should not create self-referencing symlinks for anonymous workspaces
+🟥 Node_Modules ► should not create self-referencing symlinks for anonymous workspaces
 🟩 Node_Modules ► should not error out if one of two same-parent portals has unresolved peer dependency, while the other has resolved dependency with the same name
 🟩 Node_Modules ► should not error out on internal portal requiring a dependency that conflicts with parent package
 🟥 Node_Modules ► should not fail if target bin link does not exist
@@ -1310,7 +1310,7 @@
 🟥 Node_Modules ► should not produce orphaned symlinks on dependency removal having bin entries
 🟥 Node_Modules ► should not recreate folders when package is updated
 🟩 Node_Modules ► should not treat link: dependencies as an inner workspaces
-🟥 Node_Modules ► should not warn when depending on workspaces with postinstall
+🟩 Node_Modules ► should not warn when depending on workspaces with postinstall
 🟥 Node_Modules ► should only reinstall scoped dependencies deleted by the user on the next install
 🟥 Node_Modules ► should prefer bin executables from the calling workspace
 🟥 Node_Modules ► should properly hoist nested workspaces
@@ -1424,7 +1424,7 @@
 🟥 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[47 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[56 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1440,7 +1440,7 @@
 🟥 Plug'n'Play ► it should allow unplugging multiple identically named packages from a pnp installation
 🟥 Plug'n'Play ► it should automatically unplug packages with postinstall scripts
 🟩 Plug'n'Play ► it should be able to require files from a different dependency tree
-🟥 Plug'n'Play ► it should be able to resolve a dependency using a module instance without an id
+🟩 Plug'n'Play ► it should be able to resolve a dependency using a module instance without an id
 🟩 Plug'n'Play ► it should be able to resolve an absolute file from a module in an ignored folder
 🟩 Plug'n'Play ► it should be able to resolve relative preloads
 🟩 Plug'n'Play ► it should correctly resolve an absolute path even when the issuer doesn't exist
@@ -1450,9 +1450,9 @@
 🟩 Plug'n'Play ► it should expose the PnP version through 'process.versions.pnp'
 🟥 Plug'n'Play ► it should fallback to the top-level dependencies when it cannot require a transitive dependency require
 🟥 Plug'n'Play ► it should fallback workspaces to the top-level dependencies when they require an undeclared package and the fallback mode is 'all'
-🟥 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (builtin request)
-🟥 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (invalid request)
-🟥 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (valid request)
+🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (builtin request)
+🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (invalid request)
+🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (valid request)
 🟥 Plug'n'Play ► it should generate a file with a custom shebang if configured as such
 🟩 Plug'n'Play ► it should generate the same hooks for two projects with the same configuration
 🟥 Plug'n'Play ► it should implicitly allow @types accesses if there are matching peer dependencies
@@ -1463,8 +1463,8 @@
 🟩 Plug'n'Play ► it should install packages with peer dependencies within a node_modules directory (even if within the .pnp folder)
 🟩 Plug'n'Play ► it should install the packages within a node_modules directory (even if within the cache)
 🟩 Plug'n'Play ► it should load modules that haven't been loaded
-🟥 Plug'n'Play ► it should make it possible to copy the pnp file and cache from one place to another
-🟥 Plug'n'Play ► it should mention which ancestor broke the peer dependency chain
+🟩 Plug'n'Play ► it should make it possible to copy the pnp file and cache from one place to another
+🟩 Plug'n'Play ► it should mention which ancestor broke the peer dependency chain
 🟩 Plug'n'Play ► it should not automatically unplug all packages
 🟥 Plug'n'Play ► it should not be enabled for paths matching the specified regex
 🟩 Plug'n'Play ► it should not break relative requires for files matching pnpIgnorePatterns
@@ -1501,10 +1501,10 @@
 🟩 Plug'n'Play ► it should take trailing slashes inside the packageLocations of the PnP serialized state into account when resolving packages
 🟩 Plug'n'Play ► it should take trailing slashes into account when resolving paths
 🟥 Plug'n'Play ► it should terminate when the 'paths' option from require.resolve includes empty string and there is no .pnp.cjs in the working dir
-🟥 Plug'n'Play ► it should throw an exception if a dependency tries to require a missing peer dependency
+🟩 Plug'n'Play ► it should throw an exception if a dependency tries to require a missing peer dependency
 🟩 Plug'n'Play ► it should throw an exception if a dependency tries to require something it doesn't own
 🟩 Plug'n'Play ► it should throw different semantic errors based on whether the project or a sub-dependency requires something it doesn't own
-🟥 Plug'n'Play ► it should throw the same error than the root when a workspace requires something it doesn't own
+🟩 Plug'n'Play ► it should throw the same error than the root when a workspace requires something it doesn't own
 🟥 Plug'n'Play ► it should throw when a path is controlled by multiple pnpapi instances
 🟩 Plug'n'Play ► it should throw when using require.resolve with unsupported options
 🟥 Plug'n'Play ► it should transparently support the "resolve" package
@@ -1518,15 +1518,15 @@
 🟩 Plug'n'Play ► it shouldn't deduplicate two packages with similar peer dependencies but different names
 🟥 Plug'n'Play ► it shouldn't match on dot files with pnpIgnorePatterns
 🟥 Plug'n'Play ► it shouldn't print warning in the default install mode, even when the fallback is used
-🟥 Plug'n'Play ► it shouldn't remove the lingering node_modules folders when they contain dot-folders
+🟩 Plug'n'Play ► it shouldn't remove the lingering node_modules folders when they contain dot-folders
 🟥 Plug'n'Play ► should skip building incompatible package
 
-[15 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
+[17 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
 
 🟩 Plug'n'Play API ► it should expose VERSIONS
 🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return null when the specified path isn't a virtual
 🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return the transformed path when possible
-🟥 Plug'n'Play API ► Semantic Errors ► it should throw detailed errors when a builtin is not found and the 'considerBuiltins' option is set to false
+🟩 Plug'n'Play API ► Semantic Errors ► it should throw detailed errors when a builtin is not found and the 'considerBuiltins' option is set to false
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package dependencies
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package location
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the packages peer dependencies
@@ -1535,7 +1535,7 @@
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveRequest
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveToUnqualified
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveUnqualified
-🟥 Plug'n'Play API ► std - v1 ► it shouldn't mess up when using createRequire on virtual files
+🟩 Plug'n'Play API ► std - v1 ► it shouldn't mess up when using createRequire on virtual files
 🟩 Plug'n'Play API ► std - v1 ► it shouldn't report the project parent directory as being part of the project
 🟩 Plug'n'Play API ► std - v1 ► resolveRequest ► it should return null for builtins
 🟩 Plug'n'Play API ► std - v1 ► resolveRequest ► it should return null for builtins ('node:' protocol)
@@ -1625,12 +1625,12 @@
 🟥 Protocols ► Semver ► it should allow prefixing semver ranges with "v"
 🟥 Protocols ► Semver ► it should allow semver ranges with build metadata
 
-[1 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/workspace.test.ts
+[3 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/workspace.test.ts
 
 🟥 Protocols ► workspace: ► it should allow aliasing workspaces using relative paths
 🟩 Protocols ► workspace: ► it should prevent referencing workspaces that don't exist
-🟥 Protocols ► workspace: ► it should recognize ^ and ~
-🟥 Protocols ► workspace: ► it should recognize prereleases in wildcard ranges
+🟩 Protocols ► workspace: ► it should recognize ^ and ~
+🟩 Protocols ► workspace: ► it should recognize prereleases in wildcard ranges
 🟥 Protocols ► workspace: ► it should support relative paths (with ./)
 🟥 Protocols ► workspace: ► it should support relative paths (without ./)
 

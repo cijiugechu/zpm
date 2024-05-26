@@ -102,14 +102,6 @@ fn convert_tar_gz_to_zip(ident: &Ident, tar_gz_data: Bytes) -> Result<Vec<u8>, E
 
     let entries = crate::zip::entries_from_tar(&decompressed)?;
     let entries = crate::zip::strip_first_segment(entries);
-
-    let manifest_entry = entries.iter().find(|entry| entry.name == "package.json")
-        .ok_or(Error::MissingPackageManifest)?;
-
-    let manifest: Manifest = serde_json::from_slice(&manifest_entry.data)
-        .map_err(Arc::new)
-        .map_err(Error::InvalidJsonData)?;
-
     let entries = crate::zip::normalize_entries(entries);
     let entries = crate::zip::prefix_entries(entries, format!("node_modules/{}", ident.as_str()));
 
@@ -118,14 +110,6 @@ fn convert_tar_gz_to_zip(ident: &Ident, tar_gz_data: Bytes) -> Result<Vec<u8>, E
 
 fn convert_folder_to_zip(ident: &Ident, folder_path: &Path) -> Result<Vec<u8>, Error> {
     let entries = crate::zip::entries_from_folder(folder_path.to_path_buf())?;
-
-    let manifest_entry = entries.iter().find(|entry| entry.name == "package.json")
-        .ok_or(Error::MissingPackageManifest)?;
-
-    let manifest: Manifest = serde_json::from_slice(&manifest_entry.data)
-        .map_err(Arc::new)
-        .map_err(Error::InvalidJsonData)?;
-
     let entries = crate::zip::normalize_entries(entries);
     let entries = crate::zip::prefix_entries(entries, format!("node_modules/{}", ident.as_str()));
 
@@ -220,6 +204,7 @@ pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>,
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok((resolution, PackageData::Zip {
@@ -260,6 +245,7 @@ pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, 
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok((resolution, PackageData::Zip {
@@ -297,6 +283,7 @@ pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator
         dependencies: manifest.dependencies.unwrap_or_default(),
         peer_dependencies: manifest.peer_dependencies.unwrap_or_default(),
         optional_dependencies: HashSet::new(),
+        missing_peer_dependencies: HashSet::new(),
     };
 
     Ok((resolution, PackageData::Zip {
