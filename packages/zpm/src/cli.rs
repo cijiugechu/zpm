@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::{ffi::OsString, process};
 
 use clap::{Parser, Subcommand};
 use tokio::process::Command;
@@ -72,7 +72,13 @@ pub async fn run_cli() -> Result<(), Error> {
                         command.env("NODE_OPTIONS", node_options);
                     }
         
-                    command.status().await.unwrap();
+                    let exit_status
+                        = command.status().await.unwrap();
+
+                    let exit_code
+                        = exit_status.code().unwrap_or(1);
+
+                    process::exit(exit_code);
                 },
 
                 _ => {

@@ -1190,14 +1190,14 @@
 🟥 Features ► Plugins ► it should properly load multiple plugins via the local rc file, in the right order
 🟥 Features ► Plugins ► it should throw an error when fetching the plugin but the checksum does not match
 
-[4 / 7] packages/acceptance-tests/pkg-tests-specs/sources/features/pnpLoose.test.ts
+[3 / 7] packages/acceptance-tests/pkg-tests-specs/sources/features/pnpLoose.test.ts
 
 🟥 Features ► PnP Loose ► it should allow resolutions to top-level hoisting candidates
 🟥 Features ► PnP Loose ► it should allow resolutions to top-level hoisting candidates (even if it's an unmet peer dependency)
 🟥 Features ► PnP Loose ► it should allow resolutions to top-level hoisting candidates (even if they have peer dependencies)
 🟩 Features ► PnP Loose ► it should install a root workspace without any dependencies (named)
 🟩 Features ► PnP Loose ► it should install a root workspace without any dependencies (unnamed)
-🟩 Features ► PnP Loose ► it should log an exception if a dependency tries to require something it doesn't own but that can be accessed through hoisting
+🟥 Features ► PnP Loose ► it should log an exception if a dependency tries to require something it doesn't own but that can be accessed through hoisting
 🟩 Features ► PnP Loose ► it should throw an exception if a dependency tries to require something it doesn't own that isn't hoisted
 
 [1 / 3] packages/acceptance-tests/pkg-tests-specs/sources/features/pnpm.test.ts
@@ -1380,7 +1380,7 @@
 🟥 Plugins ► typescript ► Removing types ► it should not automatically remove @types from peerDependencies without tsconfig or tsEnableAutoTypes
 🟥 Plugins ► typescript ► Removing types ► it should not automatically remove @types peerDependencies from the current workspace without tsconfig.json present or tsEnableAutoTypes
 
-[35 / 41] packages/acceptance-tests/pkg-tests-specs/sources/pnp-esm.test.ts
+[39 / 41] packages/acceptance-tests/pkg-tests-specs/sources/pnp-esm.test.ts
 
 🟩 Plug'n'Play - ESM ► it should allow absolute imports with search params
 🟩 Plug'n'Play - ESM ► it should allow extensionless commonjs imports
@@ -1394,9 +1394,9 @@
 🟩 Plug'n'Play - ESM ► it should load commonjs with an unknown extension
 🟩 Plug'n'Play - ESM ► it should load extensionless commonjs files as an entrypoint
 🟩 Plug'n'Play - ESM ► it should load symlinked extensionless commonjs files as an entrypoint
-🟥 Plug'n'Play - ESM ► it should not allow unknown extensions with {type: "module"}
-🟥 Plug'n'Play - ESM ► it should not resolve extensions
-🟥 Plug'n'Play - ESM ► it should not resolve JSON modules without an import assertion/attribute
+🟩 Plug'n'Play - ESM ► it should not allow unknown extensions with {type: "module"}
+🟩 Plug'n'Play - ESM ► it should not resolve extensions
+🟩 Plug'n'Play - ESM ► it should not resolve JSON modules without an import assertion/attribute
 🟩 Plug'n'Play - ESM ► it should preserve search params in the resolve result (cache busting)
 🟩 Plug'n'Play - ESM ► it should resolve JSON modules with an import assertion/attribute
 🟩 Plug'n'Play - ESM ► it should respect exports
@@ -1414,7 +1414,7 @@
 🟩 Plug'n'Play - ESM ► it should throw ERR_REQUIRE_ESM when requiring a file with type=module
 🟩 Plug'n'Play - ESM ► it should use legacy resolve when exports is missing
 🟩 Plug'n'Play - ESM ► private import mappings ► it should allow importing files regardless of parent URL
-🟥 Plug'n'Play - ESM ► private import mappings ► it should not allow mapping to another private mapping
+🟩 Plug'n'Play - ESM ► private import mappings ► it should not allow mapping to another private mapping
 🟩 Plug'n'Play - ESM ► private import mappings ► it should support conditions
 🟩 Plug'n'Play - ESM ► private import mappings ► it should support mapping to a dependency
 🟩 Plug'n'Play - ESM ► private import mappings ► it should support private import mappings
