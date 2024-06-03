@@ -1521,17 +1521,17 @@
 🟩 Plug'n'Play ► it shouldn't remove the lingering node_modules folders when they contain dot-folders
 🟥 Plug'n'Play ► should skip building incompatible package
 
-[17 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
+[22 / 25] packages/acceptance-tests/pkg-tests-specs/sources/pnpapi.test.ts
 
 🟩 Plug'n'Play API ► it should expose VERSIONS
 🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return null when the specified path isn't a virtual
 🟩 Plug'n'Play API ► resolveVirtual - v1 ► resolveVirtual ► it should return the transformed path when possible
 🟩 Plug'n'Play API ► Semantic Errors ► it should throw detailed errors when a builtin is not found and the 'considerBuiltins' option is set to false
 🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package dependencies
-🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package location
-🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the packages peer dependencies
-🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the workspaces peer dependencies when virtualized
-🟥 Plug'n'Play API ► std - v1 ► getPackageInformation ► it shouldn't return the workspaces peer dependencies when accessed as roots
+🟩 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package location
+🟩 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the packages peer dependencies
+🟩 Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the workspaces peer dependencies when virtualized
+🟩 Plug'n'Play API ► std - v1 ► getPackageInformation ► it shouldn't return the workspaces peer dependencies when accessed as roots
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveRequest
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveToUnqualified
 🟩 Plug'n'Play API ► std - v1 ► it should expose resolveUnqualified
@@ -1543,7 +1543,7 @@
 🟩 Plug'n'Play API ► std - v1 ► resolveRequest ► it should support the 'considerBuiltins' option
 🟩 Plug'n'Play API ► std - v1 ► resolveRequest ► it should support the 'extensions' option
 🟩 Plug'n'Play API ► std - v2 ► it should use .pnpCode to expose semantic errors
-🟥 Plug'n'Play API ► std - v3 ► getDependencyTreeRoots ► it should return the workspaces (multiple workspaces)
+🟩 Plug'n'Play API ► std - v3 ► getDependencyTreeRoots ► it should return the workspaces (multiple workspaces)
 🟩 Plug'n'Play API ► std - v3 ► getDependencyTreeRoots ► it should return the workspaces (no children)
 🟥 Plug'n'Play API ► std - v3 ► getPackageInformation ► it should return the package linkage (hard link)
 🟥 Plug'n'Play API ► std - v3 ► getPackageInformation ► it should return the package linkage (soft link)

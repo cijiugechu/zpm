@@ -139,8 +139,8 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
         Reference::SemverAlias(ident, version)
             => fetch_semver(context, &locator, &ident, &version).await,
 
-        Reference::Workspace(ident)
-            => fetch_workspace(context, &ident),
+        Reference::Workspace(path)
+            => fetch_workspace(context, &path),
 
         _ => Err(Error::Unsupported),
     }
@@ -314,13 +314,14 @@ pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, id
     })
 }
 
-pub fn fetch_workspace(context: InstallContext, ident: &Ident) -> Result<PackageData, Error> {
+pub fn fetch_workspace(context: InstallContext, path: &str) -> Result<PackageData, Error> {
     let project = context.project
         .expect("The project is required for fetching a workspace package");
 
     let workspace = project.workspaces
-        .get(ident)
-        .ok_or(Error::WorkspaceNotFound(ident.clone()))?;
+        .values()
+        .find(|w| w.rel_path.as_str() == path)
+        .ok_or_else(|| Error::WorkspaceNotFoundByPath(path.to_string()))?;
 
     Ok(PackageData::Local {
         path: workspace.path.clone(),

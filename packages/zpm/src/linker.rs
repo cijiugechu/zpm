@@ -223,7 +223,7 @@ struct PnpState {
     ignore_pattern_data: Option<String>,
 
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
-    package_registry_data: BTreeMap<Ident, BTreeMap<PnpReference, PnpPackageInformation>>,
+    package_registry_data: BTreeMap<Option<Ident>, BTreeMap<Option<PnpReference>, PnpPackageInformation>>,
     dependency_tree_roots: Vec<PnpDependencyTreeRoot>,
 }
 
@@ -240,7 +240,7 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
 
     println!("dependencies_meta: {:?}", dependencies_meta);
 
-    let mut package_registry_data: BTreeMap<Ident, BTreeMap<PnpReference, PnpPackageInformation>> = BTreeMap::new();
+    let mut package_registry_data: BTreeMap<_, BTreeMap<_, _>> = BTreeMap::new();
     let mut dependency_tree_roots = Vec::new();
 
     for (locator, resolution) in &tree.locator_resolutions {
@@ -268,10 +268,21 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
         package_dependencies.entry(locator.ident.clone())
             .or_insert(PnpDependencyTarget::Simple(PnpReference(locator.clone())));
 
-        let package_peers = resolution.peer_dependencies.keys()
+        let general_peers = resolution.peer_dependencies.keys()
             .cloned()
-            .sorted()
             .collect::<Vec<_>>();
+
+        let type_peers = general_peers.iter()
+            .cloned()
+            .map(|ident| ident.type_ident())
+            .collect::<Vec<_>>();
+
+        let mut package_peers = [
+            general_peers,
+            type_peers,
+        ].concat();
+
+        package_peers.sort();
 
         let virtual_dir = match &locator.reference {
             Reference::Virtual(_, hash) => format!("__virtual__/{}/0/", hash),
@@ -319,9 +330,9 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
             _ => false,
         };
 
-        package_registry_data.entry(locator.ident.clone())
+        package_registry_data.entry(Some(locator.ident.clone()))
             .or_default()
-            .insert(PnpReference(locator.clone()), PnpPackageInformation {
+            .insert(Some(PnpReference(locator.clone())), PnpPackageInformation {
                 package_location,
                 package_dependencies,
                 package_peers,
@@ -330,8 +341,23 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
             });
     }
 
-    for workspace in project.workspaces.values() {
+    for workspace in project.workspaces.values().sorted_by_cached_key(|w| w.descriptor()) {
         let locator = workspace.locator();
+
+        if workspace.path == project.root {
+            let entry = package_registry_data
+                .get(&Some(locator.ident.clone()))
+                .expect("Failed to find workspace entry")
+                .get(&Some(PnpReference(locator.clone())))
+                .expect("Failed to find workspace entry")
+                .clone();
+
+            package_registry_data
+                .entry(None)
+                .or_default()
+                .entry(None)
+                .or_insert(entry);
+        }
 
         dependency_tree_roots.push(PnpDependencyTreeRoot {
             name: locator.ident,

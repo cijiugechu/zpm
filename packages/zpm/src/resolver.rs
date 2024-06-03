@@ -346,7 +346,7 @@ pub fn resolve_workspace_by_name(context: InstallContext, ident: Ident) -> Resul
 
             let resolution = Resolution {
                 version: workspace.manifest.version.clone(),
-                locator: Locator::new(ident.clone(), Reference::Workspace(ident.clone())),
+                locator: Locator::new(ident.clone(), Reference::Workspace(workspace.rel_path.to_string())),
                 dependencies,
                 peer_dependencies,
                 optional_dependencies: HashSet::new(),
@@ -356,6 +356,6 @@ pub fn resolve_workspace_by_name(context: InstallContext, ident: Ident) -> Resul
             Ok(ResolveResult::new(resolution))
         }
 
-        None => Err(Error::WorkspaceNotFound(ident)),
+        None => Err(Error::WorkspaceNotFoundByName(ident)),
     }
 }

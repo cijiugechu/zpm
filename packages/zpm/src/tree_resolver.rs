@@ -75,6 +75,12 @@ impl TreeResolver {
             );
         }
 
+        for locator in self.original_workspace_definitions {
+            if let Some(resolution) = self.resolution_tree.locator_resolutions.get_mut(&locator.0) {
+                resolution.peer_dependencies.clear();
+            }
+        }
+
         self.resolution_tree
     }
 

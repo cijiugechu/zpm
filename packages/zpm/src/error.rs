@@ -106,5 +106,8 @@ pub enum Error {
     PackageConversionError(Arc<Box<dyn std::error::Error + Send + Sync>>),
 
     #[error("Workspace not found ({0})")]
-    WorkspaceNotFound(Ident),
+    WorkspaceNotFoundByName(Ident),
+
+    #[error("Workspace not found ({0})")]
+    WorkspaceNotFoundByPath(String),
 }

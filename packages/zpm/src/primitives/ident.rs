@@ -27,6 +27,13 @@ impl Ident {
     pub fn slug(&self) -> String {
         self.0.replace("/", "-")
     }
+
+    pub fn type_ident(&self) -> Ident {
+        match self.scope() {
+            Some(scope) => Ident::new(format!("@types/{}__{}", scope, self.name())),
+            None => Ident::new(format!("@types/{}", self.name())),
+        }
+    }
 }
 
 impl AsRef<str> for Ident {

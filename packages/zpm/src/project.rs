@@ -140,6 +140,7 @@ impl Project {
 pub struct Workspace {
     pub name: Ident,
     pub path: Path,
+    pub rel_path: Path,
     pub manifest: Manifest,
 }
 
@@ -155,9 +156,12 @@ impl Workspace {
             })
         });
 
+        let rel_path = root.relative_to(&path);
+
         Ok(Workspace {
             name,
             path,
+            rel_path,
             manifest,
         })
     }
@@ -167,7 +171,7 @@ impl Workspace {
     }
 
     pub fn locator(&self) -> Locator {
-        Locator::new(self.name.clone(), Reference::Workspace(self.name.clone()))
+        Locator::new(self.name.clone(), Reference::Workspace(self.rel_path.to_string()))
     }
 
     pub fn workspaces(&self) -> Result<Vec<Workspace>, Error> {
