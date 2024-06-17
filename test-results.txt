@@ -1424,7 +1424,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[67 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[69 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1496,11 +1496,11 @@
 🟥 Plug'n'Play ► it should set bytesRead on Windows when input is a pipe and EOF is thrown
 🟩 Plug'n'Play ► it should support circular requires
 🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (different dependency trees)
-🟥 Plug'n'Play ► it should support the 'paths' option from require.resolve (same dependency tree)
+🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (same dependency tree)
 🟩 Plug'n'Play ► it should support user patched fs
 🟩 Plug'n'Play ► it should take trailing slashes inside the packageLocations of the PnP serialized state into account when resolving packages
 🟩 Plug'n'Play ► it should take trailing slashes into account when resolving paths
-🟥 Plug'n'Play ► it should terminate when the 'paths' option from require.resolve includes empty string and there is no .pnp.cjs in the working dir
+🟩 Plug'n'Play ► it should terminate when the 'paths' option from require.resolve includes empty string and there is no .pnp.cjs in the working dir
 🟩 Plug'n'Play ► it should throw an exception if a dependency tries to require a missing peer dependency
 🟩 Plug'n'Play ► it should throw an exception if a dependency tries to require something it doesn't own
 🟩 Plug'n'Play ► it should throw different semantic errors based on whether the project or a sub-dependency requires something it doesn't own
