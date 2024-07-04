@@ -6,6 +6,9 @@ use crate::primitives::{Ident, Range};
 
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum Error {
+    #[error("Failed to change the current working directory")]
+    FailedToChangeCwd,
+
     #[error("Unsupported code path")]
     Unsupported,
 

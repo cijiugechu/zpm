@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use quote::{format_ident, quote};
-use syn::{meta::ParseNestedMeta, parse_macro_input, Data, DeriveInput, ItemFn, Meta};
+use syn::{meta::ParseNestedMeta, parse_macro_input, Data, DeriveInput, Expr, ItemFn, Meta};
 
 #[proc_macro_attribute]
 pub fn track_time(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -234,5 +234,117 @@ pub fn parsed_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     //panic!("{:?}", expanded.to_string());
 
+    expanded.into()
+}
+
+#[proc_macro_attribute]
+pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    let struct_name = &input.ident;
+
+    let fields = if let syn::Data::Struct(data_struct) = &input.data {
+        &data_struct.fields
+    } else {
+        return proc_macro::TokenStream::from(quote! {
+            compile_error!("env_default can only be used with structs");
+        });
+    };
+
+    let mut default_functions = vec![];
+    let mut new_fields = vec![];
+
+    for field in fields.iter() {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+
+        let mut default_value = None;
+        let mut array = false;
+        let mut nullable = false;
+
+        for attr in &field.attrs {
+            if attr.path().is_ident("array") {
+                array = true;
+            }
+
+            if attr.path().is_ident("default") {
+                if let Ok(value) = attr.parse_args::<Expr>() {
+                    default_value = Some(value);
+                }
+            }
+
+            if attr.path().is_ident("nullable") {
+                nullable = true;
+            }
+        }
+
+        let computed_field_type = if array {
+            quote! { crate::config::Setting<Vec<#field_type>> }
+        } else if nullable {
+            quote! { crate::config::Setting<Option<#field_type>> }
+        } else {
+            quote! { crate::config::Setting<#field_type> }
+        };
+
+        if let Some(default) = default_value {
+            let value_from_env = if array {
+                quote! {
+                    value.split(',')
+                        .map(|v| #field_type::hydrate_setting_from_env(v.trim().as_str()).unwrap())
+                        .collect()
+                }
+            } else if nullable {
+                quote! {
+                    if value.is_empty() {
+                        None
+                    } else {
+                        Some(#field_type::hydrate_setting_from_env(value.as_str()).unwrap())
+                    }
+                }
+            } else {
+                quote! {
+                    #field_type::hydrate_setting_from_env(value.as_str()).unwrap()
+                }
+            };
+
+            let func_name = syn::Ident::new(&format!("{}_default_from_env", field_name), field_name.span());
+            let func_name_str = format!("{}", func_name.to_string());
+
+            default_functions.push(quote! {
+                fn #func_name() -> #computed_field_type {
+                    match std::env::var(concat!("YARN_", stringify!(#field_name)).to_uppercase()) {
+                        Ok(value) => crate::config::Setting {value: #value_from_env, source: crate::config::SettingSource::Env},
+                        Err(_) => crate::config::Setting {value: #default, source: crate::config::SettingSource::Default},
+                    }
+                }
+            });
+
+            new_fields.push(quote! {
+                #[serde(default = #func_name_str)]
+                pub #field_name: #computed_field_type,
+            });
+        } else {
+            if array {
+                new_fields.push(quote! {
+                    #[serde(default)]
+                    pub #field_name: #computed_field_type,
+                });
+            } else {
+                new_fields.push(quote! {
+                    pub #field_name: #computed_field_type,
+                });
+            }
+        }
+    }
+
+    let expanded = quote! {
+        #(#default_functions)*
+
+        #[derive(Clone, Debug, serde::Deserialize)]
+        pub struct #struct_name {
+            #(#new_fields)*
+        }
+    };
+
+    // panic!("{:?}", expanded.to_string());
     expanded.into()
 }

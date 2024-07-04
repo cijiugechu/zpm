@@ -63,6 +63,13 @@ impl Range {
             _ => false,
         }
     }
+
+    pub fn is_transient_resolution(&self) -> bool {
+        match &self {
+            Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) | Range::WorkspaceMagic(_) | Range::WorkspacePath(_) | Range::WorkspaceSemver(_) => true,
+            _ => false,
+        }
+    }
 }
 
 yarn_serialization_protocol!(Range, "", {

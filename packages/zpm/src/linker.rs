@@ -253,11 +253,58 @@ struct PnpState {
     fallback_exclusion_list: Vec<()>,
     fallback_pool: Vec<()>,
 
-    ignore_pattern_data: Option<String>,
+    ignore_pattern_data: Option<Vec<String>>,
 
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
     package_registry_data: BTreeMap<Option<Ident>, BTreeMap<Option<PnpReference>, PnpPackageInformation>>,
     dependency_tree_roots: Vec<PnpDependencyTreeRoot>,
+}
+
+fn generate_inline_files(project: &Project, state: &PnpState) -> Result<(), Error> {
+    let script = vec![
+        project.config.project.pnp_shebang.value.as_str(), "\n",
+        "/* eslint-disable */\n",
+        "// @ts-nocheck\n",
+        "\"use strict\";\n",
+        "\n",
+        "const RAW_RUNTIME_STATE =\n",
+        &serde_json::to_string(&serde_json::to_string(&state).unwrap()).unwrap(), ";\n",
+        "\n",
+        "function $$SETUP_STATE(hydrateRuntimeState, basePath) {\n",
+        "  return hydrateRuntimeState(JSON.parse(RAW_RUNTIME_STATE), {basePath: basePath || __dirname});\n",
+        "}\n",
+        std::include_str!("pnp.tpl.cjs"),
+    ].join("");
+
+    change_file(project.pnp_path().to_path_buf(), script, 0o755)
+        .map_err(Arc::new)?;
+
+    Ok(())
+}
+
+fn generate_split_setup(project: &Project, state: &PnpState) -> Result<(), Error> {
+    let script = vec![
+        project.config.project.pnp_shebang.value.as_str(), "\n",
+        "/* eslint-disable */\n",
+        "// @ts-nocheck\n",
+        "\"use strict\";\n",
+        "\n",
+        "function $$SETUP_STATE(hydrateRuntimeState, basePath) {\n",
+        "  const fs = require('fs');\n",
+        "  const path = require('path');\n",
+        "  const pnpDataFilepath = path.resolve(__dirname, '.pnp.data.json');\n",
+        "  return hydrateRuntimeState(JSON.parse(fs.readFileSync(pnpDataFilepath, 'utf8')), {basePath: basePath || __dirname});\n",
+        "}\n",
+        std::include_str!("pnp.tpl.cjs"),
+    ].join("");
+
+    change_file(project.pnp_path().to_path_buf(), script, 0o755)
+        .map_err(Arc::new)?;
+
+    change_file(project.pnp_data_path().to_path_buf(), &serde_json::to_string(&state).unwrap(), 0o644)
+        .map_err(Arc::new)?;
+
+    Ok(())
 }
 
 #[track_time]
@@ -390,34 +437,30 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
         });
     }
 
+    let ignore_pattern_data = project.config.project.pnp_ignore_patterns.value
+        .iter()
+        .map(|pattern| pattern.to_regex_string())
+        .collect::<Vec<String>>();
+
     let state = PnpState {
         enable_top_level_fallback: false,
         fallback_exclusion_list: Vec::new(),
         fallback_pool: Vec::new(),
 
-        ignore_pattern_data: None,
+        ignore_pattern_data: match ignore_pattern_data.is_empty() {
+            true => None,
+            false => Some(ignore_pattern_data),
+        },
 
         package_registry_data,
         dependency_tree_roots,
     };
 
-    let script = vec![
-        "#!/usr/bin/env node\n",
-        "/* eslint-disable */\n",
-        "// @ts-nocheck\n",
-        "\"use strict\";\n",
-        "\n",
-        "const RAW_RUNTIME_STATE =\n",
-        &serde_json::to_string(&serde_json::to_string(&state).unwrap()).unwrap(), ";\n",
-        "\n",
-        "function $$SETUP_STATE(hydrateRuntimeState, basePath) {\n",
-        "  return hydrateRuntimeState(JSON.parse(RAW_RUNTIME_STATE), {basePath: basePath || __dirname});\n",
-        "}\n",
-        std::include_str!("pnp.tpl.cjs"),
-    ].join("");
-
-    change_file(project.pnp_path().to_path_buf(), script, 0o755)
-        .map_err(Arc::new)?;
+    if project.config.project.pnp_enable_inlining.value {
+        generate_inline_files(project, &state)?;
+    } else {
+        generate_split_setup(project, &state)?;
+    }
 
     change_file(project.pnp_loader_path().to_path_buf(), std::include_str!("pnp.loader.mjs"), 0o644)
         .map_err(Arc::new)?;

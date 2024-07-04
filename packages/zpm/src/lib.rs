@@ -16,5 +16,6 @@ pub mod project;
 pub mod resolver;
 pub mod semver;
 pub mod serialize;
+pub mod settings;
 pub mod tree_resolver;
 pub mod zip;

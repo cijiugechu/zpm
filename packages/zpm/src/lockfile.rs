@@ -26,6 +26,21 @@ impl Lockfile {
             entries: HashMap::new(),
         }
     }
+
+    pub fn forget_transient_resolutions(&mut self) {
+        let mut to_remove = vec![];
+
+        for (descriptor, locator) in self.resolutions.iter() {
+            if descriptor.range.is_transient_resolution() {
+                to_remove.push((descriptor.clone(), locator.clone()));
+            }
+        }
+
+        for (descriptor, locator) in to_remove {
+            self.resolutions.remove(&descriptor);
+            self.entries.remove(&locator);
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for Lockfile {

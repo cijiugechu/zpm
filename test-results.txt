@@ -1424,7 +1424,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[69 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[72 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1453,10 +1453,10 @@
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (builtin request)
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (invalid request)
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (valid request)
-🟥 Plug'n'Play ► it should generate a file with a custom shebang if configured as such
+🟩 Plug'n'Play ► it should generate a file with a custom shebang if configured as such
 🟩 Plug'n'Play ► it should generate the same hooks for two projects with the same configuration
 🟩 Plug'n'Play ► it should implicitly allow @types accesses if there are matching peer dependencies
-🟥 Plug'n'Play ► it should initialize a symlinked pnpapi module only once when working inside a sandbox environment full of symlinks
+🟩 Plug'n'Play ► it should initialize a symlinked pnpapi module only once when working inside a sandbox environment full of symlinks
 🟩 Plug'n'Play ► it should install in such a way that two identical packages with different peer dependencies are different instances
 🟩 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (complex)
 🟩 Plug'n'Play ► it should install in such a way that two identical packages with the same peer dependencies are the same instances (simple)
@@ -1508,7 +1508,7 @@
 🟥 Plug'n'Play ► it should throw when a path is controlled by multiple pnpapi instances
 🟩 Plug'n'Play ► it should throw when using require.resolve with unsupported options
 🟥 Plug'n'Play ► it should transparently support the "resolve" package
-🟥 Plug'n'Play ► it should update the .pnp.cjs file when it already exists but isn't up-to-date
+🟩 Plug'n'Play ► it should update the .pnp.cjs file when it already exists but isn't up-to-date
 🟩 Plug'n'Play ► it should use the regular Node resolution when requiring files outside of the pnp install tree
 🟥 Plug'n'Play ► it should warn when the peer dependency resolution is incompatible
 🟥 Plug'n'Play ► it should work when working inside a sandbox environment full of symlinks, and pnpEnableInlining is set to false

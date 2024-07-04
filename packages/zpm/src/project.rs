@@ -1,8 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use arca::{Path, ToArcaPath};
+use wax::walk::Entry;
 
-use crate::{cache::DiskCache, error::Error, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}};
+use crate::{cache::DiskCache, config::Config, error::Error, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}};
 
 static LOCKFILE_NAME: &str = "yarn.lock";
 static MANIFEST_NAME: &str = "package.json";
@@ -11,6 +12,7 @@ pub struct Project {
     pub cwd: Path,
     pub root: Path,
 
+    pub config: Config,
     pub workspaces: HashMap<Ident, Workspace>,
 }
 
@@ -51,6 +53,8 @@ impl Project {
         let root = Project::find_closest_project(cwd.clone())
             .expect("Failed to find project root");
 
+        let config = Config::new(Some(root.clone()));
+
         let root_workspace = Workspace::from_path(&root, root.clone())
             .expect("Failed to read root workspace");
 
@@ -68,6 +72,7 @@ impl Project {
         Ok(Project {
             cwd,
             root,
+            config,
             workspaces,
         })
     }
@@ -82,6 +87,10 @@ impl Project {
 
     pub fn pnp_path(&self) -> Path {
         self.root.with_join_str(".pnp.cjs")
+    }
+
+    pub fn pnp_data_path(&self) -> Path {
+        self.root.with_join_str(".pnp.data.json")
     }
 
     pub fn pnp_loader_path(&self) -> Path {
@@ -188,32 +197,18 @@ impl Workspace {
 
         if let Some(patterns) = &self.manifest.workspaces {
             for pattern in patterns {
-                if pattern.ends_with("/*") {
-                    let slice = &pattern[0..pattern.len() - 2];
+                let glob = wax::Glob::new(&pattern)
+                    .unwrap();
+                    //.map_err(|_| Error::InvalidWorkspacePattern(pattern.to_string()))?;
 
-                    let entries = self.path.with_join_str(slice).to_path_buf().read_dir()
-                        .map_err(Arc::new)?;
-    
-                    for entry in entries {
-                        let entry = entry
-                            .map_err(Arc::new)?;
-    
-                        let entry_path = entry.file_name().into_string().unwrap();
-    
-                        let mut path = self.path.with_join_str(slice);
-                        path.join_str(entry_path);
-    
-                        if path.with_join_str(MANIFEST_NAME).fs_is_file() {
-                            workspaces.push(Workspace::from_path(&self.path, path)?);
-                        }
-                    }
-                } else {
-                    let path = self.path.with_join_str(pattern);
+                for entry in glob.walk(self.path.to_path_buf()) {
+                    let path = entry
+                        .unwrap()
+                        .path()
+                        .to_arca();
 
                     if path.with_join_str(MANIFEST_NAME).fs_is_file() {
                         workspaces.push(Workspace::from_path(&self.path, path)?);
-                    } else {
-                        return Err(Error::InvalidWorkspacePattern(pattern.to_string()));
                     }
                 }
             }

@@ -4,7 +4,7 @@ use arca::Path;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
-use crate::{config::registry_url_for, error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::first_entry_from_zip};
+use crate::{error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::first_entry_from_zip};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PackageLinking {
@@ -144,10 +144,10 @@ fn convert_folder_to_zip(ident: &Ident, folder_path: &Path) -> Result<Vec<u8>, E
 pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
     match &locator.reference {
         Reference::Link(path)
-            => fetch_link(path, &locator.parent, parent_data),
+            => fetch_link(path, parent_data),
 
         Reference::Portal(path)
-            => fetch_portal(path, &locator.parent, parent_data),
+            => fetch_portal(path, parent_data),
 
         Reference::Url(url)
             => Ok(fetch_remote_tarball_with_manifest(context, &locator, url).await?.1),
@@ -171,9 +171,7 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
     }
 }
 
-pub fn fetch_link(path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
-    let parent = parent.as_ref()
-        .expect("The parent locator is required for resolving a linked package");
+pub fn fetch_link(path: &str, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
     let parent_data = parent_data
         .expect("The parent data is required for retrieving the path of a linked package");
 
@@ -186,9 +184,7 @@ pub fn fetch_link(path: &str, parent: &Option<Arc<Locator>>, parent_data: Option
     })
 }
 
-pub fn fetch_portal(path: &str, parent: &Option<Arc<Locator>>, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
-    let parent = parent.as_ref()
-        .expect("The parent locator is required for resolving a portal package");
+pub fn fetch_portal(path: &str, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
     let parent_data = parent_data
         .expect("The parent data is required for retrieving the path of a portal package");
 
@@ -326,9 +322,14 @@ pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator
 }
 
 pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, ident: &Ident, version: &semver::Version) -> Result<PackageData, Error> {
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
+    let registry_url = project.config.registry_url_for(&ident);
+    let url = format!("{}/{}/-/{}-{}.tgz", registry_url, ident, ident.name(), version.to_string());
+
     let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
         let client = http_client()?;
-        let url = format!("{}/{}/-/{}-{}.tgz", registry_url_for(ident), ident, ident.name(), version.to_string());
 
         let response = client.get(url.clone()).send().await
             .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;

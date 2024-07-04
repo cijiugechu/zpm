@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::process::Command;
 
-use crate::{error::Error, install::{InstallContext, InstallManager}, linker, project};
+use crate::{error::Error, install::{InstallContext, InstallManager}, linker, lockfile::Lockfile, project};
 
 #[derive(Parser)]
 struct Cli {
@@ -47,7 +47,23 @@ fn setup_script_environment(cmd: &mut Command, project: &project::Project) {
 }
 
 pub async fn run_cli() -> Result<(), Error> {
-    let cli = Cli::parse();
+    let mut argv = std::env::args_os()
+        .map(OsString::into_string)
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    if let Some(argv1) = argv.get(1) {
+        if argv1.contains("/") {
+            let path = std::path::PathBuf::from(argv1);
+
+            std::env::set_current_dir(&path)
+                .map_err(|_| Error::FailedToChangeCwd)?;
+
+            argv.remove(0);
+        }
+    }
+
+    let cli = Cli::parse_from(argv.iter());
 
     match &cli.command {
         None | Some(Commands::Install {}) => {
@@ -61,9 +77,12 @@ pub async fn run_cli() -> Result<(), Error> {
                 .with_package_cache(Some(&package_cache))
                 .with_project(Some(&project));
 
+            let mut lockfile = project.lockfile()?;
+            lockfile.forget_transient_resolutions();
+
             let install = InstallManager::default()
                 .with_context(install_context)
-                .with_lockfile(project.lockfile()?)
+                .with_lockfile(lockfile)
                 .with_roots_iter(project.workspaces.values().map(|w| w.descriptor()))
                 .run().await?;
 

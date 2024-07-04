@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, fmt, marker::PhantomData, str::FromSt
 use bincode::{Decode, Encode};
 use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer, Serialize};
 
-use crate::{config, error::Error, fetcher::{fetch_folder_with_manifest, fetch_local_tarball_with_manifest, fetch_remote_tarball_with_manifest, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
+use crate::{error::Error, fetcher::{fetch_folder_with_manifest, fetch_local_tarball_with_manifest, fetch_remote_tarball_with_manifest, PackageData}, git::{resolve_git_treeish, GitRange}, http::http_client, install::InstallContext, manifest::{parse_manifest, RemoteManifest}, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, Descriptor, Ident, Locator, PeerRange, Range, Reference}, semver};
 
 pub struct ResolveResult {
     pub resolution: Resolution,
@@ -62,10 +62,10 @@ pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, pa
             => resolve_git(descriptor.ident, range).await,
 
         Range::Semver(range)
-            => resolve_semver(&descriptor.ident, range).await,
+            => resolve_semver(context, &descriptor.ident, range).await,
 
         Range::SemverAlias(ident, range)
-            => resolve_semver(ident, range).await,
+            => resolve_semver(context, ident, range).await,
 
         Range::Link(path)
             => resolve_link(&descriptor.ident, path, &descriptor.parent),
@@ -83,7 +83,7 @@ pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, pa
             => resolve_portal(&descriptor.ident, path, &descriptor.parent, parent_data),
 
         Range::SemverTag(tag)
-            => resolve_semver_tag(descriptor.ident, tag).await,
+            => resolve_semver_tag(context, descriptor.ident, tag).await,
 
         Range::WorkspaceMagic(_)
             => resolve_workspace_by_name(context, descriptor.ident),
@@ -183,9 +183,14 @@ pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveRe
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver_tag(ident: Ident, tag: &str) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver_tag<'a>(context: InstallContext<'a>, ident: Ident, tag: &str) -> Result<ResolveResult, Error> {
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
     let client = http_client()?;
-    let url = format!("{}/{}", config::registry_url_for(&ident), ident);
+
+    let registry_url = project.config.registry_url_for(&ident);
+    let url = format!("{}/{}", registry_url, ident);
 
     let response = client.get(url.clone()).send().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
@@ -220,7 +225,7 @@ pub async fn resolve_semver_tag(ident: Ident, tag: &str) -> Result<ResolveResult
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver(ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver<'a>(context: InstallContext<'a>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
     pub struct FindField<'a, T> {
         field: &'a str,
         nested: T,
@@ -287,8 +292,13 @@ pub async fn resolve_semver(ident: &Ident, range: &semver::Range) -> Result<Reso
         }
     }
 
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
     let client = http_client()?;
-    let url = format!("{}/{}", config::registry_url_for(&ident), ident);
+
+    let registry_url = project.config.registry_url_for(&ident);
+    let url = format!("{}/{}", registry_url, ident);
 
     let response = client.get(url.clone()).send().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
