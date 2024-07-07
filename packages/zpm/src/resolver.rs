@@ -58,6 +58,9 @@ pub struct Resolution {
 
 pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     match &descriptor.range {
+        Range::SemverOrWorkspace(range)
+            => resolve_semver_or_workspace(context, &descriptor.ident, range).await,
+
         Range::Git(range)
             => resolve_git(descriptor.ident, range).await,
 
@@ -337,6 +340,14 @@ pub async fn resolve_semver<'a>(context: InstallContext<'a>, ident: &Ident, rang
     };
 
     Ok(ResolveResult::new(resolution))
+}
+
+pub async fn resolve_semver_or_workspace<'a>(context: InstallContext<'a>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
+    if let Ok(workspace) = resolve_workspace_by_name(context.clone(), ident.clone()) {
+        return Ok(workspace);
+    }
+
+    resolve_semver(context, ident, range).await
 }
 
 pub fn resolve_workspace_by_name(context: InstallContext, ident: Ident) -> Result<ResolveResult, Error> {

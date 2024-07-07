@@ -961,7 +961,7 @@
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires mismatched version of workspace-b
 🟥 Commands ► workspace list -v,--verbose --json ► workspace-a requires workspace-b, workspace-b requires workspace-a
 
-[6 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
+[7 / 14] packages/acceptance-tests/pkg-tests-specs/sources/dragon.test.js
 
 🟩 Dragon tests ► it should pass the dragon test 1
 🟥 Dragon tests ► it should pass the dragon test 10
@@ -969,7 +969,7 @@
 🟥 Dragon tests ► it should pass the dragon test 11 with "nodeLinker: pnpm"
 🟥 Dragon tests ► it should pass the dragon test 12
 🟥 Dragon tests ► it should pass the dragon test 13
-🟥 Dragon tests ► it should pass the dragon test 2
+🟩 Dragon tests ► it should pass the dragon test 2
 🟩 Dragon tests ► it should pass the dragon test 3
 🟩 Dragon tests ► it should pass the dragon test 4
 🟩 Dragon tests ► it should pass the dragon test 5
@@ -978,7 +978,7 @@
 🟩 Dragon tests ► it should pass the dragon test 8
 🟥 Dragon tests ► it should pass the dragon test 9
 
-[24 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
+[25 / 29] packages/acceptance-tests/pkg-tests-specs/sources/exports.test.ts
 
 🟩 "exports" field ► "main" field and dot object array fallback "exports" field
 🟩 "exports" field ► "main" field and dot object conditional "exports" field
@@ -1003,7 +1003,7 @@
 🟥 "exports" field ► object subpath patterns "exports" field
 🟩 "exports" field ► only import top-level object conditional "exports" field
 🟩 "exports" field ► pnpapi with exports
-🟥 "exports" field ► pnpIgnorePatterns with exports (issuer ignored)
+🟩 "exports" field ► pnpIgnorePatterns with exports (issuer ignored)
 🟩 "exports" field ► pnpIgnorePatterns with exports (subpath ignored)
 🟩 "exports" field ► self-referencing with exports
 🟩 "exports" field ► string "exports" field
@@ -1276,7 +1276,7 @@
 🟩 Lock tests ► it should correctly lock dependencies
 🟥 Lock tests ► it shouldn't loose track of the resolutions when upgrading the lockfile version
 
-[14 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
+[13 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
 
 🟥 Node_Modules ► 'winLinkType: junctions' not-on Windows should use symlinks in node_modules directories
 🟥 Node_Modules ► 'winLinkType: symlinks' not-on Windows should use symlinks in node_modules directories
@@ -1335,7 +1335,7 @@
 🟩 Node_Modules ► should tolerate if node_modules is a symlink to other directory
 🟥 Node_Modules ► should warn about 'nohoist' usage and retain nohoist field in the manifest
 🟥 Node_Modules ► should wire via hardlinks files having the same content when in nmMode: hardlinks-global
-🟩 Node_Modules ► workspace packages shouldn't be hoisted if they conflict with root dependencies
+🟥 Node_Modules ► workspace packages shouldn't be hoisted if they conflict with root dependencies
 
 [0 / 40] packages/acceptance-tests/pkg-tests-specs/sources/plugins/plugin-typescript.test.ts
 
@@ -1424,7 +1424,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[77 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[78 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1449,7 +1449,7 @@
 🟩 Plug'n'Play ► it should expose 'findPnpApi' in the 'module' builtin
 🟩 Plug'n'Play ► it should expose the PnP version through 'process.versions.pnp'
 🟩 Plug'n'Play ► it should fallback to the top-level dependencies when it cannot require a transitive dependency require
-🟥 Plug'n'Play ► it should fallback workspaces to the top-level dependencies when they require an undeclared package and the fallback mode is 'all'
+🟩 Plug'n'Play ► it should fallback workspaces to the top-level dependencies when they require an undeclared package and the fallback mode is 'all'
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (builtin request)
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (invalid request)
 🟩 Plug'n'Play ► it should generate a file that can be used as an executable to resolve a request (valid request)
@@ -1730,9 +1730,9 @@
 
 🟥 Workspaces tests ► it should allow aliasing workspaces using relative paths
 🟥 Workspaces tests ► it should allow scripts defined in workspaces to run successfully
-🟥 Workspaces tests ► it should allow workspaces to require each others
+🟩 Workspaces tests ► it should allow workspaces to require each others
 🟩 Workspaces tests ► it should not implicitly make workspaces require-able
-🟩 Workspaces tests ► it should resolve workspaces as regular packages if enableTransparentWorkspaces is disabled
+🟥 Workspaces tests ► it should resolve workspaces as regular packages if enableTransparentWorkspaces is disabled
 🟥 Workspaces tests ► it should resolve workspaces as regular packages if the versions don't match
 🟥 Workspaces tests ► it should run the postinstall script when running an install
 🟥 Workspaces tests ► it should support basic glob patterns

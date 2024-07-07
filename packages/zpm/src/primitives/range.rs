@@ -11,6 +11,8 @@ use super::Ident;
 #[parse_error(Error::InvalidRange)]
 pub enum Range {
     #[try_pattern()]
+    SemverOrWorkspace(semver::Range),
+
     #[try_pattern(prefix = "npm:")]
     Semver(semver::Range),
 
@@ -75,6 +77,7 @@ impl Range {
 yarn_serialization_protocol!(Range, "", {
     serialize(&self) {
         match self {
+            Range::SemverOrWorkspace(range) => range.to_string(),
             Range::Semver(range) => format!("npm:{}", range),
             Range::SemverTag(tag) => format!("npm:{}", tag),
             Range::SemverAlias(ident, range) => format!("npm:{}@{}", ident, range),
