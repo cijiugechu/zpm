@@ -37,6 +37,9 @@ pub enum LinkerData {
 #[serde(rename_all = "camelCase")]
 struct PackageMeta {
     #[serde(default, skip_serializing_if = "is_default")]
+    built: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "is_default")]
     unplugged: Option<bool>,
 }
 
@@ -82,7 +85,13 @@ fn check_extract(locator: &Locator, package_meta: Option<&PackageMeta>, package_
     }
 
     if check_build(package_info) {
-        return true;
+        let built = package_meta
+            .and_then(|meta| meta.built)
+            .unwrap_or(true);
+
+        if built {
+            return true;
+        }
     }
 
     let binding_gyp_name = format!("node_modules/{}/binding.gyp", locator.ident.as_str());
