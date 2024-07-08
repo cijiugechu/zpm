@@ -2,16 +2,16 @@ use std::{collections::{HashMap, HashSet}, convert::Infallible, marker::PhantomD
 
 use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 
-use crate::{cache::DiskCache, error::Error, fetcher::{fetch, PackageData}, lockfile::{Lockfile, LockfileEntry}, primitives::{Descriptor, Locator, PeerRange, Range}, project::Project, resolver::{resolve, Resolution, ResolveResult}, semver, tree_resolver::{ResolutionTree, TreeResolver}};
+use crate::{cache::CompositeCache, error::Error, fetcher::{fetch, PackageData}, lockfile::{Lockfile, LockfileEntry}, primitives::{Descriptor, Locator, PeerRange, Range}, project::Project, resolver::{resolve, Resolution, ResolveResult}, semver, tree_resolver::{ResolutionTree, TreeResolver}};
 
 #[derive(Clone, Default)]
 pub struct InstallContext<'a> {
-    pub package_cache: Option<&'a DiskCache>,
+    pub package_cache: Option<&'a CompositeCache>,
     pub project: Option<&'a Project>,
 }
 
 impl<'a> InstallContext<'a> {
-    pub fn with_package_cache(mut self, package_cache: Option<&'a DiskCache>) -> Self {
+    pub fn with_package_cache(mut self, package_cache: Option<&'a CompositeCache>) -> Self {
         self.package_cache = package_cache;
         self
     }

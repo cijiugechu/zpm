@@ -11,6 +11,61 @@ use crate::error::Error;
 use crate::hash::Sha256;
 
 #[derive(Clone)]
+pub struct CompositeCache {
+    pub global_cache: Option<DiskCache>,
+    pub local_cache: Option<DiskCache>,
+}
+
+impl CompositeCache {
+    pub async fn upsert_blob<K: Clone, R, F>(&self, key: K, ext: &str, func: F) -> Result<(Path, Vec<u8>, Sha256), Error>
+    where
+        K: Decode + Encode,
+        R: Future<Output = Result<Vec<u8>, Error>>,
+        F: FnOnce() -> R,
+    {
+        if let Some(ref cache) = self.local_cache {
+            return cache.upsert_blob(key.clone(), ext, || async {
+                if let Some(ref cache) = self.global_cache {
+                    Ok(cache.upsert_blob(key, ext, func).await?.1)
+                } else {
+                    func().await
+                }
+            }).await;
+        }
+
+        if let Some(ref cache) = self.global_cache {
+            return cache.upsert_blob(key, ext, func).await;
+        }
+
+        panic!("Cache miss");
+    }
+
+    pub async fn upsert_serialized<K: Clone, T, R, F>(&self, key: K, func: F) -> Result<(Path, T), Error>
+    where
+        K: Encode + Decode,
+        T: Encode + Decode + std::fmt::Debug,
+        R: Future<Output = Result<T, Error>>,
+        F: FnOnce() -> R,
+    {
+        if let Some(ref cache) = self.local_cache {
+            return cache.upsert_serialized(key.clone(), || async {
+                if let Some(ref cache) = self.global_cache {
+                    Ok(cache.upsert_serialized(key, func).await?.1)
+                } else {
+                    func().await
+                }
+            }).await;
+        }
+
+        if let Some(ref cache) = self.global_cache {
+            return cache.upsert_serialized(key, func).await;
+        }
+
+        panic!("Cache miss");
+    }
+}
+
+#[derive(Clone)]
 pub struct DiskCache {
     cache_path: Path,
     data_config: bincode::config::Configuration,

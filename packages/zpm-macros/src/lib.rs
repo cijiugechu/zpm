@@ -298,10 +298,10 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
 
             default_functions.push(quote! {
                 fn #func_name() -> #field_type {
-                    use std::str::FromStr;
+                    use crate::config::FromEnv;
 
                     match std::env::var(concat!("YARN_", stringify!(#field_name)).to_uppercase()) {
-                        Ok(value) => #field_type_path::from_str(&value).unwrap(),
+                        Ok(value) => #field_type_path::from_env(&value).unwrap(),
                         Err(_) => #field_type_path::new(#default),
                     }
                 }

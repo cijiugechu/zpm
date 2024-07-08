@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use arca::{Path, ToArcaPath};
 use wax::walk::Entry;
 
-use crate::{cache::DiskCache, config::Config, error::Error, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}};
 
 static LOCKFILE_NAME: &str = "yarn.lock";
 static MANIFEST_NAME: &str = "package.json";
@@ -145,11 +145,23 @@ impl Project {
             .map_err(|err| Error::LockfileWriteError(Arc::new(err)))
     }
 
-    pub fn package_cache(&self) -> DiskCache {
-        let cache_path
+    pub fn package_cache(&self) -> CompositeCache {
+        let global_cache_path = self.config.project.global_folder.value
+            .with_join_str("cache");
+
+        let local_cache_path
             = self.root.with_join_str(".yarn/cache");
 
-        DiskCache::new(cache_path)
+        let global_cache
+            = Some(DiskCache::new(global_cache_path));
+
+        let local_cache = (!self.config.project.enable_global_cache.value)
+            .then(|| DiskCache::new(local_cache_path));
+
+        CompositeCache {
+            global_cache,
+            local_cache,
+        }
     }
 }
 

@@ -1,9 +1,26 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Mutex};
 
 use arca::{Path, ToArcaPath};
+use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 
 use crate::{error::Error, primitives::Ident, settings::{ProjectConfig, UserConfig}};
+
+pub static CONFIG_PATH: Lazy<Mutex<Option<Path>>> = Lazy::new(|| Mutex::new(None));
+
+pub trait FromEnv: Sized {
+    type Err;
+
+    fn from_env(raw: &str) -> Result<Self, Self::Err>;
+}
+
+impl FromEnv for String {
+    type Err = <std::string::String as FromStr>::Err;
+
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
+        Ok(raw.to_string())
+    }
+}
 
 #[derive(Debug, Default, Clone)]
 pub enum SettingSource {
@@ -26,24 +43,58 @@ impl<T> StringLikeField<T> {
     }
 }
 
-impl<T: FromStr> FromStr for StringLikeField<T> {
+impl<T: FromEnv> FromEnv for StringLikeField<T> {
     type Err = T::Err;
 
-    fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        let value = T::from_str(raw)?;
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
+        let value = T::from_env(raw)?;
 
         Ok(Self {value, source: SettingSource::Env})
     }
 }
 
-impl<'de, T: FromStr> Deserialize<'de> for StringLikeField<T> {
+impl<'de, T: FromEnv> Deserialize<'de> for StringLikeField<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
         let str = String::deserialize(deserializer)?;
 
-        let value = T::from_str(&str)
-            .map_err(|_| serde::de::Error::custom("Failed to call FromStr"))?;
+        let value = T::from_env(&str)
+            .map_err(|_| serde::de::Error::custom("Failed to call FromEnv"))?;
 
         Ok(Self {value, source: SettingSource::Default})
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BoolField {
+    pub value: bool,
+    pub source: SettingSource,
+}
+
+impl BoolField {
+    pub fn new(value: bool) -> Self {
+        Self {value, source: SettingSource::Default}
+    }
+}
+
+impl FromEnv for BoolField {
+    type Err = <bool as FromStr>::Err;
+
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
+        let value = match raw {
+            "true" | "1" => true,
+            "false" | "0" => false,
+            _ => panic!("Invalid boolean value"),
+        };
+
+        Ok(BoolField {value, source: SettingSource::Env})
+    }
+}
+
+impl<'de> Deserialize<'de> for BoolField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        let value = bool::deserialize(deserializer)?;
+
+        Ok(BoolField {value, source: SettingSource::Default})
     }
 }
 
@@ -59,10 +110,10 @@ impl<T> JsonField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned> FromStr for JsonField<T> {
+impl<'de, T: DeserializeOwned> FromEnv for JsonField<T> {
     type Err = serde_json::Error;
 
-    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
         let value = serde_json::from_str::<T>(raw)?;
 
         Ok(JsonField {value, source: SettingSource::Env})
@@ -88,17 +139,17 @@ impl<T> VecField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned + FromStr> FromStr for VecField<T> {
+impl<'de, T: DeserializeOwned + FromEnv> FromEnv for VecField<T> {
     type Err = serde_json::Error;
 
-    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
         if raw.starts_with('[') {
             let value = serde_json::from_str::<Vec<T>>(raw)?;
 
             Ok(Self {value})  
         } else {
-            let value = T::from_str(raw)
-                .map_err(|_| serde::de::Error::custom("Failed to call FromStr"))?;
+            let value = T::from_env(raw)
+                .map_err(|_| serde::de::Error::custom("Failed to call FromEnv"))?;
 
             Ok(Self {value: vec![value]})
         }
@@ -125,10 +176,10 @@ impl<T> EnumField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned> FromStr for EnumField<T> {
+impl<'de, T: DeserializeOwned> FromEnv for EnumField<T> {
     type Err = serde_json::Error;
 
-    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
         let str = serde_json::to_string(&raw)?;
         let value = serde_json::from_str::<T>(&str)?;
 
@@ -141,6 +192,44 @@ impl<'de, T> Deserialize<'de> for EnumField<T> where T: Deserialize<'de> {
         let value = T::deserialize(deserializer)?;
 
         Ok(EnumField {value, source: SettingSource::Default})
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PathField {
+    pub value: Path,
+    pub source: SettingSource,
+}
+
+impl PathField {
+    pub fn new(value: Path) -> Self {
+        Self {value, source: SettingSource::Default}
+    }
+}
+
+impl FromEnv for PathField {
+    type Err = Error;
+
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
+        let value = CONFIG_PATH.lock().unwrap()
+            .as_ref().unwrap()
+            .dirname().unwrap()
+            .with_join_str(&raw);
+
+        Ok(Self {value, source: SettingSource::Env})
+    }
+}
+
+impl<'de> Deserialize<'de> for PathField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        let str = String::deserialize(deserializer)?;
+
+        let value = CONFIG_PATH.lock().unwrap()
+            .as_ref().unwrap()
+            .dirname().unwrap()
+            .with_join_str(&str);
+
+        Ok(PathField {value, source: SettingSource::Default})
     }
 }
 
@@ -158,17 +247,16 @@ impl Glob {
     }
 }
 
-impl FromStr for Glob {
+impl FromEnv for Glob {
     type Err = Error;
 
-    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
         Ok(Glob {pattern: raw.to_string()})
     }
 }
 
 pub type StringField = StringLikeField<String>;
 pub type GlobField = StringLikeField<Glob>;
-pub type BoolField = JsonField<bool>;
 
 impl<'de> Deserialize<'de> for Glob {
     fn deserialize<D>(deserializer: D) -> Result<Glob, D::Error> where D: Deserializer<'de> {
@@ -198,9 +286,17 @@ impl Config {
         let project_yarnrc_path = cwd
             .map(|cwd| cwd.with_join_str(".yarnrc.yml"));
 
+        *CONFIG_PATH.lock().unwrap() = user_yarnrc_path.clone();
+        let user_config = Config::import_config::<UserConfig>(user_yarnrc_path);
+
+        *CONFIG_PATH.lock().unwrap() = project_yarnrc_path.clone();
+        let project_config = Config::import_config::<ProjectConfig>(project_yarnrc_path);
+
+        *CONFIG_PATH.lock().unwrap() = None;
+
         Config {
-            user: Config::import_config::<UserConfig>(user_yarnrc_path),
-            project: Config::import_config::<ProjectConfig>(project_yarnrc_path),
+            user: user_config,
+            project: project_config,
         }
     }
 

@@ -11,6 +11,7 @@ pub mod linker;
 pub mod lockfile;
 pub mod manifest;
 pub mod misc;
+pub mod path;
 pub mod primitives;
 pub mod project;
 pub mod resolver;
