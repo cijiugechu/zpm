@@ -1424,7 +1424,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[78 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[81 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1473,11 +1473,11 @@
 🟩 Plug'n'Play ► it should not break the tree path when loading through the result of require.resolve(...)
 🟥 Plug'n'Play ► it should not cache the postinstall artifacts
 🟩 Plug'n'Play ► it should not fallback workspaces by default to the top-level dependencies when they require an undeclared package
-🟥 Plug'n'Play ► it should not loose the pnpapi on portals with virtual paths
-🟥 Plug'n'Play ► it should not override an already unplugged package
+🟩 Plug'n'Play ► it should not loose the pnpapi on portals with virtual paths
+🟩 Plug'n'Play ► it should not override an already unplugged package
 🟩 Plug'n'Play ► it should NOT remove lingering node_modules inside folders matched by pnpIgnorePatterns
 🟩 Plug'n'Play ► it should not touch the .pnp.cjs file when it already exists and is up-to-date
-🟥 Plug'n'Play ► it should not use the wrong pnpapi for a path owned by another pnpapi
+🟩 Plug'n'Play ► it should not use the wrong pnpapi for a path owned by another pnpapi
 🟩 Plug'n'Play ► it should not warn when the peer dependency resolution is compatible
 🟩 Plug'n'Play ► it should output the "reloading the API instance" warning using process.emitWarning
 🟩 Plug'n'Play ► it should pick the most specific locator

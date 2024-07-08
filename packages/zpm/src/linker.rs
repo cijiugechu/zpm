@@ -177,30 +177,28 @@ fn extract_archive(project_root: &Path, locator: &Locator, package_data: &Packag
         .with_join_str(".yarn/unplugged")
         .with_join_str(locator.slug());
 
-    let ready_path = extract_path
-        .with_join_str(".ready");
-
-    if ready_path.fs_exists() {
-        return Ok(extract_path);
-    }
-
-    for entry in crate::zip::entries_from_zip(data)? {
-        let target_path = extract_path
-            .with_join(&Path::from(&entry.name));
-
-        std::fs::create_dir_all(target_path.dirname().unwrap().to_path_buf())
-            .map_err(Arc::new)?;
-
-        std::fs::write(target_path.to_path_buf(), entry.data)
-            .map_err(Arc::new)?;
-    }
-
-    ready_path.fs_write(&vec![])
-        .map_err(Arc::new)?;
-
     let package_subpath = package_data.package_subpath();
     let package_directory = extract_path
         .with_join(&package_subpath);
+    
+    let ready_path = extract_path
+        .with_join_str(".ready");
+
+    if !ready_path.fs_exists() {
+        for entry in crate::zip::entries_from_zip(data)? {
+            let target_path = extract_path
+                .with_join(&Path::from(&entry.name));
+
+            std::fs::create_dir_all(target_path.dirname().unwrap().to_path_buf())
+                .map_err(Arc::new)?;
+
+            std::fs::write(target_path.to_path_buf(), entry.data)
+                .map_err(Arc::new)?;
+        }
+
+        ready_path.fs_write(&vec![])
+            .map_err(Arc::new)?;
+    }
 
     Ok(package_directory)
 }
@@ -367,8 +365,7 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
 
         let mut package_location_abs = physical_package_data.data_root()
             .with_join(&virtual_dir)
-            .with_join(&rel_path)
-            .clone();
+            .with_join(&rel_path);
 
         let package_info = get_package_info(&physical_package_data)?;
         let package_meta = dependencies_meta
@@ -442,7 +439,7 @@ pub async fn link_project<'a>(project: &'a Project, install: &'a Install) -> Res
     let enable_top_level_fallback = project.config.project.pnp_fallback_mode.value != settings::PnpFallbackMode::None;
 
     let mut fallback_exclusion_list: BTreeMap<Ident, BTreeSet<PnpReference>> = BTreeMap::new();
-    let mut fallback_pool = vec![];
+    let fallback_pool = vec![];
 
     if project.config.project.pnp_fallback_mode.value == settings::PnpFallbackMode::DependenciesOnly {
         for locator in tree.locator_resolutions.keys() {
