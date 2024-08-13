@@ -8,7 +8,7 @@ pub fn convert_to_hashmap<U, T, F>(items: Vec<T>, mut key_fn: F) -> HashMap<U, V
 
     for item in items {
         let key = key_fn(&item);
-        map.entry(key).or_insert_with(Vec::new).push(item);
+        map.entry(key).or_default().push(item);
     }
 
     map

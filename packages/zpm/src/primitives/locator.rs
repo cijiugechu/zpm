@@ -52,7 +52,7 @@ impl Locator {
 
     pub fn virtualized_for(&self, parent: &Locator) -> Locator {
         let serialized = parent.serialized()
-            .expect(format!("Failed to serialize locator: {:?}", self).as_str());
+            .unwrap_or_else(|_| panic!("Failed to serialize locator: {:?}", self));
 
         Locator {
             ident: self.ident.clone(),

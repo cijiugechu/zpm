@@ -88,7 +88,7 @@ impl TreeResolver {
 
     fn resolve_peer_dependencies_impl(&mut self, parent_descriptor: &Descriptor, parent_locator: &Locator, peer_slots: &HashMap<Ident, Locator>, top_locator: &Locator, is_optional: bool) {
         if !is_optional {
-            self.resolution_tree.optional_builds.remove(&parent_locator);
+            self.resolution_tree.optional_builds.remove(parent_locator);
         }
 
         if !self.accessible_locators.insert(parent_locator.clone()) {
@@ -108,17 +108,17 @@ impl TreeResolver {
 
         let mut virtual_operations = vec![];
 
-        let parent_dependencies: Vec<_> = self.resolution_tree.locator_resolutions.get(&parent_locator)
+        let parent_dependencies: Vec<_> = self.resolution_tree.locator_resolutions.get(parent_locator)
             .expect("Expected the parent locator to have a resolution")
             .dependencies.values().cloned().sorted().collect();
 
         for dependency_descriptor in &parent_dependencies {
             let is_peer_dependency = self.resolution_tree.locator_resolutions
-                .get(&parent_locator).unwrap()
+                .get(parent_locator).unwrap()
                 .peer_dependencies
                 .contains_key(&dependency_descriptor.ident);
 
-            if is_peer_dependency && &parent_locator != &top_locator {
+            if is_peer_dependency && parent_locator != top_locator {
                 continue;
             }
 
@@ -126,27 +126,26 @@ impl TreeResolver {
                 panic!("Virtual packages shouldn't be encountered when virtualizing a branch");
             }
 
-            self.volatile_descriptor.remove(&dependency_descriptor);
+            self.volatile_descriptor.remove(dependency_descriptor);
 
             let is_optional = is_optional || self.resolution_tree.locator_resolutions
-                .get(&parent_locator).unwrap()
+                .get(parent_locator).unwrap()
                 .optional_dependencies
                 .contains(&dependency_descriptor.ident);
 
-            let dependency_locator = self.resolution_tree.descriptor_to_locator.get(&dependency_descriptor)
+            let dependency_locator = self.resolution_tree.descriptor_to_locator.get(dependency_descriptor)
                 .unwrap_or_else(|| panic!("Expected a locator to be found for {}", dependency_descriptor));
 
             let pkg = self.original_workspace_definitions.get(dependency_locator)
                 .or(self.resolution_tree.locator_resolutions.get(dependency_locator))
                 .unwrap();
 
-            let has_peer_dependencies = pkg
-                .peer_dependencies
-                .len() > 0;
+            let has_peer_dependencies = !pkg
+                .peer_dependencies.is_empty();
 
             if !has_peer_dependencies {
                 self.resolve_peer_dependencies(
-                    &dependency_descriptor,
+                    dependency_descriptor,
                     &dependency_locator.clone(),
                     peer_slots,
                     top_locator,
@@ -157,10 +156,10 @@ impl TreeResolver {
             }
 
             let virtualized_descriptor = dependency_descriptor
-                .virtualized_for(&parent_locator);
+                .virtualized_for(parent_locator);
 
             let virtualized_locator = dependency_locator
-                .virtualized_for(&parent_locator);
+                .virtualized_for(parent_locator);
 
             let mut virtualized_resolution = pkg
                 .clone();
@@ -190,7 +189,7 @@ impl TreeResolver {
         }
 
         for operation in &virtual_operations {
-            let parent_resolution = self.resolution_tree.locator_resolutions.get_mut(&parent_locator)
+            let parent_resolution = self.resolution_tree.locator_resolutions.get_mut(parent_locator)
                 .unwrap();
 
             parent_resolution.dependencies.insert(
@@ -210,7 +209,7 @@ impl TreeResolver {
 
             for peer_ident in peer_dependencies {
                 let mut peer_descriptor = self.resolution_tree.locator_resolutions
-                    .get(&parent_locator).unwrap()
+                    .get(parent_locator).unwrap()
                     .dependencies
                     .get(&peer_ident).cloned();
 
@@ -379,7 +378,7 @@ impl TreeResolver {
         }
 
         for operation in &mut virtual_operations {
-            let parent_resolution = self.resolution_tree.locator_resolutions.get(&parent_locator)
+            let parent_resolution = self.resolution_tree.locator_resolutions.get(parent_locator)
                 .unwrap();
 
             // Regardless of whether the initial virtualized package got deduped
@@ -410,9 +409,9 @@ impl TreeResolver {
 
                 self.peer_dependency_links
                     .entry(root.clone())
-                    .or_insert(HashMap::new())
+                    .or_default()
                     .entry(peer_ident.clone())
-                    .or_insert(HashSet::new());
+                    .or_default();
             }
 
             let virtualized_resolution = self.resolution_tree.locator_resolutions

@@ -17,9 +17,9 @@ pub struct CompositeCache {
 }
 
 impl CompositeCache {
-    pub async fn upsert_blob<K: Clone, R, F>(&self, key: K, ext: &str, func: F) -> Result<(Path, Vec<u8>, Sha256), Error>
+    pub async fn upsert_blob<K, R, F>(&self, key: K, ext: &str, func: F) -> Result<(Path, Vec<u8>, Sha256), Error>
     where
-        K: Decode + Encode,
+        K: Clone + Decode + Encode,
         R: Future<Output = Result<Vec<u8>, Error>>,
         F: FnOnce() -> R,
     {
@@ -40,9 +40,9 @@ impl CompositeCache {
         panic!("Cache miss");
     }
 
-    pub async fn upsert_serialized<K: Clone, T, R, F>(&self, key: K, func: F) -> Result<(Path, T), Error>
+    pub async fn upsert_serialized<K, T, R, F>(&self, key: K, func: F) -> Result<(Path, T), Error>
     where
-        K: Encode + Decode,
+        K: Clone + Encode + Decode,
         T: Encode + Decode + std::fmt::Debug,
         R: Future<Output = Result<T, Error>>,
         F: FnOnce() -> R,

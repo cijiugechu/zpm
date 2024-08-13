@@ -17,7 +17,7 @@ impl Default {
         let dir_separator = self.leading_argument.chars()
             .find(|c| *c == '\\' || *c == '/');
 
-        if dir_separator.is_some() && !Ident::from_str(&self.leading_argument).is_ok() {
+        if dir_separator.is_some() && Ident::from_str(&self.leading_argument).is_err() {
             std::env::set_current_dir(std::path::PathBuf::from(&self.leading_argument))?;
 
             Ok(YarnCli::run(self.cli_info.with_argv(self.args.clone())))

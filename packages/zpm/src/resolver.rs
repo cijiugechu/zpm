@@ -78,7 +78,7 @@ impl Resolution {
     }
 }
 
-pub async fn resolve<'a>(context: InstallContext<'a>, descriptor: Descriptor, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+pub async fn resolve(context: InstallContext<'_>, descriptor: Descriptor, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     match &descriptor.range {
         Range::SemverOrWorkspace(range)
             => resolve_semver_or_workspace(context, &descriptor.ident, range).await,
@@ -133,7 +133,7 @@ pub fn resolve_link(ident: &Ident, path: &str, parent: &Option<Locator>) -> Resu
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_url<'a>(context: InstallContext<'a>, ident: Ident, url: &str) -> Result<ResolveResult, Error> {
+pub async fn resolve_url(context: InstallContext<'_>, ident: Ident, url: &str) -> Result<ResolveResult, Error> {
     let locator = Locator::new(ident.clone(), Reference::Url(url.to_string()));
 
     let (resolution, package_data)
@@ -142,7 +142,7 @@ pub async fn resolve_url<'a>(context: InstallContext<'a>, ident: Ident, url: &st
     Ok(ResolveResult::new_with_data(resolution, package_data))
 }
 
-pub async fn resolve_tarball<'a>(context: InstallContext<'a>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+pub async fn resolve_tarball(context: InstallContext<'_>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     let locator = Locator::new_bound(ident, Reference::Tarball(path.to_string()), parent.clone().map(Arc::new));
 
     let (resolution, package_data)
@@ -151,7 +151,7 @@ pub async fn resolve_tarball<'a>(context: InstallContext<'a>, ident: Ident, path
     Ok(ResolveResult::new_with_data(resolution, package_data))
 }
 
-pub async fn resolve_folder<'a>(context: InstallContext<'a>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
+pub async fn resolve_folder(context: InstallContext<'_>, ident: Ident, path: &str, parent: &Option<Locator>, parent_data: Option<PackageData>) -> Result<ResolveResult, Error> {
     let locator = Locator::new_bound(ident, Reference::Folder(path.to_string()), parent.clone().map(Arc::new));
 
     let (resolution, package_data)
@@ -167,7 +167,7 @@ pub fn resolve_portal(ident: &Ident, path: &str, parent: &Option<Locator>, paren
         .expect("The parent data is required for retrieving the path of a portal package");
 
     let package_directory = parent_data.context_directory()
-        .with_join_str(&path);
+        .with_join_str(path);
 
     let manifest_path = package_directory
         .with_join_str("package.json");
@@ -183,7 +183,7 @@ pub fn resolve_portal(ident: &Ident, path: &str, parent: &Option<Locator>, paren
 }
 
 pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveResult, Error> {
-    let commit = resolve_git_treeish(&git_range).await?;
+    let commit = resolve_git_treeish(git_range).await?;
 
     let locator = Locator::new(ident, Reference::Git(GitRange {
         repo: git_range.repo.clone(),
@@ -202,7 +202,7 @@ pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveRe
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver_tag<'a>(context: InstallContext<'a>, ident: Ident, tag: &str) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver_tag(context: InstallContext<'_>, ident: Ident, tag: &str) -> Result<ResolveResult, Error> {
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
@@ -230,7 +230,7 @@ pub async fn resolve_semver_tag<'a>(context: InstallContext<'a>, ident: Ident, t
     let version = registry_data.dist_tags.get(tag)
         .ok_or_else(|| Error::MissingSemverTag(tag.to_string()))?;
 
-    let manifest = registry_data.versions.remove(&version).unwrap();
+    let manifest = registry_data.versions.remove(version).unwrap();
 
     let locator = Locator::new(ident.clone(), Reference::SemverAlias(ident.clone(), version.clone()));
     let resolution = Resolution::from_remote_manifest(locator, manifest);
@@ -238,7 +238,7 @@ pub async fn resolve_semver_tag<'a>(context: InstallContext<'a>, ident: Ident, t
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver<'a>(context: InstallContext<'a>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver(context: InstallContext<'_>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
     pub struct FindField<'a, T> {
         field: &'a str,
         nested: T,
@@ -310,7 +310,7 @@ pub async fn resolve_semver<'a>(context: InstallContext<'a>, ident: &Ident, rang
 
     let client = http_client()?;
 
-    let registry_url = project.config.registry_url_for(&ident);
+    let registry_url = project.config.registry_url_for(ident);
     let url = format!("{}/{}", registry_url, ident);
 
     let response = client.get(url.clone()).send().await
@@ -343,7 +343,7 @@ pub async fn resolve_semver<'a>(context: InstallContext<'a>, ident: &Ident, rang
     Ok(ResolveResult::new(resolution))
 }
 
-pub async fn resolve_semver_or_workspace<'a>(context: InstallContext<'a>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
+pub async fn resolve_semver_or_workspace(context: InstallContext<'_>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
     if let Ok(workspace) = resolve_workspace_by_name(context.clone(), ident.clone()) {
         return Ok(workspace);
     }

@@ -5,7 +5,7 @@ pub fn extract_number(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
     let mut valid = false;
 
     while let Some(&c) = str.peek() {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             num = num.saturating_mul(10).saturating_add(c.to_digit(10)?);
             valid = true;
 
@@ -61,7 +61,7 @@ pub fn extract_rc(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<Vec<
 
     segments.push(extract_rc_segment(str)?);
 
-    while let Some(_) = str.next_if_eq(&'.') {
+    while str.next_if_eq(&'.').is_some() {
         segments.push(extract_rc_segment(str)?);
     }
 
@@ -84,7 +84,7 @@ pub fn extract_version(str: &mut std::iter::Peekable<std::str::Chars>) -> Option
         return None;
     }
 
-    if let Some(_) = str.next_if_eq(&'.') {
+    if str.next_if_eq(&'.').is_some() {
         if let Some('*' | 'x' | 'X') = str.peek() {
             str.next();
         } else if let Some(n) = extract_number(str) {
@@ -96,7 +96,7 @@ pub fn extract_version(str: &mut std::iter::Peekable<std::str::Chars>) -> Option
             return None;
         }
 
-        if let Some(_) = str.next_if_eq(&'.') {
+        if str.next_if_eq(&'.').is_some() {
             if let Some('*' | 'x' | 'X') = str.peek() {
                 str.next();
             } else if let Some(n) = extract_number(str) {
@@ -110,11 +110,11 @@ pub fn extract_version(str: &mut std::iter::Peekable<std::str::Chars>) -> Option
         }
     }
 
-    if let Some(_) = str.next_if_eq(&'-') {
+    if str.next_if_eq(&'-').is_some() {
         rc = extract_rc(str);
     }
 
-    if let Some(_) = str.next_if_eq(&'+') {
+    if str.next_if_eq(&'+').is_some() {
         extract_rc(str)?;
     }
 
@@ -127,7 +127,7 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
             '^' => {
                 str.next();
 
-                while let Some(_) = str.next_if_eq(&' ') {
+                while str.next_if_eq(&' ').is_some() {
                     // Skip all whitespaces
                 }
 
@@ -153,7 +153,7 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
             '~' => {
                 str.next();
 
-                while let Some(_) = str.next_if_eq(&' ') {
+                while str.next_if_eq(&' ').is_some() {
                     // Skip all whitespaces
                 }
 
@@ -184,7 +184,7 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
                     None => OperatorType::GreaterThan,
                 };
 
-                while let Some(_) = str.next_if_eq(&' ') {
+                while str.next_if_eq(&' ').is_some() {
                     // Skip all whitespaces
                 }
 
@@ -206,7 +206,7 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
                     None => OperatorType::LessThan,
                 };
 
-                while let Some(_) = str.next_if_eq(&' ') {
+                while str.next_if_eq(&' ').is_some() {
                     // Skip all whitespaces
                 }
 
@@ -224,7 +224,7 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
                 str.next();
                 str.next_if_eq(&'=');
 
-                while let Some(_) = str.next_if_eq(&' ') {
+                while str.next_if_eq(&' ').is_some() {
                     // Skip all whitespaces
                 }
 
@@ -240,13 +240,13 @@ pub fn extract_predicate(str: &mut std::iter::Peekable<std::str::Chars>) -> Opti
 
             _ => {
                 if let Some((version, missing)) = extract_version(str) {
-                    if let Some(_) = str.next_if_eq(&' ') {
-                        while let Some(_) = str.next_if_eq(&' ') {
+                    if str.next_if_eq(&' ').is_some() {
+                        while str.next_if_eq(&' ').is_some() {
                             // Skip all whitespaces
                         }
 
-                        if let Some(_) = str.next_if_eq(&'-') {
-                            while let Some(_) = str.next_if_eq(&' ') {
+                        if str.next_if_eq(&'-').is_some() {
+                            while str.next_if_eq(&' ').is_some() {
                                 // Skip all whitespaces
                             }
 
@@ -341,7 +341,7 @@ pub fn extract_tokens(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
             '|' => {
                 str.next();
 
-                if let Some(_) = str.next_if_eq(&'|') {
+                if str.next_if_eq(&'|').is_some() {
                     tokens.push(Token::Syntax(TokenType::Or));
                 } else {
                     return None;
@@ -351,7 +351,7 @@ pub fn extract_tokens(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
             '&' => {
                 str.next();
 
-                if let Some(_) = str.next_if_eq(&'&') {
+                if str.next_if_eq(&'&').is_some() {
                     tokens.push(Token::Syntax(TokenType::And));
                 } else {
                     return None;
@@ -372,14 +372,8 @@ pub fn extract_tokens(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
 
             _ => {
                 if let Some(predicate) = extract_predicate(str) {
-                    if let Some(last) = tokens.last() {
-                        match last {
-                            Token::Operation(_, _) => {
-                                tokens.push(Token::Syntax(TokenType::SAnd));
-                            }
-
-                            _ => {}
-                        }
+                    if let Some(Token::Operation(_, _)) = tokens.last() {
+                        tokens.push(Token::Syntax(TokenType::SAnd));
                     }
 
                     tokens.extend(predicate);
@@ -393,7 +387,7 @@ pub fn extract_tokens(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
     Some(tokens)
 }
 
-pub fn infix_to_prefix(input: &Vec<Token>) -> Option<Vec<Token>> {
+pub fn infix_to_prefix(input: &[Token]) -> Option<Vec<Token>> {
     let mut prefix = vec![];
     let mut stack = vec![];
 
@@ -408,7 +402,7 @@ pub fn infix_to_prefix(input: &Vec<Token>) -> Option<Vec<Token>> {
             }
 
             Token::Syntax(TokenType::LParen) => {
-                while !stack.is_empty() && stack.last() != Some(&&Token::Syntax(TokenType::RParen)) {
+                while !stack.is_empty() && stack.last() != Some(&Token::Syntax(TokenType::RParen)) {
                     prefix.push(stack.pop().unwrap());
                 }
 
@@ -420,7 +414,7 @@ pub fn infix_to_prefix(input: &Vec<Token>) -> Option<Vec<Token>> {
             }
 
             _ => {
-                while stack.last() == Some(&&Token::Syntax(TokenType::SAnd)) {
+                while stack.last() == Some(&Token::Syntax(TokenType::SAnd)) {
                     prefix.push(stack.pop().unwrap());
                 }
 

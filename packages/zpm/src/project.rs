@@ -386,7 +386,7 @@ impl Workspace {
         });
 
         let rel_path = path
-            .relative_to(&root);
+            .relative_to(root);
 
         Ok(Workspace {
             name,
@@ -409,7 +409,7 @@ impl Workspace {
 
         if let Some(patterns) = &self.manifest.workspaces {
             for pattern in patterns {
-                let glob = wax::Glob::new(&pattern)
+                let glob = wax::Glob::new(pattern)
                     .map_err(|_| Error::InvalidWorkspacePattern(pattern.to_string()))?;
 
                 for entry in glob.walk(self.path.to_path_buf()) {

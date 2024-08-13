@@ -1,4 +1,4 @@
-use std::{cell::LazyCell, hash::Hash};
+use std::{hash::Hash, sync::LazyLock};
 
 use bincode::{Decode, Encode};
 
@@ -46,7 +46,7 @@ impl AsRef<str> for Ident {
     }
 }
 
-const IDENT_REGEX: LazyCell<regex::Regex> = LazyCell::new(|| {
+static IDENT_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^(?:@([^/]+?)/)?([^@/]+)$").unwrap()
 });
 

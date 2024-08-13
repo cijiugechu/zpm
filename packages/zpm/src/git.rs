@@ -1,4 +1,4 @@
-use std::{cell::LazyCell, collections::HashMap, fmt::{self, Display, Formatter}, str::FromStr};
+use std::{collections::HashMap, fmt::{self, Display, Formatter}, str::FromStr, sync::LazyLock};
 
 use bincode::{Decode, Encode};
 use fancy_regex::Regex;
@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{error::Error, primitives::Range, semver, yarn_serialization_protocol};
 
-const GH_URL: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"^(?:github:|https:\/\/github\.com\/|git:\/\/github\.com\/)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
-const GH_TARBALL_URL: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"^https?:\/\/github\.com\/(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)\/tarball\/(.+)?$").unwrap());
+static GH_URL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?:github:|https:\/\/github\.com\/|git:\/\/github\.com\/)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
+static GH_TARBALL_URL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^https?:\/\/github\.com\/(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)\/tarball\/(.+)?$").unwrap());
 
-const GH_URL_SET: LazyCell<Vec<Regex>> = LazyCell::new(|| vec![
+static GH_URL_SET: LazyLock<Vec<Regex>> = LazyLock::new(|| vec![
     Regex::new(r"^ssh:").unwrap(),
     Regex::new(r"^git(?:\+[^:]+)?:").unwrap(),
   
@@ -24,7 +24,7 @@ const GH_URL_SET: LazyCell<Vec<Regex>> = LazyCell::new(|| vec![
 ]);
 
 pub fn is_git_url<P: AsRef<str>>(url: P) -> bool {
-    GH_URL_SET.iter().find(|r| r.is_match(url.as_ref()).unwrap()).is_some()
+    GH_URL_SET.iter().any(|r| r.is_match(url.as_ref()).unwrap())
 }
 
 pub fn normalize_git_url<P: AsRef<str>>(url: P) -> String {
@@ -37,7 +37,7 @@ pub fn normalize_git_url<P: AsRef<str>>(url: P) -> String {
     normalized = GH_URL.replace(&normalized, "https://github.com/$1/$2.git$3").to_string();
     normalized = GH_TARBALL_URL.replace(&normalized, "https://github.com/$1/$2.git#$3").to_string();
 
-    return normalized;
+    normalized
 }
 
 #[derive(Clone, Debug, Decode, Deserialize, Encode, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
@@ -94,7 +94,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
     let subsequent = &subsequent[1..];
 
     // New-style: "#commit=abcdef&workspace=foobar"
-    if let Some(_) = subsequent.find('=') {
+    if subsequent.find('=').is_some() {
         let mut treeish = GitTreeish::Commit("HEAD".to_string());
 
         for pair in subsequent.split('&') {
@@ -114,7 +114,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
 
         return Ok(GitRange {
             repo: repo.to_string(),
-            treeish: treeish,
+            treeish,
         });
     }
 
@@ -134,7 +134,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
 
     Ok(GitRange {
         repo: repo.to_string(),
-        treeish: treeish,
+        treeish,
     })
 }
 

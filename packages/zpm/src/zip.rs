@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::LazyCell, os::unix::fs::PermissionsExt, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, os::unix::fs::PermissionsExt, path::PathBuf, sync::{Arc, LazyLock}};
 
 use arca::Path;
 use itertools::Itertools;
@@ -88,7 +88,7 @@ struct EndOfCentralDirectoryRecord {
     comment_length: u16,
 }
 
-const ZIP_PATH_INVALID_PATTERNS: LazyCell<Regex> = LazyCell::new(|| {
+static ZIP_PATH_INVALID_PATTERNS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\\|/\.{0,2}/|^\.{0,2}/|/\.{0,2}$|^\.{0,2}$").unwrap()
 });
 
@@ -392,8 +392,8 @@ fn inject_central_directory_record(target: &mut Vec<u8>, entry: &Entry, offset: 
     target.extend_from_slice(entry.name.as_bytes());
 }
 
-const VIRTUAL_REGEX: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"/__virtual__/[^/]+/0/").unwrap());
-const ZIP_REGEX: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(.*\.zip)/(?:__virtual__/[^/]+/0/)?(.*)").unwrap());
+static VIRTUAL_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/__virtual__/[^/]+/0/").unwrap());
+static ZIP_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(.*\.zip)/(?:__virtual__/[^/]+/0/)?(.*)").unwrap());
 
 pub trait ZipSupport {
     fn fs_read_text_from_zip_buffer(&self, buf: &[u8]) -> Result<String, Error>;
@@ -403,7 +403,7 @@ pub trait ZipSupport {
 impl ZipSupport for Path {
     fn fs_read_text_from_zip_buffer(&self, zip_data: &[u8]) -> Result<String, Error> {
         let path_as_string = self.to_string();
-        let entries = entries_from_zip(&zip_data)?;
+        let entries = entries_from_zip(zip_data)?;
 
         let entry = entries.iter()
             .find(|entry| entry.name == path_as_string)

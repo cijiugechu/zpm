@@ -1,4 +1,4 @@
-use std::{cell::LazyCell, collections::{BTreeMap, HashMap}, ffi::OsStr, fs::Permissions, hash::{DefaultHasher, Hash, Hasher}, io::Read, os::unix::fs::PermissionsExt};
+use std::{collections::{BTreeMap, HashMap}, ffi::OsStr, fs::Permissions, hash::{DefaultHasher, Hash, Hasher}, io::Read, os::unix::fs::PermissionsExt, sync::LazyLock};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
@@ -8,15 +8,15 @@ use zpm_macros::track_time;
 
 use crate::{error::{self, Error}, primitives::Locator, project::Project};
 
-const CJS_LOADER_MATCHER: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\s*--require\s+\S*\.pnp\.c?js\s*").unwrap());
-const ESM_LOADER_MATCHER: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\s*--experimental-loader\s+\S*\.pnp\.loader\.mjs\s*").unwrap());
-const JS_EXTENSION: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\.[cm]?[jt]sx?$").unwrap());
+static CJS_LOADER_MATCHER: LazyLock<Regex> = LazyLock::new(|| regex::Regex::new(r"\s*--require\s+\S*\.pnp\.c?js\s*").unwrap());
+static ESM_LOADER_MATCHER: LazyLock<Regex> = LazyLock::new(|| regex::Regex::new(r"\s*--experimental-loader\s+\S*\.pnp\.loader\.mjs\s*").unwrap());
+static JS_EXTENSION: LazyLock<Regex> = LazyLock::new(|| regex::Regex::new(r"\.[cm]?[jt]sx?$").unwrap());
 
 fn make_path_wrapper(bin_dir: &Path, name: &str, argv0: &str, args: Vec<&str>) -> Result<(), Error> {
     if cfg!(windows) {
         let cmd_script = format!(
             r#"@goto #_undefined_# 2>NUL || @title %COMSPEC% & @setlocal & @"{}" {} %*"#,
-            argv0.to_string(),
+            argv0,
             args.iter().map(|arg| format!(r#""{}""#, arg.replace(r#"""#, r#""""#))).collect::<Vec<String>>().join(" "),
         );
 
@@ -26,7 +26,7 @@ fn make_path_wrapper(bin_dir: &Path, name: &str, argv0: &str, args: Vec<&str>) -
     } else {
         let sh_script = format!(
             "#!/bin/sh\nexec \"{}\" {} \"$@\"\n",
-            argv0.to_string(),
+            argv0,
             args.iter().map(|arg| format!("'{}'", arg.replace("'", "'\"'\"'"))).collect_vec().join(" "),
         );
 
@@ -42,7 +42,7 @@ fn make_path_wrapper(bin_dir: &Path, name: &str, argv0: &str, args: Vec<&str>) -
 fn is_node_script(p: Path) -> bool {
     let ext = p.extname().unwrap_or_default();
 
-    if JS_EXTENSION.is_match(&ext) {
+    if JS_EXTENSION.is_match(ext) {
         return true;
     }
 
@@ -103,6 +103,12 @@ impl Binary {
 pub struct ScriptEnvironment {
     cwd: Path,
     env: HashMap<String, String>,
+}
+
+impl Default for ScriptEnvironment {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ScriptEnvironment {
@@ -209,9 +215,9 @@ impl ScriptEnvironment {
                     .to_string();
 
                 if binary.kind == BinaryKind::Node {
-                    make_path_wrapper(&temp_dir, &name, &"node".to_string(), vec![&binary_path_abs])?;
+                    make_path_wrapper(&temp_dir, name, "node", vec![&binary_path_abs])?;
                 } else {
-                    make_path_wrapper(&temp_dir, &name, &binary_path_abs, vec![])?;
+                    make_path_wrapper(&temp_dir, name, &binary_path_abs, vec![])?;
                 }
             }
 
@@ -261,10 +267,9 @@ impl ScriptEnvironment {
         let exit_status
             = cmd.status().await.unwrap();
 
-        let exit_code
-            = exit_status.code().unwrap_or(1);
+        
 
-        exit_code
+        exit_status.code().unwrap_or(1)
     }
 
     pub async fn run_binary<I, S>(&mut self, binary: &Binary, args: I) -> i32 where I: IntoIterator<Item = S>, S: AsRef<OsStr> + ToString {

@@ -5,6 +5,12 @@ pub struct NoopSerializer {
     pub output: String,
 }
 
+impl Default for NoopSerializer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NoopSerializer {
     pub fn new() -> NoopSerializer {
         NoopSerializer {
@@ -86,10 +92,7 @@ impl<'a> Serializer for &'a mut NoopSerializer {
         Ok(())
     }
 
-    fn serialize_some<T: ?Sized>(self, __value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: Serialize,
-    {
+    fn serialize_some<T>(self, __value: &T) -> Result<Self::Ok, Self::Error> where T: Serialize + ?Sized {
         Ok(())
     }
 
@@ -105,17 +108,11 @@ impl<'a> Serializer for &'a mut NoopSerializer {
         Ok(())
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, __value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: Serialize,
-    {
+    fn serialize_newtype_struct<T>(self, _name: &'static str, __value: &T) -> Result<Self::Ok, Self::Error> where T: Serialize + ?Sized {
         Ok(())
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(self, _name: &'static str, _variant_index: u32, _variant: &'static str, __value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: Serialize,
-    {
+    fn serialize_newtype_variant<T>(self, _name: &'static str, _variant_index: u32, _variant: &'static str, __value: &T) -> Result<Self::Ok, Self::Error> where T: Serialize + ?Sized {
         Ok(())
     }
 
@@ -256,7 +253,7 @@ macro_rules! yarn_serialization_protocol {
         deserialize($deserialize_src:ident) { $($deserialize_body:tt)* }
     }) => {
         impl<'a> std::convert::TryFrom<&'a str> for $type {
-            type Error = crate::error::Error;
+            type Error = $crate::error::Error;
 
             fn try_from($deserialize_src: &str) -> std::result::Result<Self, Self::Error> {
                 $($deserialize_body)*
@@ -264,7 +261,7 @@ macro_rules! yarn_serialization_protocol {
         }
 
         impl std::str::FromStr for $type {
-            type Err = crate::error::Error;
+            type Err = $crate::error::Error;
 
             fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
                 Self::try_from(s)
@@ -282,7 +279,7 @@ macro_rules! yarn_serialization_protocol {
         }
 
         impl TryFrom<&str> for Box<$type> {
-            type Error = crate::error::Error;
+            type Error = $crate::error::Error;
         
             fn try_from(value: &str) -> Result<Self, Self::Error> {
                 use std::str::FromStr;
@@ -301,9 +298,9 @@ macro_rules! yarn_serialization_protocol {
             }
         }
 
-        impl crate::serialize::Serialized for $type {
+        impl $crate::serialize::Serialized for $type {
             fn serialized(&self) -> Result<String, std::fmt::Error> {
-                let mut serializer = crate::serialize::NoopSerializer::new();
+                let mut serializer = $crate::serialize::NoopSerializer::new();
 
                 use serde::ser::Serialize;
                 self.serialize(&mut serializer)?;
@@ -314,7 +311,7 @@ macro_rules! yarn_serialization_protocol {
 
         impl std::fmt::Display for $type {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                use crate::serialize::Serialized;
+                use $crate::serialize::Serialized;
                 write!(f, "{}", self.serialized()?)
             }
         }

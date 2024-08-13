@@ -1,10 +1,10 @@
-use std::{cell::LazyCell, sync::Arc};
+use std::sync::{Arc, LazyLock};
 
 use reqwest::Client;
 
 use crate::error::Error;
 
-const HTTP_CLIENT: LazyCell<Result<Client, Error>> = LazyCell::new(|| {
+static HTTP_CLIENT: LazyLock<Result<Client, Error>> = LazyLock::new(|| {
     // let sock_addrs = format!("registry.npmjs.org:443").to_socket_addrs()
     //     .map_err(|err| Error::DnsResolutionError(Arc::new(err)))?
     //     .collect::<Vec<_>>();

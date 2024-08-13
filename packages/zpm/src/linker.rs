@@ -1,4 +1,4 @@
-use std::{cell::LazyCell, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::Arc};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::{Arc, LazyLock}};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
@@ -61,13 +61,13 @@ struct PackageInfo {
     scripts: HashMap<String, String>,
 }
 
-const UNPLUG_SCRIPTS: &'static [&'static str] = &["preinstall", "install", "postinstall"];
+static UNPLUG_SCRIPTS: &[&str] = &["preinstall", "install", "postinstall"];
 
-const UNPLUG_EXT_REGEX: LazyCell<Regex> = LazyCell::new(|| {
+static UNPLUG_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\.(exe|bin|h|hh|hpp|c|cc|cpp|java|jar|node)$").unwrap()
 });
 
-fn check_build(locator: &Locator, package_meta: Option<&PackageMeta>, package_info: &PackageInfo, entries: &Vec<Entry>) -> Vec<build::Command> {
+fn check_build(locator: &Locator, package_meta: Option<&PackageMeta>, package_info: &PackageInfo, entries: &[Entry]) -> Vec<build::Command> {
     let built = package_meta
         .and_then(|meta| meta.built)
         .unwrap_or(true);
@@ -95,7 +95,7 @@ fn check_build(locator: &Locator, package_meta: Option<&PackageMeta>, package_in
     vec![]
 }
 
-fn check_extract(package_meta: Option<&PackageMeta>, package_info: &PackageInfo, build_commands: &Vec<build::Command>, entries: &Vec<Entry>) -> bool {
+fn check_extract(package_meta: Option<&PackageMeta>, package_info: &PackageInfo, build_commands: &[build::Command], entries: &[Entry]) -> bool {
     if let Some(meta) = package_meta {
         if let Some(unplugged) = meta.unplugged {
             return unplugged;
@@ -152,7 +152,7 @@ fn check_extract(package_meta: Option<&PackageMeta>, package_info: &PackageInfo,
 fn get_package_info(package_data: &PackageData) -> Result<PackageInfo, Error> {
     match package_data {
         PackageData::Zip {data, ..} => {
-            let first_entry = first_entry_from_zip(&data)?;
+            let first_entry = first_entry_from_zip(data)?;
 
             Ok(serde_json::from_slice::<PackageInfo>(&first_entry.data)?)
         },
@@ -167,33 +167,32 @@ fn get_package_info(package_data: &PackageData) -> Result<PackageInfo, Error> {
     }
 }
 
-fn remove_nm(nm_path: Path) {
-    if let Ok(entries) = nm_path.fs_read_dir() {
-        let mut has_dot_entries = false;
+fn remove_nm(nm_path: Path) -> error::Result<()> {
+    let entries = nm_path.fs_read_dir()?;
 
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path()
-                    .to_arca();
+    let mut has_dot_entries = false;
 
-                let basename = path.basename()
-                    .unwrap();
+    for entry in entries.flatten() {
+        let path = entry.path()
+            .to_arca();
 
-                if basename.starts_with(".") && basename != ".bin" && path.fs_is_dir() {
-                    has_dot_entries = true;
-                    continue;
-                }
+        let basename = path.basename()
+            .unwrap();
 
-                path.fs_rm()
-                    .unwrap();
-            }
+        if basename.starts_with(".") && basename != ".bin" && path.fs_is_dir() {
+            has_dot_entries = true;
+            continue;
         }
 
-        if !has_dot_entries {
-            nm_path.fs_rm()
-                .unwrap();
-        }
+        path.fs_rm()
+            .unwrap();
     }
+
+    if !has_dot_entries {
+        nm_path.fs_rm()?;
+    }
+
+    Ok(())
 }
 
 fn extract_archive(project_root: &Path, locator: &Locator, package_data: &PackageData, data: &[u8]) -> Result<Path, Error> {
@@ -325,7 +324,7 @@ fn generate_split_setup(project: &Project, state: &PnpState) -> Result<(), Error
     change_file(project.pnp_path().to_path_buf(), script, 0o755)
         .map_err(Arc::new)?;
 
-    change_file(project.pnp_data_path().to_path_buf(), &serde_json::to_string(&state).unwrap(), 0o644)
+    change_file(project.pnp_data_path().to_path_buf(), serde_json::to_string(&state).unwrap(), 0o644)
         .map_err(Arc::new)?;
 
     Ok(())
@@ -377,7 +376,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
     let tree = &install.install_state.resolution_tree;
     let nm_path = project.project_cwd.with_join_str("node_modules");
 
-    remove_nm(nm_path);
+    remove_nm(nm_path)?;
 
     let dependencies_meta = project.manifest_path()
         .if_exists()
@@ -435,7 +434,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             .with_join(&virtual_dir)
             .with_join(&rel_path);
 
-        let package_info = get_package_info(&physical_package_data)?;
+        let package_info = get_package_info(physical_package_data)?;
         let package_meta = dependencies_meta
             .get(&IdentOrLocator::Locator(locator.clone()))
             .or_else(|| dependencies_meta.get(&IdentOrLocator::Ident(locator.ident.clone())));
@@ -446,7 +445,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         };
 
         let build_commands
-            = check_build(&locator, package_meta, &package_info, &relevant_build_entries);
+            = check_build(locator, package_meta, &package_info, &relevant_build_entries);
 
         if let PackageData::Zip {data, ..} = physical_package_data {
             if check_extract(package_meta, &package_info, &build_commands, &relevant_build_entries) {
@@ -463,7 +462,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         let mut package_location = package_location_rel
             .to_string();
 
-        if package_location.len() == 0 {
+        if package_location.is_empty() {
             package_location = "./".to_string();
         }
 

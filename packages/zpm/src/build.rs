@@ -26,8 +26,8 @@ impl BuildRequest {
             .with_join(&self.cwd);
 
         let mut script_env = ScriptEnvironment::new()
-            .with_project(&project)
-            .with_package(&project, &self.locator)?
+            .with_project(project)
+            .with_package(project, &self.locator)?
             .with_cwd(cwd_abs);
 
         for command in self.commands.iter() {
@@ -163,7 +163,7 @@ impl<'a> BuildManager<'a> {
                 let dependency_locator = install_state.resolution_tree.descriptor_to_locator.get(dependency)
                     .expect("Expected dependency to have a locator");
 
-                if !self.tree_hashes.contains_key(&dependency_locator) {
+                if !self.tree_hashes.contains_key(dependency_locator) {
                     traversal_queue.push(dependency_locator.clone());
                 }
             }
@@ -179,7 +179,7 @@ impl<'a> BuildManager<'a> {
             let mut hasher
                 = Blake2b80::new();
 
-            let resolution = install_state.resolution_tree.locator_resolutions.get(&locator)
+            let resolution = install_state.resolution_tree.locator_resolutions.get(locator)
                 .expect("Expected package to have a resolution");
 
             for dependency in resolution.dependencies.values() {
@@ -245,7 +245,7 @@ impl<'a> BuildManager<'a> {
         let build_state_text_out =
             serde_json::to_string(&self.build_state_out)?;
 
-        change_file(&build_state_path.to_path_buf(), &build_state_text_out, 0o644)?;
+        change_file(build_state_path.to_path_buf(), &build_state_text_out, 0o644)?;
 
         Ok(Build {
             build_errors: self.build_errors,

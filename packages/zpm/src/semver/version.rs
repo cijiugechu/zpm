@@ -116,7 +116,7 @@ yarn_serialization_protocol!(Version, "", {
         let (version, missing) = extract::extract_version(&mut iter)
             .ok_or_else(|| Error::InvalidSemverVersion(src.to_string()))?;
 
-        if iter.peek() != None {
+        if iter.peek().is_some() {
             return Err(Error::InvalidSemverVersion(src.to_string()))
         }
 
@@ -131,18 +131,18 @@ yarn_serialization_protocol!(Version, "", {
         let mut res = format!("{}.{}.{}", self.major, self.minor, self.patch);
 
         if let Some(rc) = &self.rc {
-            res.push_str("-");
+            res.push('-');
 
             for segment in rc.iter() {
                 match segment {
                     VersionRc::Number(n) => {
                         res.push_str(&n.to_string());
-                        res.push_str(".");
+                        res.push('.');
                     }
 
                     VersionRc::String(s) => {
                         res.push_str(s);
-                        res.push_str(".");
+                        res.push('.');
                     }
                 }
             }

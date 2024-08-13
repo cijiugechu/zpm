@@ -53,8 +53,8 @@ impl Reference {
     pub fn slug(&self) -> String {
         match self {
             Reference::Git(_) => "git".to_string(),
-            Reference::Semver(version) => format!("npm-{}", version.to_string()),
-            Reference::SemverAlias(_, version) => format!("npm-{}", version.to_string()),
+            Reference::Semver(version) => format!("npm-{}", version),
+            Reference::SemverAlias(_, version) => format!("npm-{}", version),
             Reference::Tarball(_) => "file".to_string(),
             Reference::Folder(_) => "file".to_string(),
             Reference::Link(_) => "link".to_string(),

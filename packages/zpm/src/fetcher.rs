@@ -100,7 +100,7 @@ impl PackageData {
             },
 
             PackageData::Zip {data, ..} => p
-                .fs_read_text_from_zip_buffer(&data),
+                .fs_read_text_from_zip_buffer(data),
         }
     }
 }
@@ -138,22 +138,22 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, parent_da
             => fetch_portal(path, parent_data),
 
         Reference::Url(url)
-            => Ok(fetch_remote_tarball_with_manifest(context, &locator, url).await?.1),
+            => Ok(fetch_remote_tarball_with_manifest(context, locator, url).await?.1),
 
         Reference::Tarball(path)
-            => Ok(fetch_local_tarball_with_manifest(context, &locator, path, parent_data).await?.1),
+            => Ok(fetch_local_tarball_with_manifest(context, locator, path, parent_data).await?.1),
 
         Reference::Folder(path)
-            => Ok(fetch_folder_with_manifest(context, &locator, path, parent_data).await?.1),
+            => Ok(fetch_folder_with_manifest(context, locator, path, parent_data).await?.1),
 
         Reference::Semver(version)
-            => fetch_semver(context, &locator, &locator.ident, &version).await,
+            => fetch_semver(context, locator, &locator.ident, version).await,
 
         Reference::SemverAlias(ident, version)
-            => fetch_semver(context, &locator, &ident, &version).await,
+            => fetch_semver(context, locator, ident, version).await,
 
         Reference::Workspace(ident)
-            => fetch_workspace(context, &ident),
+            => fetch_workspace(context, ident),
 
         _ => Err(Error::Unsupported),
     }
@@ -164,7 +164,7 @@ pub fn fetch_link(path: &str, parent_data: Option<PackageData>) -> Result<Packag
         .expect("The parent data is required for retrieving the path of a linked package");
 
     let package_directory = parent_data.context_directory()
-        .with_join_str(&path);
+        .with_join_str(path);
 
     Ok(PackageData::Local {
         package_directory,
@@ -177,7 +177,7 @@ pub fn fetch_portal(path: &str, parent_data: Option<PackageData>) -> Result<Pack
         .expect("The parent data is required for retrieving the path of a portal package");
 
     let package_directory = parent_data.context_directory()
-        .with_join_str(&path);
+        .with_join_str(path);
 
     Ok(PackageData::Local {
         package_directory,
@@ -186,7 +186,7 @@ pub fn fetch_portal(path: &str, parent_data: Option<PackageData>) -> Result<Pack
 }
 
 pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, url: &str) -> Result<(Resolution, PackageData), Error> {
-    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
+    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let client = http_client()?;
         let response = client.get(url).send().await
             .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
@@ -225,9 +225,9 @@ pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, 
         .expect("The parent data is required for retrieving the path of a tarball package");
 
     let tarball_path = parent_data.context_directory()
-        .with_join_str(&path);
+        .with_join_str(path);
 
-    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
+    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let archive = std::fs::read(tarball_path.to_path_buf())
             .map_err(Arc::new)?;
 
@@ -262,9 +262,9 @@ pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator
         .expect("The parent data is required for retrieving the path of a tarball package");
 
     let context_directory = parent_data.context_directory()
-        .with_join_str(&path);
+        .with_join_str(path);
 
-    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
+    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         convert_folder_to_zip(&locator.ident, &context_directory)
     }).await?;
 
@@ -295,10 +295,10 @@ pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, id
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    let registry_url = project.config.registry_url_for(&ident);
-    let url = format!("{}/{}/-/{}-{}.tgz", registry_url, ident, ident.name(), version.to_string());
+    let registry_url = project.config.registry_url_for(ident);
+    let url = format!("{}/{}/-/{}-{}.tgz", registry_url, ident, ident.name(), version);
 
-    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), &".zip", || async {
+    let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let client = http_client()?;
 
         let response = client.get(url.clone()).send().await

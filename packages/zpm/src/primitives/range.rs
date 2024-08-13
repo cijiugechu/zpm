@@ -60,17 +60,11 @@ pub enum Range {
 
 impl Range {
     pub fn must_bind(&self) -> bool {
-        match &self {
-            Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) => true,
-            _ => false,
-        }
+        matches!(&self, Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_))
     }
 
     pub fn is_transient_resolution(&self) -> bool {
-        match &self {
-            Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) | Range::WorkspaceMagic(_) | Range::WorkspacePath(_) | Range::WorkspaceSemver(_) => true,
-            _ => false,
-        }
+        matches!(&self, Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) | Range::WorkspaceMagic(_) | Range::WorkspacePath(_) | Range::WorkspaceSemver(_))
     }
 }
 
@@ -91,7 +85,7 @@ yarn_serialization_protocol!(Range, "", {
             Range::WorkspaceMagic(magic) => format!("workspace:{}", magic),
             Range::WorkspacePath(path) => format!("workspace:{}", path),
             Range::Git(git) => git.to_string(),
-            Range::MissingPeerDependency => format!("missing!"),
+            Range::MissingPeerDependency => "missing!".to_string(),
             Range::Virtual(inner, hash) => format!("{} [{:016x}]", inner, hash),
         }
     }

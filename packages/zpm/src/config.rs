@@ -1,11 +1,11 @@
-use std::{cell::LazyCell, str::FromStr, sync::{LazyLock, Mutex}};
+use std::{str::FromStr, sync::{LazyLock, Mutex}};
 
 use arca::{Path, ToArcaPath};
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 
 use crate::{error::Error, primitives::Ident, settings::{EnvConfig, ProjectConfig, UserConfig}};
 
-pub const CONFIG_PATH: LazyCell<Mutex<Option<Path>>> = LazyCell::new(|| Mutex::new(None));
+pub static CONFIG_PATH: LazyLock<Mutex<Option<Path>>> = LazyLock::new(|| Mutex::new(None));
 
 pub trait FromEnv: Sized {
     type Err;
@@ -109,7 +109,7 @@ impl<T> JsonField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned> FromEnv for JsonField<T> {
+impl<T: DeserializeOwned> FromEnv for JsonField<T> {
     type Err = serde_json::Error;
 
     fn from_env(raw: &str) -> Result<Self, Self::Err> {
@@ -138,7 +138,7 @@ impl<T> VecField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned + FromEnv> FromEnv for VecField<T> {
+impl<T: DeserializeOwned + FromEnv> FromEnv for VecField<T> {
     type Err = serde_json::Error;
 
     fn from_env(raw: &str) -> Result<Self, Self::Err> {
@@ -175,7 +175,7 @@ impl<T> EnumField<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned> FromEnv for EnumField<T> {
+impl<T: DeserializeOwned> FromEnv for EnumField<T> {
     type Err = serde_json::Error;
 
     fn from_env(raw: &str) -> Result<Self, Self::Err> {

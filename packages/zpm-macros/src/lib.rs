@@ -195,8 +195,8 @@ pub fn parsed_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
         if let Some(pattern) = &variant.pattern {
             arm = quote! {
-                const RE: std::cell::LazyCell<regex::Regex>
-                    = std::cell::LazyCell::new(|| regex::Regex::new(#pattern).unwrap());
+                static RE: std::sync::LazyLock<regex::Regex>
+                    = std::sync::LazyLock::new(|| regex::Regex::new(#pattern).unwrap());
 
                 if let Some(captures) = RE.captures(src) {
                     #arm

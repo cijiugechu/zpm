@@ -187,7 +187,7 @@ impl<'a> InstallManager<'a> {
             if let Some(package_data) = self.result.package_data.get(parent) {
                 self.ops.push(InstallOp::Resolve {descriptor, parent_data: Some(package_data.clone())});
             } else {
-                self.deferred.entry(parent.clone()).or_insert(vec![]).push(descriptor);
+                self.deferred.entry(parent.clone()).or_default().push(descriptor);
             }
         } else {
             self.ops.push(InstallOp::Resolve {descriptor, parent_data: None});
