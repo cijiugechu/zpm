@@ -1,17 +1,16 @@
-use std::{collections::{BTreeMap, HashMap}, ffi::OsStr, fs::Permissions, hash::{DefaultHasher, Hash, Hasher}, io::Read, os::unix::fs::PermissionsExt};
+use std::{cell::LazyCell, collections::{BTreeMap, HashMap}, ffi::OsStr, fs::Permissions, hash::{DefaultHasher, Hash, Hasher}, io::Read, os::unix::fs::PermissionsExt};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::process::Command;
 use zpm_macros::track_time;
 
 use crate::{error::{self, Error}, primitives::Locator, project::Project};
 
-const CJS_LOADER_MATCHER: Lazy<Regex> = Lazy::new(|| regex::Regex::new(r"\s*--require\s+\S*\.pnp\.c?js\s*").unwrap());
-const ESM_LOADER_MATCHER: Lazy<Regex> = Lazy::new(|| regex::Regex::new(r"\s*--experimental-loader\s+\S*\.pnp\.loader\.mjs\s*").unwrap());
-const JS_EXTENSION: Lazy<Regex> = Lazy::new(|| regex::Regex::new(r"\.[cm]?[jt]sx?$").unwrap());
+const CJS_LOADER_MATCHER: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\s*--require\s+\S*\.pnp\.c?js\s*").unwrap());
+const ESM_LOADER_MATCHER: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\s*--experimental-loader\s+\S*\.pnp\.loader\.mjs\s*").unwrap());
+const JS_EXTENSION: LazyCell<Regex> = LazyCell::new(|| regex::Regex::new(r"\.[cm]?[jt]sx?$").unwrap());
 
 fn make_path_wrapper(bin_dir: &Path, name: &str, argv0: &str, args: Vec<&str>) -> Result<(), Error> {
     if cfg!(windows) {

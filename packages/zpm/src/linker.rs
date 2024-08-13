@@ -1,8 +1,7 @@
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::Arc};
+use std::{cell::LazyCell, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::Arc};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -64,7 +63,7 @@ struct PackageInfo {
 
 const UNPLUG_SCRIPTS: &'static [&'static str] = &["preinstall", "install", "postinstall"];
 
-static UNPLUG_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
+const UNPLUG_EXT_REGEX: LazyCell<Regex> = LazyCell::new(|| {
     Regex::new(r"\.(exe|bin|h|hh|hpp|c|cc|cpp|java|jar|node)$").unwrap()
 });
 

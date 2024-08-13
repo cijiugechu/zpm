@@ -1,11 +1,10 @@
-use std::{net::ToSocketAddrs, sync::Arc};
+use std::{cell::LazyCell, sync::Arc};
 
-use once_cell::sync::Lazy;
 use reqwest::Client;
 
 use crate::error::Error;
 
-static HTTP_CLIENT: Lazy<Result<Client, Error>> = Lazy::new(|| {
+const HTTP_CLIENT: LazyCell<Result<Client, Error>> = LazyCell::new(|| {
     // let sock_addrs = format!("registry.npmjs.org:443").to_socket_addrs()
     //     .map_err(|err| Error::DnsResolutionError(Arc::new(err)))?
     //     .collect::<Vec<_>>();

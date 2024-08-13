@@ -4,7 +4,7 @@ use arca::Path;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::first_entry_from_zip};
+use crate::{error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::{first_entry_from_zip, ZipSupport}};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PackageLinking {
@@ -92,27 +92,15 @@ impl PackageData {
     pub fn read_text(&self, p: &Path) -> Result<String, Error> {
         match self {
             PackageData::Local {package_directory, ..} => {
-                let path = package_directory
-                    .with_join(p);
-
-                std::fs::read_to_string(path.to_path_buf())
-                    .map_err(Arc::new)
-                    .map_err(Error::IoError)
-            },
-
-            PackageData::Zip {data, ..} => {
-                let reader = Cursor::new(data);
-                let mut zip = zip::read::ZipArchive::new(reader)
-                    .unwrap();
-
-                let mut file_entry = zip.by_name(&p.to_string())
-                    .expect("Failed to find the requested file");
-
-                let mut text = String::new();
-                file_entry.read_to_string(&mut text).unwrap();
+                let text = package_directory
+                    .with_join(p)
+                    .fs_read_text()?;
 
                 Ok(text)
             },
+
+            PackageData::Zip {data, ..} => p
+                .fs_read_text_from_zip_buffer(&data),
         }
     }
 }

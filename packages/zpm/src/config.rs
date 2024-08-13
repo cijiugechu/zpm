@@ -1,12 +1,11 @@
-use std::{str::FromStr, sync::{LazyLock, Mutex}};
+use std::{cell::LazyCell, str::FromStr, sync::{LazyLock, Mutex}};
 
 use arca::{Path, ToArcaPath};
-use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 
 use crate::{error::Error, primitives::Ident, settings::{EnvConfig, ProjectConfig, UserConfig}};
 
-pub static CONFIG_PATH: Lazy<Mutex<Option<Path>>> = Lazy::new(|| Mutex::new(None));
+pub const CONFIG_PATH: LazyCell<Mutex<Option<Path>>> = LazyCell::new(|| Mutex::new(None));
 
 pub trait FromEnv: Sized {
     type Err;

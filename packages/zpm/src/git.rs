@@ -1,16 +1,15 @@
-use std::{collections::HashMap, fmt::{self, Display, Formatter}, str::FromStr};
+use std::{cell::LazyCell, collections::HashMap, fmt::{self, Display, Formatter}, str::FromStr};
 
 use bincode::{Decode, Encode};
-use once_cell::sync::Lazy;
 use fancy_regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{error::Error, primitives::Range, semver, yarn_serialization_protocol};
 
-static GH_URL: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?:github:|https:\/\/github\.com\/|git:\/\/github\.com\/)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
-static GH_TARBALL_URL: Lazy<Regex> = Lazy::new(|| Regex::new(r"^https?:\/\/github\.com\/(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)\/tarball\/(.+)?$").unwrap());
+const GH_URL: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"^(?:github:|https:\/\/github\.com\/|git:\/\/github\.com\/)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
+const GH_TARBALL_URL: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"^https?:\/\/github\.com\/(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)\/tarball\/(.+)?$").unwrap());
 
-static GH_URL_SET: Lazy<Vec<Regex>> = Lazy::new(|| vec![
+const GH_URL_SET: LazyCell<Vec<Regex>> = LazyCell::new(|| vec![
     Regex::new(r"^ssh:").unwrap(),
     Regex::new(r"^git(?:\+[^:]+)?:").unwrap(),
   

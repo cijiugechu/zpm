@@ -20,7 +20,7 @@ fn get_expr_path_from_type(input: &syn::Type) -> proc_macro2::TokenStream {
         }
     }
 
-    while let Some(token) = iter.next() {
+    for token in iter {
         result.append(token);
     }
 
@@ -119,56 +119,54 @@ pub fn parsed_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let mut arms = Vec::new();
 
     for variant in &data.variants {
-        variants.extend(variant.attrs.iter().filter_map(|attr| {
-            attr.path().is_ident("try_pattern").then(|| {
-                let mut variant_info = Variant {
-                    ident: variant.ident.clone(),
-                    prefix: None,
-                    pattern: None,
-                    optional_prefix: false,
-                    field_count: variant.fields.len(),
+        variants.extend(variant.attrs.iter().filter(|attr| attr.path().is_ident("try_pattern")).map(|attr| {
+            let mut variant_info = Variant {
+                ident: variant.ident.clone(),
+                prefix: None,
+                pattern: None,
+                optional_prefix: false,
+                field_count: variant.fields.len(),
+            };
+    
+            let _ = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("prefix") {
+                    variant_info.prefix = extract_literal(&meta).ok();
+                }
+
+                if meta.path.is_ident("pattern") {
+                    variant_info.pattern = extract_literal(&meta).ok();
+                }
+
+                if meta.path.is_ident("optional_prefix") {
+                    variant_info.optional_prefix = extract_bool(&meta).unwrap_or_default();
+                }
+
+                Ok(())
+            });
+
+            // For some reason, performing the starts_with check is twice slower than doing
+            // the regex match during resolution. So we just bake the prefix into the pattern.
+            if let Some(prefix) = variant_info.prefix.take() {
+                let prefix_part = if variant_info.optional_prefix {
+                    format!("(?:{})?", regex::escape(&prefix))
+                } else {
+                    regex::escape(&prefix)
                 };
-        
-                if let Ok(_) = attr.parse_nested_meta(|meta| {
-                    if meta.path.is_ident("prefix") {
-                        variant_info.prefix = extract_literal(&meta).ok();
-                    }
 
-                    if meta.path.is_ident("pattern") {
-                        variant_info.pattern = extract_literal(&meta).ok();
-                    }
+                let pattern_part = if let Some(pattern) = variant_info.pattern.take() {
+                    pattern
+                } else {
+                    "(.*)".to_string()
+                };
 
-                    if meta.path.is_ident("optional_prefix") {
-                        variant_info.optional_prefix = extract_bool(&meta).unwrap_or_default();
-                    }
+                variant_info.pattern = Some(format!("{}{}", prefix_part, pattern_part));
+            }
 
-                    Ok(())
-                }) {}
+            if let Some(pattern) = variant_info.pattern.take() {
+                variant_info.pattern = Some(format!("^{}$", pattern));
+            }
 
-                // For some reason, performing the starts_with check is twice slower than doing
-                // the regex match during resolution. So we just bake the prefix into the pattern.
-                if let Some(prefix) = variant_info.prefix.take() {
-                    let prefix_part = if variant_info.optional_prefix {
-                        format!("(?:{})?", regex::escape(&prefix))
-                    } else {
-                        regex::escape(&prefix)
-                    };
-
-                    let pattern_part = if let Some(pattern) = variant_info.pattern.take() {
-                        pattern
-                    } else {
-                        "(.*)".to_string()
-                    };
-
-                    variant_info.pattern = Some(format!("{}{}", prefix_part, pattern_part));
-                }
-
-                if let Some(pattern) = variant_info.pattern.take() {
-                    variant_info.pattern = Some(format!("^{}$", pattern));
-                }
-
-                variant_info
-            })
+            variant_info
         }));
     }
 
@@ -176,7 +174,7 @@ pub fn parsed_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         let variant_name = &variant.ident;
 
         let enum_args = if let Some(pattern) = &variant.pattern {
-            let captures_len = regex::Regex::new(&pattern)
+            let captures_len = regex::Regex::new(pattern)
                 .unwrap()
                 .captures_len();
 
@@ -197,8 +195,8 @@ pub fn parsed_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
         if let Some(pattern) = &variant.pattern {
             arm = quote! {
-                static RE: once_cell::sync::Lazy<regex::Regex>
-                    = once_cell::sync::Lazy::new(|| regex::Regex::new(#pattern).unwrap());
+                const RE: std::cell::LazyCell<regex::Regex>
+                    = std::cell::LazyCell::new(|| regex::Regex::new(#pattern).unwrap());
 
                 if let Some(captures) = RE.captures(src) {
                     #arm
@@ -264,7 +262,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
     for field in fields.iter() {
         let field_name = field.ident.as_ref().unwrap();
         let field_type = &field.ty;
-        let field_type_path = get_expr_path_from_type(&field_type);
+        let field_type_path = get_expr_path_from_type(field_type);
 
         let mut default_value = None;
 
@@ -278,7 +276,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
 
         if let Some(default) = default_value {
             let func_name = syn::Ident::new(&format!("{}_default_from_env", field_name), field_name.span());
-            let func_name_str = format!("{}", func_name.to_string());
+            let func_name_str = func_name.to_string();
 
             default_functions.push(quote! {
                 fn #func_name() -> #field_type {

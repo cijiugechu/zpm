@@ -1,8 +1,7 @@
-use std::{borrow::Cow, os::unix::fs::PermissionsExt, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, cell::LazyCell, os::unix::fs::PermissionsExt, path::PathBuf, sync::Arc};
 
 use arca::Path;
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::error::Error;
@@ -89,7 +88,7 @@ struct EndOfCentralDirectoryRecord {
     comment_length: u16,
 }
 
-static ZIP_PATH_INVALID_PATTERNS: Lazy<Regex> = Lazy::new(|| {
+const ZIP_PATH_INVALID_PATTERNS: LazyCell<Regex> = LazyCell::new(|| {
     Regex::new(r"\\|/\.{0,2}/|^\.{0,2}/|/\.{0,2}$|^\.{0,2}$").unwrap()
 });
 
@@ -393,14 +392,27 @@ fn inject_central_directory_record(target: &mut Vec<u8>, entry: &Entry, offset: 
     target.extend_from_slice(entry.name.as_bytes());
 }
 
-const VIRTUAL_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"/__virtual__/[^/]+/0/").unwrap());
-const ZIP_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(.*\.zip)/(?:__virtual__/[^/]+/0/)?(.*)").unwrap());
+const VIRTUAL_REGEX: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"/__virtual__/[^/]+/0/").unwrap());
+const ZIP_REGEX: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(.*\.zip)/(?:__virtual__/[^/]+/0/)?(.*)").unwrap());
 
 pub trait ZipSupport {
+    fn fs_read_text_from_zip_buffer(&self, buf: &[u8]) -> Result<String, Error>;
     fn fs_read_text_with_zip(&self) -> Result<String, Error>;
 }
 
 impl ZipSupport for Path {
+    fn fs_read_text_from_zip_buffer(&self, zip_data: &[u8]) -> Result<String, Error> {
+        let path_as_string = self.to_string();
+        let entries = entries_from_zip(&zip_data)?;
+
+        let entry = entries.iter()
+            .find(|entry| entry.name == path_as_string)
+            .ok_or(std::io::Error::from(std::io::ErrorKind::NotFound))
+            .map_err(Arc::new)?;
+
+        Ok(String::from_utf8_lossy(&entry.data).to_string())
+    }
+
     fn fs_read_text_with_zip(&self) -> Result<String, Error> {
         let path_str = self.to_string();
 
@@ -408,18 +420,9 @@ impl ZipSupport for Path {
             let zip_path = captures.get(1).unwrap().as_str();
             let subpath = captures.get(2).unwrap().as_str();
 
-            let zip_data = std::fs::read(zip_path)
-                .map_err(Arc::new)
-                .map_err(Error::IoError)?;
+            let zip_data = std::fs::read(zip_path)?;
 
-            let entries = entries_from_zip(&zip_data)?;
-
-            let entry = entries.iter()
-                .find(|entry| entry.name == subpath)
-                .ok_or(std::io::Error::from(std::io::ErrorKind::NotFound))
-                .map_err(Arc::new)?;
-
-            Ok(String::from_utf8_lossy(&entry.data).to_string())
+            Path::from(subpath).fs_read_text_from_zip_buffer(&zip_data)
         } else {
             Ok(match VIRTUAL_REGEX.replace(&path_str, "/") {
                 Cow::Borrowed(_) => self.fs_read_text().map_err(Arc::new)?,
