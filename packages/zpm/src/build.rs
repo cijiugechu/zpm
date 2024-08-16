@@ -4,7 +4,7 @@ use arca::Path;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use sha2::Digest;
 
-use crate::{error::{Error}, hash::Blake2b80, misc::change_file, primitives::Locator, project::Project, script::ScriptEnvironment};
+use crate::{error::Error, hash::Blake2b80, misc::change_file, primitives::Locator, project::Project, script::ScriptEnvironment};
 
 #[derive(Debug, Clone)]
 pub enum Command {
@@ -18,6 +18,7 @@ pub struct BuildRequest {
     pub locator: Locator,
     pub commands: Vec<Command>,
     pub allowed_to_fail: bool,
+    pub force_rebuild: bool,
 }
 
 impl BuildRequest {
@@ -131,7 +132,7 @@ impl<'a> BuildManager<'a> {
                 let hash
                     = self.get_hash(project, &req.locator);
 
-                if build_state.get(&req.cwd) == Some(&hash) {
+                if build_state.get(&req.cwd) == Some(&hash) && !req.force_rebuild {
                     self.record(idx, hash, 0);
                     continue;
                 }

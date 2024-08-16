@@ -1428,7 +1428,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[87 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[88 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1496,7 +1496,7 @@
 🟩 Plug'n'Play ► it should respect user provided conditions
 🟩 Plug'n'Play ► it should return the path to the PnP file when calling require.resolve('pnpapi')
 🟩 Plug'n'Play ► it should run scripts using a Node version that auto-injects the hook
-🟥 Plug'n'Play ► it should run the install scripts anew if the unplugged folder is removed
+🟩 Plug'n'Play ► it should run the install scripts anew if the unplugged folder is removed
 🟩 Plug'n'Play ► it should set bytesRead on Windows when input is a pipe and EOF is thrown
 🟩 Plug'n'Play ► it should support circular requires
 🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (different dependency trees)

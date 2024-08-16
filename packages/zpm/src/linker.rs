@@ -205,7 +205,7 @@ fn remove_nm(nm_path: Path) -> Result<(), Error> {
     }
 }
 
-fn extract_archive(project_root: &Path, locator: &Locator, package_data: &PackageData, data: &[u8]) -> Result<Path, Error> {
+fn extract_archive(project_root: &Path, locator: &Locator, package_data: &PackageData, data: &[u8]) -> Result<(Path, bool), Error> {
     let extract_path = project_root
         .with_join_str(".yarn/unplugged")
         .with_join_str(locator.slug());
@@ -229,9 +229,11 @@ fn extract_archive(project_root: &Path, locator: &Locator, package_data: &Packag
 
         ready_path
             .fs_write(vec![])?;
-    }
 
-    Ok(package_directory)
+        Ok((package_directory, true))
+    } else {
+        Ok((package_directory, false))
+    }
 }
 
 #[serde_as]
@@ -452,10 +454,11 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             = check_build(locator, package_meta, &package_info, &relevant_build_entries);
 
         let mut is_physically_on_disk = true;
+        let mut is_freshly_unplugged = false;
 
         if let PackageData::Zip {data, ..} = physical_package_data {
             if check_extract(package_meta, &package_info, &build_commands, &relevant_build_entries) {
-                package_location_abs = extract_archive(&project.project_cwd, locator, physical_package_data, data)?;
+                (package_location_abs, is_freshly_unplugged) = extract_archive(&project.project_cwd, locator, physical_package_data, data)?;
             } else {
                 is_physically_on_disk = false;
             }
@@ -521,6 +524,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
                 locator: locator.clone(),
                 commands: build_commands,
                 allowed_to_fail: install.install_state.resolution_tree.optional_builds.contains(locator),
+                force_rebuild: is_freshly_unplugged,
             });
         }
     }
