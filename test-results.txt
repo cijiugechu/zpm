@@ -1216,13 +1216,13 @@
 🟥 Features ► Project detection ► it should move upward until it finds the project
 🟥 Features ► Project detection ► it shouldn't cross past lockfiles
 
-[1 / 9] packages/acceptance-tests/pkg-tests-specs/sources/features/prunedNativeDeps.test.ts
+[2 / 9] packages/acceptance-tests/pkg-tests-specs/sources/features/prunedNativeDeps.test.ts
 
 🟥 Features ► Pruned native deps ► should also validate other architectures than the current one if necessary when using --check-cache
 🟥 Features ► Pruned native deps ► should detect packages being tampered when using --check-cache
 🟥 Features ► Pruned native deps ► should only fetch other architectures when using --check-cache if they are already in the cache
 🟥 Features ► Pruned native deps ► should overfetch if requested to do so
-🟥 Features ► Pruned native deps ► should produce a stable lockfile, regardless of the architecture
+🟩 Features ► Pruned native deps ► should produce a stable lockfile, regardless of the architecture
 🟩 Features ► Pruned native deps ► should produce a stable PnP hook, regardless of the architecture
 🟥 Features ► Pruned native deps ► should resolve all dependencies, regardless of the system
 🟥 Features ► Pruned native deps ► shouldn't break when using --check-cache with native packages
@@ -1280,7 +1280,7 @@
 🟩 Lock tests ► it should correctly lock dependencies
 🟥 Lock tests ► it shouldn't loose track of the resolutions when upgrading the lockfile version
 
-[13 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
+[14 / 58] packages/acceptance-tests/pkg-tests-specs/sources/node-modules.test.ts
 
 🟥 Node_Modules ► 'winLinkType: junctions' not-on Windows should use symlinks in node_modules directories
 🟥 Node_Modules ► 'winLinkType: symlinks' not-on Windows should use symlinks in node_modules directories
@@ -1313,7 +1313,7 @@
 🟩 Node_Modules ► should not hoist package peer dependent on parent if conflict exists
 🟥 Node_Modules ► should not produce orphaned symlinks on dependency removal having bin entries
 🟥 Node_Modules ► should not recreate folders when package is updated
-🟥 Node_Modules ► should not treat link: dependencies as an inner workspaces
+🟩 Node_Modules ► should not treat link: dependencies as an inner workspaces
 🟩 Node_Modules ► should not warn when depending on workspaces with postinstall
 🟥 Node_Modules ► should only reinstall scoped dependencies deleted by the user on the next install
 🟥 Node_Modules ► should prefer bin executables from the calling workspace
@@ -1428,7 +1428,7 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[88 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[89 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
@@ -1502,7 +1502,7 @@
 🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (different dependency trees)
 🟩 Plug'n'Play ► it should support the 'paths' option from require.resolve (same dependency tree)
 🟩 Plug'n'Play ► it should support user patched fs
-🟥 Plug'n'Play ► it should take trailing slashes inside the packageLocations of the PnP serialized state into account when resolving packages
+🟩 Plug'n'Play ► it should take trailing slashes inside the packageLocations of the PnP serialized state into account when resolving packages
 🟩 Plug'n'Play ► it should take trailing slashes into account when resolving paths
 🟩 Plug'n'Play ► it should terminate when the 'paths' option from require.resolve includes empty string and there is no .pnp.cjs in the working dir
 🟩 Plug'n'Play ► it should throw an exception if a dependency tries to require a missing peer dependency
@@ -1607,12 +1607,12 @@
 🟥 Protocols ► git: ► it should use Yarn Classic to setup classic repositories
 🟥 Protocols ► git: ► it shouldn't install dependencies for packages without prepack
 
-[4 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/links.test.js
+[6 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/links.test.js
 
-🟥 Protocols ► link: ► it should allow link to access their containers' dependencies
+🟩 Protocols ► link: ► it should allow link to access their containers' dependencies
 🟩 Protocols ► link: ► it should ignore links' own dependencies
 🟩 Protocols ► link: ► it should link a remote location into the current dependency tree
-🟥 Protocols ► link: ► it should work even when the target doesn't have a manifest
+🟩 Protocols ► link: ► it should work even when the target doesn't have a manifest
 🟩 Protocols ► link: ► it shouldn't cause the paths to be discarded when covered by other fetchers (alphabetical after)
 🟩 Protocols ► link: ► it shouldn't cause the paths to be discarded when covered by other fetchers (alphabetical before)
 

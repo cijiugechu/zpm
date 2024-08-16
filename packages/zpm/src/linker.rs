@@ -440,7 +440,16 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             .with_join(&virtual_dir)
             .with_join(&rel_path);
 
-        let package_info = get_package_info(physical_package_data)?;
+        let discard_from_lookup = match physical_package_data {
+            PackageData::Local {discard_from_lookup, ..} => *discard_from_lookup,
+            _ => false,
+        };
+
+        let package_info = match discard_from_lookup {
+            true => Default::default(),
+            false => get_package_info(physical_package_data)?,
+        };
+
         let package_meta = dependencies_meta
             .get(&IdentOrLocator::Locator(locator.clone()))
             .or_else(|| dependencies_meta.get(&IdentOrLocator::Ident(locator.ident.clone())));
@@ -484,11 +493,6 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         if !package_location.starts_with("./") && !package_location.starts_with("../") {
             package_location.insert_str(0, "./");
         }
-
-        let discard_from_lookup = match physical_package_data {
-            PackageData::Local {discard_from_lookup, ..} => *discard_from_lookup,
-            _ => false,
-        };
 
         package_registry_data.entry(Some(locator.ident.clone()))
             .or_default()
