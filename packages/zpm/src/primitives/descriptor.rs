@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::Hash;
 use std::str::FromStr;
 
 use bincode::{Decode, Encode};

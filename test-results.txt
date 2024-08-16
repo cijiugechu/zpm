@@ -1428,13 +1428,13 @@
 🟩 Plug'n'Play - ESM ► should support loaders importing named exports from commonjs files
 🟩 Plug'n'Play - ESM ► should use the commonjs resolver in commonjs files imported from ESM
 
-[86 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
+[87 / 94] packages/acceptance-tests/pkg-tests-specs/sources/pnp.test.js
 
 🟩 Plug'n'Play ► it should allow external modules to require internal ones
 🟩 Plug'n'Play ► it should allow ignored paths to require files within the dependency tree
 🟩 Plug'n'Play ► it should allow other PnP projects to require files from this one
 🟩 Plug'n'Play ► it should allow other PnP projects to spawn inline scripts in this one
-🟥 Plug'n'Play ► it should allow packages to define whether they should be unplugged (false)
+🟩 Plug'n'Play ► it should allow packages to define whether they should be unplugged (false)
 🟩 Plug'n'Play ► it should allow packages to define whether they should be unplugged (true)
 🟩 Plug'n'Play ► it should allow packages to require themselves
 🟩 Plug'n'Play ► it should allow picking the unplugged packages by locator

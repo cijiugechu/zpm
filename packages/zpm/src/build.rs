@@ -4,7 +4,7 @@ use arca::Path;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use sha2::Digest;
 
-use crate::{error::{self, Error}, hash::Blake2b80, misc::change_file, primitives::Locator, project::Project, script::ScriptEnvironment};
+use crate::{error::{Error}, hash::Blake2b80, misc::change_file, primitives::Locator, project::Project, script::ScriptEnvironment};
 
 #[derive(Debug, Clone)]
 pub enum Command {

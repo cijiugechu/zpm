@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::{Arc, LazyLock}};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::LazyLock};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::{build::{self, BuildRequests}, error::{self, Error}, fetcher::{PackageData, PackageLinking}, install::Install, misc::change_file, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
+use crate::{build::{self, BuildRequests}, error::{Error}, fetcher::{PackageData, PackageLinking}, install::Install, misc::change_file, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
@@ -172,10 +172,10 @@ fn remove_nm(nm_path: Path) -> Result<(), Error> {
 
     match entries {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound
-            => return Ok(()),
+            => Ok(()),
 
         Err(error)
-            => return Err(error.into()),
+            => Err(error.into()),
 
         Ok(entries) => {
             let mut has_dot_entries = false;
@@ -228,7 +228,7 @@ fn extract_archive(project_root: &Path, locator: &Locator, package_data: &Packag
         }
 
         ready_path
-            .fs_write(&vec![])?;
+            .fs_write(vec![])?;
     }
 
     Ok(package_directory)
@@ -451,9 +451,13 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         let build_commands
             = check_build(locator, package_meta, &package_info, &relevant_build_entries);
 
+        let mut is_physically_on_disk = true;
+
         if let PackageData::Zip {data, ..} = physical_package_data {
             if check_extract(package_meta, &package_info, &build_commands, &relevant_build_entries) {
                 package_location_abs = extract_archive(&project.project_cwd, locator, physical_package_data, data)?;
+            } else {
+                is_physically_on_disk = false;
             }
         }
 
@@ -494,9 +498,26 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             });
 
         if !build_commands.is_empty() {
+            let build_cwd = match is_physically_on_disk {
+                true => package_location_rel.clone(),
+                false => {
+                    let nonce = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos();
+
+                    let build_dir = std::env::temp_dir()
+                        .to_arca()
+                        .with_join_str(format!("zpm/{}/build/{}", locator.slug(), nonce));
+
+                    build_dir.fs_create_dir_all()?;
+                    build_dir.relative_to(&project.project_cwd)
+                },
+            };
+
             package_build_entries.insert(locator.clone(), all_build_entries.len());
             all_build_entries.push(build::BuildRequest {
-                cwd: package_location_rel,
+                cwd: build_cwd,
                 locator: locator.clone(),
                 commands: build_commands,
                 allowed_to_fail: install.install_state.resolution_tree.optional_builds.contains(locator),

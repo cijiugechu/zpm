@@ -1,6 +1,6 @@
 use clipanion::cli;
 
-use crate::{error::{self, Error}, project};
+use crate::{error::{Error}, project};
 
 #[cli::command]
 #[cli::path("bin")]

@@ -53,7 +53,7 @@ pub enum Error {
     #[error("No candidates found for {0:?}")]
     NoCandidatesFound(Range),
 
-    #[error("I/O error ({inner})\n\n{}", render_backtrace(&.backtrace))]
+    #[error("I/O error ({inner})\n\n{}", render_backtrace(backtrace))]
     IoError {
         inner: Arc<std::io::Error>,
         backtrace: Arc<std::backtrace::Backtrace>,

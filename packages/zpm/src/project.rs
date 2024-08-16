@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use wax::walk::Entry;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::{self, Error}, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, script::Binary, zip::ZipSupport};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::{Error}, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, script::Binary, zip::ZipSupport};
 
 static LOCKFILE_NAME: &str = "yarn.lock";
 static MANIFEST_NAME: &str = "package.json";

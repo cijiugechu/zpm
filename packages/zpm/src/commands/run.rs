@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use clipanion::cli;
 
-use crate::{error::{self, Error}, project, script::ScriptEnvironment};
+use crate::{error::{Error}, project, script::ScriptEnvironment};
 
 #[cli::command(proxy)]
 #[cli::path("run")]
