@@ -287,7 +287,7 @@ checksum = "aaa6b4b263a5d737e9bf6b7c09b72c41a5480aec4d7219af827f6564e950b6a5"
 
 [[package]]
 name = "clipanion"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "clipanion-core",
  "clipanion-derive",
@@ -296,11 +296,11 @@ dependencies = [
 
 [[package]]
 name = "clipanion-core"
-version = "0.4.1"
+version = "0.5.0"
 
 [[package]]
 name = "clipanion-derive"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "indoc",
  "proc-macro2",

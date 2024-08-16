@@ -30,7 +30,7 @@ serde_with = "3.9.0"
 crc32fast = "1.4.2"
 trust-dns = "0.23.2"
 wax = { git = "https://github.com/arcanis/wax.git" }
-clipanion = { path = "../../../clipanion-rs/packages/clipanion", version = "0.4.1" }
+clipanion = { path = "../../../clipanion-rs/packages/clipanion", version = "0.5.0" }
 rand = "0.8.5"
 
 [[bench]]
