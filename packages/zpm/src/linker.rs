@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, sync::LazyLock};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fs::Permissions, os::unix::fs::PermissionsExt, sync::LazyLock};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::{build::{self, BuildRequests}, error::{Error}, fetcher::{PackageData, PackageLinking}, install::Install, misc::change_file, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
+use crate::{build::{self, BuildRequests}, error::Error, fetcher::{PackageData, PackageLinking}, install::Install, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
@@ -309,7 +309,8 @@ fn generate_inline_files(project: &Project, state: &PnpState) -> Result<(), Erro
         std::include_str!("pnp.tpl.cjs"),
     ].join("");
 
-    change_file(project.pnp_path().to_path_buf(), script, 0o755)?;
+    project.pnp_path()
+        .fs_change(script, Permissions::from_mode(0o755))?;
 
     Ok(())
 }
@@ -330,8 +331,11 @@ fn generate_split_setup(project: &Project, state: &PnpState) -> Result<(), Error
         std::include_str!("pnp.tpl.cjs"),
     ].join("");
 
-    change_file(project.pnp_path().to_path_buf(), script, 0o755)?;
-    change_file(project.pnp_data_path().to_path_buf(), serde_json::to_string(&state).unwrap(), 0o644)?;
+    project.pnp_path()
+        .fs_change(script, Permissions::from_mode(0o755))?;
+
+    project.pnp_data_path()
+        .fs_change(serde_json::to_string(&state).unwrap(), Permissions::from_mode(0o644))?;
 
     Ok(())
 }
@@ -597,7 +601,8 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         generate_split_setup(project, &state)?;
     }
 
-    change_file(project.pnp_loader_path().to_path_buf(), std::include_str!("pnp.loader.mjs"), 0o644)?;
+    project.pnp_loader_path()
+        .fs_change(std::include_str!("pnp.loader.mjs"), Permissions::from_mode(0o644))?;
 
     let package_build_dependencies = populate_build_entry_dependencies(
         &package_build_entries,

@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, HashMap}, sync::Arc};
+use std::{collections::{BTreeMap, HashMap}, fs::Permissions, os::unix::fs::PermissionsExt, sync::Arc};
 
 use arca::{Path, ToArcaPath};
 use serde::Deserialize;
@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use wax::walk::Entry;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::{Error}, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, script::Binary, zip::ZipSupport};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, script::Binary, zip::ZipSupport};
 
 static LOCKFILE_NAME: &str = "yarn.lock";
 static MANIFEST_NAME: &str = "package.json";
@@ -168,15 +168,16 @@ impl Project {
             = self.install_state_path();
 
         let contents
-            = serde_json::to_string(&install_state)
-                .map_err(|err| Error::LockfileGenerationError(Arc::new(err)))?;
+            = serde_json::to_string(&install_state)?;
 
         let re_parsed: InstallState
             = serde_json::from_str(&contents)?;
 
-        crate::misc::change_file(link_info_path.to_path_buf(), contents, 0o644)?;
-
         assert_eq!(&re_parsed, install_state);
+
+        link_info_path
+            .fs_create_parent()?
+            .fs_change(contents, Permissions::from_mode(0o644))?;
 
         Ok(())
     }
@@ -189,7 +190,8 @@ impl Project {
             = serde_json::to_string_pretty(lockfile)
                 .map_err(|err| Error::LockfileGenerationError(Arc::new(err)))?;
 
-        crate::misc::change_file(lockfile_path.to_path_buf(), contents, 0o644)?;
+        lockfile_path
+            .fs_change(contents, Permissions::from_mode(0o644))?;
 
         Ok(())
     }
@@ -428,7 +430,9 @@ impl Workspace {
     pub fn write_manifest(&self) -> Result<(), Error> {
         let serialized = serde_json::to_string_pretty(&self.manifest)?;
 
-        crate::misc::change_file(self.path.with_join_str(MANIFEST_NAME).to_path_buf(), serialized, 0o644)?;
+        self.path
+            .with_join_str(MANIFEST_NAME)
+            .fs_change(serialized, Permissions::from_mode(0o644))?;
 
         Ok(())
     }

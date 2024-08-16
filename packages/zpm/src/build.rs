@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, fs::Permissions, os::unix::fs::PermissionsExt};
 
 use arca::Path;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use sha2::Digest;
 
-use crate::{error::Error, hash::Blake2b80, misc::change_file, primitives::Locator, project::Project, script::ScriptEnvironment};
+use crate::{error::Error, hash::Blake2b80, primitives::Locator, project::Project, script::ScriptEnvironment};
 
 #[derive(Debug, Clone)]
 pub enum Command {
@@ -246,7 +246,8 @@ impl<'a> BuildManager<'a> {
         let build_state_text_out =
             serde_json::to_string(&self.build_state_out)?;
 
-        change_file(build_state_path.to_path_buf(), &build_state_text_out, 0o644)?;
+        build_state_path
+            .fs_change(build_state_text_out, Permissions::from_mode(0o644))?;
 
         Ok(Build {
             build_errors: self.build_errors,

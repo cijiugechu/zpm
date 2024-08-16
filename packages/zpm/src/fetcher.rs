@@ -1,4 +1,4 @@
-use std::{fmt::{self, Display, Formatter}, io::{Cursor, Read}, sync::Arc};
+use std::{io::{Cursor, Read}, sync::Arc};
 
 use arca::Path;
 use bytes::Bytes;
@@ -7,18 +7,10 @@ use serde::{Deserialize, Serialize};
 use crate::{error::Error, hash::Sha256, http::http_client, install::InstallContext, manifest::Manifest, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver, zip::{first_entry_from_zip, ZipSupport}};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum PackageLinking {
     Hard,
     Soft,
-}
-
-impl Display for PackageLinking {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            PackageLinking::Hard => write!(f, "hard"),
-            PackageLinking::Soft => write!(f, "soft"),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
