@@ -25,6 +25,7 @@ const LIBC: Option<&str> = Some("musl");
 #[cfg(target_env = "")]
 const LIBC: Option<&str> = None;
 
+#[derive(Debug)]
 pub struct Description {
     arch: Option<String>,
     os: Option<String>,
@@ -44,6 +45,7 @@ impl Description {
 #[derive(Clone, Debug, Default, Deserialize, Decode, Encode, Serialize, PartialEq, Eq)]
 pub struct Requirements {
     #[serde(default)]
+    #[serde(rename = "cpu")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     arch: Vec<String>,
 
