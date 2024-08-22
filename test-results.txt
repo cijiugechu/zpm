@@ -1651,14 +1651,14 @@
 🟩 Protocols ► Semver ► it should allow prefixing semver ranges with "v"
 🟩 Protocols ► Semver ► it should allow semver ranges with build metadata
 
-[3 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/workspace.test.ts
+[6 / 6] packages/acceptance-tests/pkg-tests-specs/sources/protocols/workspace.test.ts
 
-🟥 Protocols ► workspace: ► it should allow aliasing workspaces using relative paths
+🟩 Protocols ► workspace: ► it should allow aliasing workspaces using relative paths
 🟩 Protocols ► workspace: ► it should prevent referencing workspaces that don't exist
 🟩 Protocols ► workspace: ► it should recognize ^ and ~
 🟩 Protocols ► workspace: ► it should recognize prereleases in wildcard ranges
-🟥 Protocols ► workspace: ► it should support relative paths (with ./)
-🟥 Protocols ► workspace: ► it should support relative paths (without ./)
+🟩 Protocols ► workspace: ► it should support relative paths (with ./)
+🟩 Protocols ► workspace: ► it should support relative paths (without ./)
 
 [12 / 12] packages/acceptance-tests/pkg-tests-specs/sources/require.test.js
 
@@ -1752,14 +1752,14 @@
 🟩 Scripts tests ► w/ the pnpm linker ► it shouldn't call the postinstall on every install
 🟩 Scripts tests ► w/ the pnpm linker ► it shouldn't trigger the postinstall if an unrelated branch of the tree is modified
 
-[4 / 9] packages/acceptance-tests/pkg-tests-specs/sources/workspace.test.ts
+[9 / 9] packages/acceptance-tests/pkg-tests-specs/sources/workspace.test.ts
 
-🟥 Workspaces tests ► it should allow aliasing workspaces using relative paths
+🟩 Workspaces tests ► it should allow aliasing workspaces using relative paths
 🟩 Workspaces tests ► it should allow scripts defined in workspaces to run successfully
 🟩 Workspaces tests ► it should allow workspaces to require each others
 🟩 Workspaces tests ► it should not implicitly make workspaces require-able
-🟥 Workspaces tests ► it should resolve workspaces as regular packages if enableTransparentWorkspaces is disabled
-🟥 Workspaces tests ► it should resolve workspaces as regular packages if the versions don't match
+🟩 Workspaces tests ► it should resolve workspaces as regular packages if enableTransparentWorkspaces is disabled
+🟩 Workspaces tests ► it should resolve workspaces as regular packages if the versions don't match
 🟩 Workspaces tests ► it should run the postinstall script when running an install
-🟥 Workspaces tests ► it should support basic glob patterns
-🟥 Workspaces tests ► it should support negated glob patterns
+🟩 Workspaces tests ► it should support basic glob patterns
+🟩 Workspaces tests ► it should support negated glob patterns

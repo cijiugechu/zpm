@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, fs::Permissions, os::unix::fs::Permi
 use arca::{Path, ToArcaPath};
 use serde::Deserialize;
 use serde_with::serde_as;
-use wax::walk::Entry;
+use wax::walk::{Entry, FileIterator};
 use zpm_macros::track_time;
 
 use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, Manifest}, primitives::{Descriptor, Ident, Locator, Range, Reference}, script::Binary, zip::ZipSupport};
@@ -18,6 +18,7 @@ pub struct Project {
 
     pub config: Config,
     pub workspaces: HashMap<Ident, Workspace>,
+    pub workspaces_by_rel_path: HashMap<Path, Ident>,
 
     pub install_state: Option<InstallState>,
 }
@@ -74,6 +75,10 @@ impl Project {
             root_workspace.clone(),
         );
 
+        let workspaces_by_rel_path = workspaces.values()
+            .map(|w| (w.rel_path.clone(), w.locator().ident))
+            .collect::<HashMap<_, _>>();
+
         Ok(Project {
             shell_cwd: shell_cwd.relative_to(&project_cwd),
             package_cwd: package_cwd.relative_to(&project_cwd),
@@ -81,6 +86,7 @@ impl Project {
 
             config,
             workspaces,
+            workspaces_by_rel_path,
 
             install_state: None,
         })
@@ -427,11 +433,28 @@ impl Workspace {
         let mut workspaces = vec![];
 
         if let Some(patterns) = &self.manifest.workspaces {
-            for pattern in patterns {
-                let glob = wax::Glob::new(pattern)
-                    .map_err(|_| Error::InvalidWorkspacePattern(pattern.to_string()))?;
+            let (negated_patterns, regular_patterns): (Vec<_>, Vec<_>) = patterns.iter()
+                .partition(|p| p.starts_with("!"));
 
-                for entry in glob.walk(self.path.to_path_buf()) {
+            let regular_globs = regular_patterns.iter()
+                .map(|p| wax::Glob::new(p).map_err(|_| Error::InvalidWorkspacePattern(p.to_string())))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let negated_globs = negated_patterns.iter()
+                .map(|p| wax::Glob::new(&p[1..]).map_err(|_| Error::InvalidWorkspacePattern(p.to_string())))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let aggregated_negated_glob
+                = wax::any(negated_globs)
+                    .unwrap();
+
+            for glob in regular_globs {
+                let it = glob
+                    .walk(self.path.to_path_buf())
+                    .not(aggregated_negated_glob.clone())
+                    .unwrap();
+
+                for entry in it {
                     let path = entry
                         .unwrap()
                         .path()
@@ -442,6 +465,22 @@ impl Workspace {
                     }
                 }
             }
+
+            // for pattern in patterns {
+            //     let glob = wax::Glob::new(pattern)
+            //         .map_err(|_| Error::InvalidWorkspacePattern(pattern.to_string()))?;
+
+            //     for entry in glob.walk(self.path.to_path_buf()) {
+            //         let path = entry
+            //             .unwrap()
+            //             .path()
+            //             .to_arca();
+
+            //         if path.with_join_str(MANIFEST_NAME).fs_is_file() {
+            //             workspaces.push(Workspace::from_path(&self.path, path)?);
+            //         }
+            //     }
+            // }
         }
 
         Ok(workspaces)

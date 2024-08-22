@@ -8,6 +8,7 @@ mod bin;
 mod default;
 mod exec;
 mod install;
+mod workspaces_list;
 mod node;
 mod run;
 mod version;
@@ -22,6 +23,7 @@ clipanion::program!(YarnCli, [
     node::Node,
     run::Run,
     version::Version,
+    workspaces_list::WorkspacesList,
 ]);
 
 #[track_time]

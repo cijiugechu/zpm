@@ -1,5 +1,6 @@
 use std::{collections::{HashMap, HashSet}, fmt, marker::PhantomData, str::FromStr, sync::Arc};
 
+use arca::Path;
 use bincode::{Decode, Encode};
 use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer, Serialize};
 
@@ -119,6 +120,9 @@ pub async fn resolve(context: InstallContext<'_>, descriptor: Descriptor, parent
 
         Range::WorkspaceSemver(_)
             => resolve_workspace_by_name(context, descriptor.ident),
+
+        Range::WorkspacePath(path)
+            => resolve_workspace_by_path(context, path),
 
         _ => Err(Error::Unsupported),
     }
@@ -374,8 +378,15 @@ pub async fn resolve_semver(context: InstallContext<'_>, ident: &Ident, range: &
 }
 
 pub async fn resolve_semver_or_workspace(context: InstallContext<'_>, ident: &Ident, range: &semver::Range) -> Result<ResolveResult, Error> {
-    if let Ok(workspace) = resolve_workspace_by_name(context.clone(), ident.clone()) {
-        return Ok(workspace);
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
+    if project.config.project.enable_transparent_workspaces.value {
+        if let Ok(workspace) = resolve_workspace_by_name(context.clone(), ident.clone()) {
+            if range.check(&workspace.resolution.version) {
+                return Ok(workspace);
+            }
+        }
     }
 
     resolve_semver(context, ident, range).await
@@ -398,5 +409,16 @@ pub fn resolve_workspace_by_name(context: InstallContext, ident: Ident) -> Resul
         }
 
         None => Err(Error::WorkspaceNotFound(ident)),
+    }
+}
+
+pub fn resolve_workspace_by_path(context: InstallContext, path: &str) -> Result<ResolveResult, Error> {
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
+    if let Some(ident) = project.workspaces_by_rel_path.get(&Path::from(path)) {
+        resolve_workspace_by_name(context, ident.clone())
+    } else {
+        Err(Error::WorkspacePathNotFound())
     }
 }

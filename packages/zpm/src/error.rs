@@ -122,6 +122,9 @@ pub enum Error {
     #[error("Workspace not found ({0})")]
     WorkspaceNotFound(Ident),
 
+    #[error("Workspace path not found ()")]
+    WorkspacePathNotFound(),
+
     #[error("Install state file not found; please run an install operation first")]
     InstallStateNotFound,
 

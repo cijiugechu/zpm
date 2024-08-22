@@ -305,6 +305,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
         #(#default_functions)*
 
         #[derive(Clone, Debug, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         pub struct #struct_name {
             #(#new_fields)*
         }

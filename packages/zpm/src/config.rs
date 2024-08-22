@@ -267,6 +267,7 @@ impl<'de> Deserialize<'de> for Glob {
     }
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub user: UserConfig,
     pub project: ProjectConfig,

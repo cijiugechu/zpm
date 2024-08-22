@@ -32,6 +32,9 @@ pub struct ProjectConfig {
     #[default(false)]
     pub enable_global_cache: BoolField,
 
+    #[default(true)]
+    pub enable_transparent_workspaces: BoolField,
+
     #[default("https://registry.npmjs.org".to_string())]
     pub npm_registry_server: StringField,
 
