@@ -35,6 +35,9 @@ pub struct Resolution {
     pub locator: Locator,
     pub version: semver::Version,
 
+    #[serde(flatten)]
+    pub conditions: system::Requirements,
+
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(serialize_with = "descriptor_map_serializer")]
@@ -54,10 +57,6 @@ pub struct Resolution {
     #[serde(default)]
     #[serde(skip_serializing_if = "HashSet::is_empty")]
     pub missing_peer_dependencies: HashSet<Ident>,
-
-    #[serde(default)]
-    #[serde(flatten)]
-    pub conditions: Option<system::Requirements>,
 }
 
 impl Resolution {
@@ -133,7 +132,7 @@ pub fn resolve_link(ident: &Ident, path: &str, parent: &Option<Locator>) -> Resu
         peer_dependencies: HashMap::new(),
         optional_dependencies: HashSet::new(),
         missing_peer_dependencies: HashSet::new(),
-        conditions: None,
+        conditions: system::Requirements::default(),
     };
 
     Ok(ResolveResult::new(resolution))
@@ -203,7 +202,7 @@ pub async fn resolve_git(ident: Ident, git_range: &GitRange) -> Result<ResolveRe
         peer_dependencies: HashMap::new(),
         optional_dependencies: HashSet::new(),
         missing_peer_dependencies: HashSet::new(),
-        conditions: None,
+        conditions: system::Requirements::default(),
     };
 
     Ok(ResolveResult::new(resolution))

@@ -173,6 +173,20 @@ impl Project {
         let re_parsed: InstallState
             = serde_json::from_str(&contents)?;
 
+        if re_parsed != *install_state {
+            // We'll print all fields' equality checks here
+            println!("install_state.lockfile == re_parsed.lockfile: {}", install_state.lockfile == re_parsed.lockfile);
+            println!("install_state.resolution_tree == re_parsed.resolution_tree: {}", install_state.resolution_tree == re_parsed.resolution_tree);
+            println!("install_state.packages_by_location == re_parsed.packages_by_location: {}", install_state.packages_by_location == re_parsed.packages_by_location);
+            println!("install_state.locations_by_package == re_parsed.locations_by_package: {}", install_state.locations_by_package == re_parsed.locations_by_package);
+            println!("install_state.optional_packages == re_parsed.optional_packages: {}", install_state.optional_packages == re_parsed.optional_packages);
+            println!("install_state.disabled_locators == re_parsed.disabled_locators: {}", install_state.disabled_locators == re_parsed.disabled_locators);
+            println!("install_state.conditional_locators == re_parsed.conditional_locators: {}", install_state.conditional_locators == re_parsed.conditional_locators);
+
+            println!("Pretty lockfile: {:#?} {:#?}", install_state.lockfile, re_parsed.lockfile);
+            println!("Pretty resolution tree: {:#?} {:#?}", install_state.resolution_tree, re_parsed.resolution_tree);
+        }
+
         assert_eq!(&re_parsed, install_state);
 
         link_info_path

@@ -57,6 +57,10 @@ pub struct Requirements {
 }
 
 impl Requirements {
+    pub fn is_conditional(&self) -> bool {
+        !self.arch.is_empty() || !self.os.is_empty() || !self.libc.is_empty()
+    }
+
     pub fn validate(&self, info: &Description) -> bool {
         if let Some(requirement) = &info.arch {
             if self.arch.len() > 0 && !self.arch.contains(&requirement) {

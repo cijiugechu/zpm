@@ -149,7 +149,11 @@ fn check_extract(package_info: &Option<PackageInfo>, package_meta: &PackageMeta,
 
 fn get_package_info(package_data: &PackageData) -> Result<Option<PackageInfo>, Error> {
     match package_data {
-        PackageData::Local {package_directory, ..} => {
+        PackageData::Local {package_directory, discard_from_lookup, ..} => {
+            if *discard_from_lookup {
+                return Ok(None);
+            }
+
             let manifest_text = package_directory
                 .with_join_str("package.json")
                 .fs_read_text()?;

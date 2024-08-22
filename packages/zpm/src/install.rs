@@ -243,10 +243,10 @@ impl<'a> InstallManager<'a> {
             resolution: resolution.clone(),
         });
 
-        if let Some(requirements) = &resolution.conditions {
+        if resolution.conditions.is_conditional() {
             self.result.install_state.conditional_locators.insert(resolution.locator.clone());
 
-            if !requirements.validate(&self.description) {
+            if !resolution.conditions.validate(&self.description) {
                 self.result.install_state.disabled_locators.insert(resolution.locator.clone());
             }
         }

@@ -11,9 +11,8 @@ pub struct RemoteManifest {
     #[serde(default)]
     pub version: semver::Version,
 
-    #[serde(default)]
     #[serde(flatten)]
-    pub conditions: Option<system::Requirements>,
+    pub conditions: system::Requirements,
 
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")]
