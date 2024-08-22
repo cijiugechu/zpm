@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::{build::{self, BuildRequests}, error::Error, fetcher::{PackageData, PackageLinking}, install::Install, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
+use crate::{build::{self, BuildRequests}, error::Error, fetcher::{PackageData, PackageLinking}, install::Install, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, system, yarn_serialization_protocol, zip::{entries_from_zip, first_entry_from_zip, Entry}};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
@@ -53,6 +53,10 @@ struct TopLevelConfiguration {
 struct PackageInfo {
     #[serde(default)]
     r#type: Option<String>,
+
+    #[serde(default)]
+    #[serde(flatten)]
+    requirements: system::Requirements,
 
     #[serde(default,)]
     prefer_unplugged: Option<bool>,
@@ -408,6 +412,8 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
     let mut all_build_entries = Vec::new();
     let mut package_build_entries = HashMap::new();
 
+    let system_description = system::Description::from_current();
+
     for (locator, resolution) in &tree.locator_resolutions {
         let physical_package_data = install.package_data.get(&locator.physical_locator())
             .unwrap_or_else(|| panic!("Failed to find physical package data for {}", locator.physical_locator()));
@@ -456,6 +462,9 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             _ => false,
         };
 
+        let package_info
+            = get_package_info(&physical_package_data)?;
+
         let mut package_meta = dependencies_meta
             .get(&IdentOrLocator::Locator(locator.clone()))
             .or_else(|| dependencies_meta.get(&IdentOrLocator::Ident(locator.ident.clone())))
@@ -470,8 +479,18 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             package_meta.unplugged = Some(true);
         }
 
-        let package_info
-            = get_package_info(&physical_package_data)?;
+        // We don't need to run the build if the package was marked as
+        // incompatible with the current system (even if the package isn't
+        // marked as optional).
+        //
+        let is_build_enabled_for_system = match &package_info {
+            Some(info) => info.requirements.validate(&system_description),
+            None => false,
+        };
+
+        if !is_build_enabled_for_system {
+            package_meta.built = Some(false);
+        }
 
         let relevant_build_entries = match physical_package_data {
             PackageData::Local {..} => vec![],

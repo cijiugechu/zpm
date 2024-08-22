@@ -27,17 +27,17 @@ const LIBC: Option<&str> = None;
 
 #[derive(Debug)]
 pub struct Description {
-    arch: Option<String>,
-    os: Option<String>,
-    libc: Option<String>,
+    arch: Option<(String, String)>,
+    os: Option<(String, String)>,
+    libc: Option<(String, String)>,
 }
 
 impl Description {
     pub fn from_current() -> Self {
         Self {
-            arch: Some(ARCH.to_string()),
-            os: Some(OS.to_string()),
-            libc: LIBC.map(|s| s.to_string()),
+            arch: Some((ARCH.to_string(), format!("!{}", ARCH.to_string()))),
+            os: Some((OS.to_string(), format!("!{}", OS.to_string()))),
+            libc: LIBC.map(|s| (s.to_string(), format!("!{}", s.to_string()))),
         }
     }
 }
@@ -64,20 +64,20 @@ impl Requirements {
     }
 
     pub fn validate(&self, info: &Description) -> bool {
-        if let Some(requirement) = &info.arch {
-            if self.arch.len() > 0 && !self.arch.contains(&requirement) {
+        if let Some((requirement, inversed)) = &info.arch {
+            if self.arch.len() > 0 && (!self.arch.contains(&requirement) || self.arch.contains(&inversed)) {
                 return false;
             }
         }
 
-        if let Some(requirement) = &info.os {
-            if self.os.len() > 0 && !self.os.contains(&requirement) {
+        if let Some((requirement, inversed)) = &info.os {
+            if self.os.len() > 0 && (!self.os.contains(&requirement) || self.os.contains(&inversed)) {
                 return false;
             }
         }
 
-        if let Some(requirement) = &info.libc {
-            if self.libc.len() > 0 && !self.libc.contains(&requirement) {
+        if let Some((requirement, inversed)) = &info.libc {
+            if self.libc.len() > 0 && (!self.libc.contains(&requirement) || self.libc.contains(&inversed)) {
                 return false;
             }
         }
