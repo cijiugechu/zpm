@@ -361,7 +361,6 @@ fn make_git_env() -> HashMap<String, String> {
 
 pub async fn clone_repository(url: &str, commit: &str) -> Result<Path, Error> {
     let git_range = extract_git_range(url)?;
-    println!("Cloning {:?}", git_range);
 
     let normalized_repo_url = normalize_git_url(git_range.repo);
 

@@ -321,15 +321,17 @@ pub async fn resolve_semver(context: InstallContext<'_>, ident: &Ident, range: &
     
             while let Some(key) = map.next_key::<String>()? {
                 let version = semver::Version::from_str(key.as_str()).unwrap();
-    
+
                 if self.range.check(&version) && selected.as_ref().map(|(current_version, _)| *current_version < version).unwrap_or(true) {
-                    selected = Some((version, map.next_value::<T>()?));
+                    selected = Some((version, map.next_value::<serde_json::Value>()?));
                 } else {
                     map.next_value::<IgnoredAny>()?;
                 }
             }
     
-            Ok(selected.unwrap())
+            Ok(selected.map(|(version, version_payload)| {
+                (version, T::deserialize(version_payload).unwrap())
+            }).unwrap())
         }
     }
 
