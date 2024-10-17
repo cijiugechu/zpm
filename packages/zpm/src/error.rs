@@ -14,6 +14,9 @@ fn render_backtrace(backtrace: &std::backtrace::Backtrace) -> String {
 
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum Error {
+    #[error("Generic internal error: Please replace this error with a more specific one")]
+    ReplaceMe,
+
     #[error("Failed to change the current working directory")]
     FailedToChangeCwd,
 
@@ -62,8 +65,14 @@ pub enum Error {
     #[error("UTF-8 error")]
     Utf8Error(#[from] Arc<std::str::Utf8Error>),
 
+    #[error("UTF-8 error")]
+    Utf8Error2(#[from] std::str::Utf8Error),
+
     #[error("Invalid JSON data ({0})")]
     InvalidJsonData(#[from] Arc<serde_json::Error>),
+
+    #[error("Error parsing an integer value")]
+    ParseIntError(#[from] std::num::ParseIntError),
 
     #[error("Invalid SHA256 data")]
     InvalidSha256(String),
@@ -172,6 +181,45 @@ pub enum Error {
 
     #[error("Failed to interpret as an utf8 string")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
+
+    #[error("Unrecognized pragma in patch file ({0})")]
+    UnrecognizedPatchPragma(String),
+
+    #[error("Unsufficient pragma context")]
+    UnsufficientPragmaContext,
+
+    #[error("Hunk lines encountered before the hunk header")]
+    HunkLinesBeforeHeader,
+
+    #[error("Invalid hunk header ({0})")]
+    InvalidHunkHeader(String),
+
+    #[error("Invalid diff line ({0})")]
+    InvalidDiffLine(String),
+
+    #[error("Hunk integrity check failed")]
+    HunkIntegrityCheckFailed,
+
+    #[error("Invalid mode in patch file ({0})")]
+    InvalidModeInPatchFile(u32),
+
+    #[error("No changes found in this patch file")]
+    EmptyPatchFile,
+
+    #[error("Missing rename target in patch file")]
+    MissingRenameTarget,
+
+    #[error("Missing source path")]
+    MissingFromPath,
+
+    #[error("Missing target path")]
+    MissingToPath,
+
+    #[error("Patched file not found ({0})")]
+    PatchedFileNotFound(String),
+
+    #[error("Unmatched hunk")]
+    UnmatchedHunk(usize),
 }
 
 impl Error {

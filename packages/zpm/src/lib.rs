@@ -16,6 +16,7 @@ pub mod lockfile;
 pub mod manifest;
 pub mod misc;
 pub mod pack;
+pub mod patch;
 pub mod path;
 pub mod prepare;
 pub mod primitives;
