@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use bincode::{Decode, Encode};
 use rstest::rstest;
@@ -11,7 +12,7 @@ use crate::serialize::Serialized;
 use crate::{semver, yarn_check_serialize};
 use crate::{error::Error, yarn_serialization_protocol};
 
-use super::{Ident, Locator, Range};
+use super::{Ident, Locator, Range, Reference};
 
 #[derive(Debug)]
 pub struct LooseDescriptor {
@@ -76,6 +77,22 @@ impl Descriptor {
             range: Range::Virtual(Box::new(self.range.clone()), Sha256::from_string(&serialized)),
             parent: self.parent.clone(),
         }
+    }
+
+    pub fn to_locator(&self) -> Option<Locator> {
+        let reference = match &self.range {
+            Range::Folder(file) => Some(Reference::Folder(file.clone())),
+            Range::Tarball(file) => Some(Reference::Tarball(file.clone())),
+            Range::Url(url) => Some(Reference::Url(url.clone())),
+
+            _ => None,
+        };
+
+        reference.map(|reference| Locator {
+            parent: self.parent.clone().map(Arc::new),
+            ident: self.ident.clone(),
+            reference,
+        })
     }
 }
 

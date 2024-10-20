@@ -4,7 +4,7 @@ use arca::Path;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, formats, git::{clone_repository, GitReference}, hash::Sha256, http::http_client, install::InstallContext, manifest::{Manifest, RemoteManifest}, prepare, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver};
+use crate::{error::Error, formats, git::{clone_repository, GitReference}, hash::Sha256, http::http_client, install::{FetchResult, InstallContext, InstallOpResult}, manifest::{Manifest, RemoteManifest}, prepare, primitives::{Ident, Locator, Reference}, resolver::Resolution, semver};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -13,7 +13,7 @@ pub enum PackageLinking {
     Soft,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub enum PackageData {
     Local {
         /** Directory that contains the package.json file */
@@ -120,25 +120,25 @@ fn convert_folder_to_zip(ident: &Ident, folder_path: &Path) -> Result<Vec<u8>, E
     Ok(formats::zip::craft_zip(&entries))
 }
 
-pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, is_mock_request: bool, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
+pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, is_mock_request: bool, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
     match &locator.reference {
         Reference::Link(path)
-            => fetch_link(path, parent_data),
+            => fetch_link(path, dependencies),
 
         Reference::Portal(path)
-            => fetch_portal(path, parent_data),
+            => fetch_portal(path, dependencies),
 
         Reference::Url(url)
-            => Ok(fetch_remote_tarball_with_manifest(context, locator, url).await?.1),
+            => fetch_remote_tarball_with_manifest(context, locator, url).await,
 
         Reference::Tarball(path)
-            => Ok(fetch_local_tarball_with_manifest(context, locator, path, parent_data).await?.1),
+            => fetch_local_tarball_with_manifest(context, locator, path, dependencies).await,
 
         Reference::Folder(path)
-            => Ok(fetch_folder_with_manifest(context, locator, path, parent_data).await?.1),
+            => fetch_folder_with_manifest(context, locator, path, dependencies).await,
 
         Reference::Git(reference)
-            => Ok(fetch_repository_with_manifest(context, locator, reference).await?.1),
+            => fetch_repository_with_manifest(context, locator, reference).await,
 
         Reference::Semver(version)
             => fetch_semver(context, locator, &locator.ident, version, is_mock_request).await,
@@ -153,33 +153,39 @@ pub async fn fetch<'a>(context: InstallContext<'a>, locator: &Locator, is_mock_r
     }
 }
 
-pub fn fetch_link(path: &str, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
-    let parent_data = parent_data
-        .expect("The parent data is required for retrieving the path of a linked package");
+pub fn fetch_link(path: &str, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
+    let parent_data = dependencies[0].expect_fetched();
 
-    let package_directory = parent_data.context_directory()
+    let package_directory = parent_data.package_data
+        .context_directory()
         .with_join_str(path);
 
-    Ok(PackageData::Local {
-        package_directory,
-        discard_from_lookup: true,
+    Ok(FetchResult {
+        resolution: None,
+        package_data: PackageData::Local {
+            package_directory,
+            discard_from_lookup: true,
+        },
     })
 }
 
-pub fn fetch_portal(path: &str, parent_data: Option<PackageData>) -> Result<PackageData, Error> {
-    let parent_data = parent_data
-        .expect("The parent data is required for retrieving the path of a portal package");
+pub fn fetch_portal(path: &str, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
+    let parent_data = dependencies[0].expect_fetched();
 
-    let package_directory = parent_data.context_directory()
+    let package_directory = parent_data.package_data
+        .context_directory()
         .with_join_str(path);
 
-    Ok(PackageData::Local {
-        package_directory,
-        discard_from_lookup: false,
+    Ok(FetchResult {
+        resolution: None,
+        package_data: PackageData::Local {
+            package_directory,
+            discard_from_lookup: false,
+        },
     })
 }
 
-pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, url: &str) -> Result<(Resolution, PackageData), Error> {
+pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, url: &str) -> Result<FetchResult, Error> {
     let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let client = http_client()?;
         let response = client.get(url).send().await
@@ -205,20 +211,23 @@ pub async fn fetch_remote_tarball_with_manifest<'a>(context: InstallContext<'a>,
     let package_directory = archive_path
         .with_join_str(locator.ident.nm_subdir());
 
-    Ok((resolution, PackageData::Zip {
-        archive_path,
-        context_directory: package_directory.clone(),
-        package_directory,
-        data,
-        checksum,
-    }))
+    Ok(FetchResult {
+        resolution: Some(resolution),
+        package_data: PackageData::Zip {
+            archive_path,
+            context_directory: package_directory.clone(),
+            package_directory,
+            data,
+            checksum,
+        },
+    })
 }
 
-pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
-    let parent_data = parent_data
-        .expect("The parent data is required for retrieving the path of a tarball package");
+pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
+    let parent_data = dependencies[0].expect_fetched();
 
-    let tarball_path = parent_data.context_directory()
+    let tarball_path = parent_data.package_data
+        .context_directory()
         .with_join_str(path);
 
     let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
@@ -239,20 +248,23 @@ pub async fn fetch_local_tarball_with_manifest<'a>(context: InstallContext<'a>, 
     let package_directory = archive_path
         .with_join_str(locator.ident.nm_subdir());
 
-    Ok((resolution, PackageData::Zip {
-        archive_path,
-        context_directory: package_directory.clone(),
-        package_directory,
-        data,
-        checksum,
-    }))
+    Ok(FetchResult {
+        resolution: Some(resolution),
+        package_data: PackageData::Zip {
+            archive_path,
+            context_directory: package_directory.clone(),
+            package_directory,
+            data,
+            checksum,
+        },
+    })
 }
 
-pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, parent_data: Option<PackageData>) -> Result<(Resolution, PackageData), Error> {
-    let parent_data = parent_data
-        .expect("The parent data is required for retrieving the path of a tarball package");
+pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, path: &str, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
+    let parent_data = dependencies[0].expect_fetched();
 
-    let context_directory = parent_data.context_directory()
+    let context_directory = parent_data.package_data
+        .context_directory()
         .with_join_str(path);
 
     let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
@@ -275,16 +287,19 @@ pub async fn fetch_folder_with_manifest<'a>(context: InstallContext<'a>, locator
     let package_directory = archive_path
         .with_join_str(locator.ident.nm_subdir());
 
-    Ok((resolution, PackageData::Zip {
-        archive_path,
-        context_directory,
-        package_directory,
-        data,
-        checksum,
-    }))
+    Ok(FetchResult {
+        resolution: Some(resolution),
+        package_data: PackageData::Zip {
+            archive_path,
+            context_directory,
+            package_directory,
+            data,
+            checksum,
+        },
+    })
 }
 
-pub async fn fetch_repository_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, reference: &GitReference) -> Result<(Resolution, PackageData), Error> {
+pub async fn fetch_repository_with_manifest<'a>(context: InstallContext<'a>, locator: &Locator, reference: &GitReference) -> Result<FetchResult, Error> {
     let (archive_path, data, checksum) = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let repository_path
             = clone_repository(&reference.repo, &reference.commit).await?;
@@ -313,16 +328,19 @@ pub async fn fetch_repository_with_manifest<'a>(context: InstallContext<'a>, loc
     let package_directory = archive_path
         .with_join_str(locator.ident.nm_subdir());
 
-    Ok((resolution, PackageData::Zip {
-        archive_path,
-        context_directory: package_directory.clone(),
-        package_directory,
-        data,
-        checksum,
-    }))
+    Ok(FetchResult {
+        resolution: Some(resolution),
+        package_data: PackageData::Zip {
+            archive_path,
+            context_directory: package_directory.clone(),
+            package_directory,
+            data,
+            checksum,
+        },
+    })
 }
 
-pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, ident: &Ident, version: &semver::Version, is_mock_request: bool) -> Result<PackageData, Error> {
+pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, ident: &Ident, version: &semver::Version, is_mock_request: bool) -> Result<FetchResult, Error> {
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
@@ -333,11 +351,11 @@ pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, id
         let package_directory = archive_path
             .with_join_str(ident.nm_subdir());
 
-        return Ok(PackageData::MissingZip {
+        return Ok(FetchResult::new(PackageData::MissingZip {
             archive_path,
             context_directory: package_directory.clone(),
             package_directory,
-        });
+        }));
     }
 
     let registry_url
@@ -358,16 +376,16 @@ pub async fn fetch_semver<'a>(context: InstallContext<'a>, locator: &Locator, id
     let package_directory = archive_path
         .with_join_str(ident.nm_subdir());
 
-    Ok(PackageData::Zip {
+    Ok(FetchResult::new(PackageData::Zip {
         archive_path,
         context_directory: package_directory.clone(),
         package_directory,
         data,
         checksum,
-    })
+    }))
 }
 
-pub fn fetch_workspace(context: InstallContext, ident: &Ident) -> Result<PackageData, Error> {
+pub fn fetch_workspace(context: InstallContext, ident: &Ident) -> Result<FetchResult, Error> {
     let project = context.project
         .expect("The project is required for fetching a workspace package");
 
@@ -375,8 +393,8 @@ pub fn fetch_workspace(context: InstallContext, ident: &Ident) -> Result<Package
         .get(ident)
         .ok_or_else(|| Error::WorkspaceNotFound(ident.clone()))?;
 
-    Ok(PackageData::Local {
+    Ok(FetchResult::new(PackageData::Local {
         package_directory: workspace.path.clone(),
         discard_from_lookup: false,
-    })
+    }))
 }

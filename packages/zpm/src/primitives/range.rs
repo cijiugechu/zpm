@@ -5,7 +5,7 @@ use zpm_macros::Parsed;
 
 use crate::{error::Error, git, hash::Sha256, semver, serialize::UrlEncoded, yarn_check_serialize, yarn_serialization_protocol};
 
-use super::{Descriptor, Ident};
+use super::{Descriptor, Ident, Locator};
 
 #[derive(Clone, Debug, Decode, Encode, Parsed, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[parse_error(Error::InvalidRange)]
@@ -64,6 +64,10 @@ pub enum Range {
 impl Range {
     pub fn must_bind(&self) -> bool {
         matches!(&self, Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_, _))
+    }
+
+    pub fn must_fetch_before_resolve(&self) -> bool {
+        matches!(&self, Range::Git(_) | Range::Folder(_) | Range::Tarball(_) | Range::Url(_))
     }
 
     pub fn is_transient_resolution(&self) -> bool {

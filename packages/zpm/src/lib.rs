@@ -8,6 +8,7 @@ pub mod error;
 pub mod fetcher;
 pub mod formats;
 pub mod git;
+pub mod graph;
 pub mod hash;
 pub mod http;
 pub mod install;
