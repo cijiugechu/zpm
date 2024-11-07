@@ -1,5 +1,4 @@
 use bincode::{Decode, Encode};
-use reqwest::Url;
 use serde::ser::{Serialize, Serializer, SerializeStruct, SerializeTuple, SerializeTupleStruct, SerializeTupleVariant, SerializeMap, SerializeSeq, SerializeStructVariant};
 use std::fmt;
 

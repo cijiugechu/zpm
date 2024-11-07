@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::{lockfile::Lockfile, primitives::{Descriptor, Ident, Locator, Range, Reference}, resolver::Resolution};
+use crate::{primitives::{Descriptor, Ident, Locator, Range, Reference}, resolvers::Resolution};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ResolutionTree {

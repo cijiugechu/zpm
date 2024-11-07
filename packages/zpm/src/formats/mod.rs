@@ -4,6 +4,7 @@ use arca::{Path, ToArcaPath};
 
 use crate::error::Error;
 
+pub mod convert;
 pub mod tar;
 pub mod zip;
 

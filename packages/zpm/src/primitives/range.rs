@@ -5,7 +5,7 @@ use zpm_macros::Parsed;
 
 use crate::{error::Error, git, hash::Sha256, semver, serialize::UrlEncoded, yarn_check_serialize, yarn_serialization_protocol};
 
-use super::{Descriptor, Ident, Locator};
+use super::{Descriptor, Ident};
 
 #[derive(Clone, Debug, Decode, Encode, Parsed, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[parse_error(Error::InvalidRange)]

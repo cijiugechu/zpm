@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, hash::Hash, marker::PhantomData, str:
 use arca::Path;
 use serde::{Deserialize, Serialize};
 
-use crate::{build, cache::CompositeCache, error::Error, fetcher::{fetch, PackageData}, graph::{GraphCache, GraphIn, GraphOut, GraphTasks}, linker, lockfile::{Lockfile, LockfileEntry}, manifest::ResolutionOverride, primitives::{Descriptor, Ident, Locator, PeerRange, Range, Reference}, print_time, project::Project, resolver::{resolve, Resolution}, semver, system, tree_resolver::{ResolutionTree, TreeResolver}};
+use crate::{build, cache::CompositeCache, error::Error, fetchers::{fetch, PackageData}, graph::{GraphCache, GraphIn, GraphOut, GraphTasks}, linker, lockfile::{Lockfile, LockfileEntry}, primitives::{Descriptor, Ident, Locator, PeerRange, Range, Reference}, print_time, project::Project, resolvers::{resolve, Resolution}, semver, system, tree_resolver::{ResolutionTree, TreeResolver}};
 
 
 #[derive(Clone, Default)]
@@ -108,7 +108,7 @@ impl InstallOpResult {
 }
 
 impl<'a> GraphOut<InstallContext<'a>, InstallOp<'a>> for InstallOpResult {
-    fn graph_follow_ups(&self, ctx: &InstallContext<'a>) -> Vec<InstallOp<'a>> {
+    fn graph_follow_ups(&self, _ctx: &InstallContext<'a>) -> Vec<InstallOp<'a>> {
         match self {
             InstallOpResult::Resolved(ResolutionResult {resolution, ..}) => {
                 let mut follow_ups = vec![InstallOp::Fetch {
@@ -146,7 +146,7 @@ enum InstallOp<'a> {
 }
 
 impl<'a> GraphIn<'a, InstallContext<'a>, InstallOpResult, Error> for InstallOp<'a> {
-    fn graph_dependencies(&self, ctx: &InstallContext<'a>, resolved_dependencies: &Vec<&InstallOpResult>) -> Vec<Self> {
+    fn graph_dependencies(&self, _ctx: &InstallContext<'a>, resolved_dependencies: &Vec<&InstallOpResult>) -> Vec<Self> {
         let mut dependencies = vec![];
         let mut resolved_it = resolved_dependencies.iter();
 

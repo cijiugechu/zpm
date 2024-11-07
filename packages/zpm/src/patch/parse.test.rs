@@ -86,32 +86,6 @@ index 2de83dd..842652c 100644
  file
 ";
 
-const CRLF_LINE_BREAKS: &str = "diff --git a/index.ts b/index.ts\r
-new file mode 100644\r
-index 0000000..3e1267f\r
---- /dev/null\r
-+++ b/index.ts\r
-@@ -0,0 +1 @@\r
-+this is a new file\r
-";
-
-const MODE_CHANGE_AND_MODIFY_AND_RENAME: &str = "diff --git a/numbers.txt b/index.txt
-old mode 100644
-new mode 100755
-similarity index 96%
-rename from numbers.txt
-rename to index.txt
-index fbf1785..92d2c5f
---- a/numbers.txt
-+++ b/index.txt
-@@ -1,4 +1,4 @@
--one
-+ne
-
- two
-
-";
-
 #[test]
 fn simple_case() {
     assert_eq!(PatchParser::parse(PATCH).unwrap(), vec![

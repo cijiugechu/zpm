@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::{build::{self, BuildRequests}, error::Error, fetcher::{PackageData, PackageLinking}, formats::{self, Entry}, install::Install, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolver::Resolution, settings, system, yarn_serialization_protocol};
+use crate::{build::{self, BuildRequests}, error::Error, fetchers::{PackageData, PackageLinking}, formats::{self, Entry}, install::Install, primitives::{locator::IdentOrLocator, Descriptor, Ident, Locator, Reference}, project::Project, resolvers::Resolution, settings, system, yarn_serialization_protocol};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()

@@ -85,7 +85,7 @@ async fn prepare_npm_project(folder_path: &Path) -> Result<Vec<u8>, Error> {
     Ok(pack_tgz)
 }
 
-async fn prepare_yarn_modern_project(folder_path: &Path, params: &PrepareParams) -> Result<Vec<u8>, Error> {
+async fn prepare_yarn_modern_project(folder_path: &Path, _params: &PrepareParams) -> Result<Vec<u8>, Error> {
     ScriptEnvironment::new()
         .with_cwd(folder_path.clone())
         .run_exec("yarn", vec!["pack", "--install-if-needed"])
@@ -99,7 +99,7 @@ async fn prepare_yarn_modern_project(folder_path: &Path, params: &PrepareParams)
     Ok(pack_tgz)
 }
 
-async fn prepare_pnpm_project(folder_path: &Path, params: &PrepareParams) -> Result<Vec<u8>, Error> {
+async fn prepare_pnpm_project(folder_path: &Path, _params: &PrepareParams) -> Result<Vec<u8>, Error> {
     ScriptEnvironment::new()
         .with_cwd(folder_path.clone())
         .run_exec("pnpm", vec!["install"])

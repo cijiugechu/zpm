@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, fmt, marker::PhantomData};
 use itertools::Itertools;
 use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{error::Error, hash::Sha256, primitives::{Descriptor, Locator}, resolver::Resolution, serialize::Serialized};
+use crate::{error::Error, hash::Sha256, primitives::{Descriptor, Locator}, resolvers::Resolution, serialize::Serialized};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LockfileEntry {

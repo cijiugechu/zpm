@@ -1,7 +1,5 @@
 use std::{borrow::Cow, cmp, collections::HashMap};
 
-use itertools::Itertools;
-
 use crate::{error::Error, formats::Entry};
 
 use super::parse::{Hunk, PatchFilePart, PatchMutationPartKind};
@@ -82,7 +80,7 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
 
     for patch_entry in patch_entries.iter() {
         match patch_entry {
-            PatchFilePart::FileCreation { semver_exclusivity, path, mode, hunk, hash } => {
+            PatchFilePart::FileCreation {path, mode, hunk, ..} => {
                 if entry_map.contains_key(path.as_str()) {
                     return Err(Error::ReplaceMe);
                 }
@@ -104,13 +102,13 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
                 entry_map.insert(path.to_string(), entry);
             },
 
-            PatchFilePart::FileDeletion { semver_exclusivity, path, mode, hunk, hash } => {
+            PatchFilePart::FileDeletion {path, ..} => {
                 entry_map
                     .remove(path.as_str())
                     .ok_or_else(|| Error::PatchedFileNotFound(path.to_string()))?;
             },
 
-            PatchFilePart::FileModeChange { semver_exclusivity, path, old_mode, new_mode } => {
+            PatchFilePart::FileModeChange {path, new_mode, ..} => {
                 let entry = entry_map
                     .get_mut(path.as_str())
                     .ok_or_else(|| Error::PatchedFileNotFound(path.to_string()))?;
@@ -118,7 +116,7 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
                 entry.mode = *new_mode as u64;
             },
 
-            PatchFilePart::FileRename { semver_exclusivity, from, to } => {
+            PatchFilePart::FileRename {from, to, ..} => {
                 let entry = entry_map
                     .remove(from.as_str())
                     .ok_or_else(|| Error::PatchedFileNotFound(from.to_string()))?;
@@ -126,7 +124,7 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
                 entry_map.insert(to.to_string(), entry);
             },
 
-            PatchFilePart::FilePatch { semver_exclusivity, path, hunks, before_hash, after_hash } => {
+            PatchFilePart::FilePatch {path, hunks, ..} => {
                 let entry = entry_map
                     .get_mut(path.as_str())
                     .ok_or_else(|| Error::PatchedFileNotFound(path.to_string()))?;
@@ -211,10 +209,6 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
 
                 entry.data = Cow::Owned(file_lines.join("\n").as_bytes().to_vec());
             },
-
-            _ => {
-                unimplemented!();
-            }
         }
     }
 
