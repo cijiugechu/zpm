@@ -226,7 +226,7 @@ impl TreeResolver {
                 }
 
                 let is_provided_by_parent = match &peer_descriptor {
-                    Some(descriptor) => matches!(descriptor.range, Range::MissingPeerDependency(_)),
+                    Some(descriptor) => !matches!(descriptor.range, Range::MissingPeerDependency(_)),
                     None => false,
                 };
 
