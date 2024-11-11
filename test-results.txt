@@ -1016,6 +1016,10 @@
 🟥 autoClean ► it should remove inactive entries from the cache
 🟥 autoClean ► it shouldn't remove active entries from the cache
 
+[1 / 1] packages/acceptance-tests/pkg-tests-specs/sources/features/berryLockfile.test.ts
+
+🟩 Features ► Berry Lockfile ► it should correctly import the lockfile from a Berry install
+
 [5 / 19] packages/acceptance-tests/pkg-tests-specs/sources/features/cache.test.ts
 
 🟥 Cache ► it should detect when the files checksum is incorrect

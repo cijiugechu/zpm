@@ -5,6 +5,8 @@ use crate::{error::Error, print_time, project};
 #[cli::command(default)]
 #[cli::path("install")]
 pub struct Install {
+    #[cli::option("--exit")]
+    exit: bool,
 }
 
 impl Install {
@@ -16,6 +18,10 @@ impl Install {
 
         print_time!("Before install");
         project.run_install().await?;
+
+        if self.exit {
+            panic!("Exiting as requested");
+        }
 
         Ok(())
     }

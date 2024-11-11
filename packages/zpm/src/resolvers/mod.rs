@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, install::{normalize_resolutions, InstallContext, InstallOpResult, IntoResolutionResult, ResolutionResult}, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, range, Descriptor, Ident, Locator, PeerRange, Range, Reference}, system};
+use crate::{error::Error, install::{normalize_resolutions, InstallContext, InstallOpResult, IntoResolutionResult, ResolutionResult}, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, range, reference, Descriptor, Ident, Locator, PeerRange, Range, Reference}, system};
 
 mod folder;
 mod git;
@@ -162,12 +162,16 @@ pub async fn resolve_locator<'a>(context: InstallContext<'a>, locator: Locator, 
         Reference::Patch(params)
             => patch::resolve_locator(&context, &locator, params, dependencies).await,
 
+        Reference::Shorthand(params)
+            => npm::resolve_locator(&context, &locator, &reference::RegistryReference {ident: locator.ident.clone(), version: params.version.clone()}).await,
+
         Reference::Registry(params)
             => npm::resolve_locator(&context, &locator, params).await,
 
+        Reference::Virtual(_)
+            => Err(Error::Unsupported)?,
+
         Reference::Workspace(params)
             => workspace::resolve_locator(&context, &locator, params),
-
-        _ => Err(Error::Unsupported),
     }
 }

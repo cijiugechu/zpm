@@ -17,11 +17,11 @@ pub enum Error {
     #[error("Generic internal error: Please replace this error with a more specific one")]
     ReplaceMe,
 
-    #[error("Failed to change the current working directory")]
-    FailedToChangeCwd,
-
     #[error("Unsupported code path")]
     Unsupported,
+
+    #[error("Failed to change the current working directory")]
+    FailedToChangeCwd,
 
     #[error("Invalid ident ({0})")]
     InvalidIdent(String),
@@ -101,8 +101,11 @@ pub enum Error {
     #[error("An error occured while reading the lockfile from disk")]
     LockfileReadError(Arc<std::io::Error>),
 
-    #[error("An error occured while parsing the lockfile")]
+    #[error("An error occured while parsing the lockfile ({0})")]
     LockfileParseError(Arc<serde_json::Error>),
+
+    #[error("An error occured while parsing the lockfile ({0})")]
+    LegacyLockfileParseError(Arc<serde_yaml::Error>),
 
     #[error("Lockfile generation error")]
     LockfileGenerationError(Arc<serde_json::Error>),

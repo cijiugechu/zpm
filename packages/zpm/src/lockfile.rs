@@ -1,9 +1,9 @@
-use std::{collections::{BTreeMap, HashMap}, fmt, marker::PhantomData};
+use std::{collections::{BTreeMap, HashMap}, fmt, marker::PhantomData, sync::Arc};
 
 use itertools::Itertools;
 use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{error::Error, hash::Sha256, primitives::{Descriptor, Locator}, resolvers::Resolution, serialize::Serialized};
+use crate::{config::ENV_CONFIG, error::Error, hash::Sha256, primitives::{Descriptor, Locator}, resolvers::Resolution, serialize::Serialized};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LockfileEntry {
@@ -89,11 +89,7 @@ impl Serialize for Lockfile {
         }
 
         let payload = LockfilePayload {
-            metadata: LockfileMetadata {
-                version: 0,
-                cache_key: 0,
-                linker_key: 0,
-            },
+            metadata: self.metadata.clone(),
             entries,
         };
 
@@ -163,7 +159,7 @@ pub struct LockfileMetadata {
 impl LockfileMetadata {
     pub fn new() -> Self {
         LockfileMetadata {
-            version: 0,
+            version: ENV_CONFIG.lockfile_version_override.value,
             cache_key: 0,
             linker_key: 0,
         }
@@ -183,4 +179,50 @@ struct LockfilePayload {
 
     #[serde(flatten)]
     entries: BTreeMap<MultiKey<Descriptor>, LockfileEntry>,
+}
+
+#[derive(Deserialize)]
+struct LegacyBerryLockfileEntry {
+    resolution: Locator,
+}
+
+#[derive(Deserialize)]
+struct LegacyBerryLockfilePayload {
+    #[serde(rename = "__metadata")]
+    _metadata: serde_yaml::Value,
+
+    #[serde(flatten)]
+    entries: HashMap<MultiKey<Descriptor>, LegacyBerryLockfileEntry>,
+}
+
+pub fn from_legacy_berry_lockfile(data: &str) -> Result<Lockfile, Error> {
+    let payload: LegacyBerryLockfilePayload = serde_yaml::from_str(data)
+        .map_err(|err| Error::LegacyLockfileParseError(Arc::new(err)))?;
+
+    let mut lockfile = Lockfile::new();
+
+    lockfile.metadata.version = 1;
+
+    for (key, entry) in payload.entries {
+        for descriptor in key.0 {
+            lockfile.resolutions.insert(descriptor, entry.resolution.clone());
+        }
+
+        lockfile.entries.insert(entry.resolution.clone(), LockfileEntry {
+            checksum: None,
+            resolution: Resolution {
+                locator: entry.resolution,
+                version: Default::default(),
+                requirements: Default::default(),
+                dependencies: Default::default(),
+                peer_dependencies: Default::default(),
+                optional_dependencies: Default::default(),
+                missing_peer_dependencies: Default::default(),
+            },
+        });
+    }
+
+    println!("Legacy lockfile: {:#?}", lockfile);
+
+    Ok(lockfile)
 }

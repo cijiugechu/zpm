@@ -5,7 +5,7 @@ use serde::Deserialize;
 use wax::walk::{Entry, FileIterator};
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::Lockfile, manifest::{read_manifest, BinField, BinManifest, Manifest, ResolutionOverride}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{read_manifest, BinField, BinManifest, Manifest, ResolutionOverride}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
 pub const MANIFEST_NAME: &str = "package.json";
@@ -150,6 +150,10 @@ impl Project {
 
         if src.is_empty() {
             return Ok(Lockfile::new());
+        }
+
+        if src.starts_with('#') {
+            return from_legacy_berry_lockfile(&src);
         }
 
         serde_json::from_str(&src)

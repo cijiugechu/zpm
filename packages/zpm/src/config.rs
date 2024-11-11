@@ -98,6 +98,32 @@ impl<'de> Deserialize<'de> for BoolField {
 }
 
 #[derive(Debug, Clone)]
+pub struct UintField {
+    pub value: u64,
+    pub source: SettingSource,
+}
+
+impl UintField {
+    pub fn new(value: u64) -> Self {
+        Self {value, source: SettingSource::Default}
+    }
+}
+
+impl FromEnv for UintField {
+    type Err = <u64 as FromStr>::Err;
+
+    fn from_env(raw: &str) -> Result<Self, Self::Err> {
+        Ok(UintField {value: raw.parse()?, source: SettingSource::Env})
+    }
+}
+
+impl<'de> Deserialize<'de> for UintField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        Ok(UintField {value: u64::deserialize(deserializer)?, source: SettingSource::Default})
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct JsonField<T> {
     pub value: T,
     pub source: SettingSource,
@@ -273,6 +299,8 @@ pub struct Config {
     pub project: ProjectConfig,
 }
 
+thread_local! {
+}
 pub static ENV_CONFIG: LazyLock<EnvConfig> = LazyLock::new(|| {
     *CONFIG_PATH.lock().unwrap() = None;
     serde_json::from_str("{}").unwrap()

@@ -382,19 +382,24 @@ impl<'a> InstallManager<'a> {
 
         for entry in graph_run.unwrap() {
             match entry {
+                (InstallOp::Resolve {descriptor, ..}, InstallOpResult::Pinned(PinnedResult {locator})) => {
+                    self.record_descriptor(descriptor, locator);
+                },
+
                 (InstallOp::Refresh {..}, InstallOpResult::Resolved(ResolutionResult {resolution, original_resolution, package_data})) => {
                     self.record_resolution(resolution, original_resolution, package_data);
                 },
 
                 (InstallOp::Resolve {descriptor, ..}, InstallOpResult::Resolved(ResolutionResult {resolution, original_resolution, package_data})) => {
-                    self.record_descriptor(descriptor, resolution, original_resolution, package_data);
+                    self.record_descriptor(descriptor, resolution.locator.clone());
+                    self.record_resolution(resolution, original_resolution, package_data);
                 },
 
                 (InstallOp::Fetch {locator, ..}, InstallOpResult::Fetched(FetchResult {package_data, ..})) => {
                     self.record_fetch(locator, package_data);
                 },
 
-                _ => panic!("Unsupported install result"),
+                _ => panic!("Unsupported install result ({:?})", entry),
             }
         }
 
@@ -427,10 +432,8 @@ impl<'a> InstallManager<'a> {
         }
     }
 
-    fn record_descriptor(&mut self, descriptor: Descriptor, resolution: Resolution, original_resolution: Resolution, package_data: Option<PackageData>) {
-        self.result.install_state.lockfile.resolutions.insert(descriptor, resolution.locator.clone());
-
-        self.record_resolution(resolution, original_resolution, package_data);
+    fn record_descriptor(&mut self, descriptor: Descriptor, locator: Locator) {
+        self.result.install_state.lockfile.resolutions.insert(descriptor, locator);
     }
 
     fn record_fetch(&mut self, locator: Locator, package_data: PackageData) {
@@ -474,6 +477,16 @@ pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resoluti
         } else if descriptor.range.must_bind() {
             descriptor.parent = Some(resolution.locator.clone());
         }
+
+        match &descriptor.range {
+            Range::AnonymousSemver(params)
+                => descriptor.range = range::RegistrySemverRange {ident: None, range: params.range.clone()}.into(),
+
+            Range::AnonymousTag(params)
+                => descriptor.range = range::RegistryTagRange {ident: None, tag: params.tag.clone()}.into(),
+
+            _ => {},
+        };
     }
 
     for name in peer_dependencies.keys().filter(|ident| ident.scope() != Some("@types")).cloned().collect::<Vec<_>>() {

@@ -1,7 +1,7 @@
 use arca::Path;
 use serde::Deserialize;
 use zpm_macros::yarn_config;
-use crate::config::{BoolField, EnumField, GlobField, PathField, StringField, VecField};
+use crate::config::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -21,6 +21,9 @@ pub enum PnpFallbackMode {
 pub struct EnvConfig {
     #[default(false)]
     pub enable_timings: BoolField,
+
+    #[default(9)]
+    pub lockfile_version_override: UintField,
 }
 
 #[yarn_config]
