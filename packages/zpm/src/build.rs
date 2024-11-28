@@ -127,15 +127,14 @@ impl<'a> BuildManager<'a> {
                                 traversal_state.in_cycle.insert(n);
                             }
                         }
-                        return;
                     }
-                    VisitationState::Visited => return,
+                    VisitationState::Visited => (),
                 }
             } else {
                 traversal_state.visited.insert(node, VisitationState::Visiting);
                 traversal_state.stack.push(node);
         
-                let resolution = traversal_state.resolution_tree.locator_resolutions.get(&node)
+                let resolution = traversal_state.resolution_tree.locator_resolutions.get(node)
                     .expect("Expected package to have a resolution");
 
                 for dependency in resolution.dependencies.values() {

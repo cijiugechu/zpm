@@ -110,7 +110,7 @@ impl DiskCache {
     }
 
     pub fn key_path<K: Decode + Encode>(&self, key: &K, ext: &str) -> Result<Path, Error> {
-        let serialized_key = bincode::encode_to_vec(&key, self.data_config)
+        let serialized_key = bincode::encode_to_vec(key, self.data_config)
             .map_err(Arc::new)?;
 
         let mut key = sha2::Sha256::new();

@@ -20,7 +20,7 @@ pub struct LooseDescriptor {
     pub descriptor: Descriptor,
 }
 
-impl<'a> FromStr for LooseDescriptor {
+impl FromStr for LooseDescriptor {
     type Err = crate::error::Error;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {

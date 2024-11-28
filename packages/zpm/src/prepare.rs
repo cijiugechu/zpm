@@ -60,7 +60,7 @@ fn get_package_manager(folder_path: &Path) -> Result<PackageManager, Error> {
         return Ok(PackageManager::Pnpm);
     }
 
-    return Ok(PackageManager::YarnZpm);
+    Ok(PackageManager::YarnZpm)
 }
 
 async fn prepare_npm_project(folder_path: &Path) -> Result<Vec<u8>, Error> {

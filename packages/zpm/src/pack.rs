@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::manifest::BinField;
 use crate::project::{Project, Workspace};
 
-static OVERRIDES: &'static [&'static str] = &[
+static OVERRIDES: &[&str] = &[
     // Those patterns must always be packed
 
     "package.json",
@@ -92,7 +92,7 @@ pub fn pack_list(_project: &Project, workspace: &Workspace) -> Result<Vec<Path>,
         };
 
         let processed_patterns = match base_pattern.starts_with("/") {
-            true => vec![(negated, format!("{}", base_pattern)), (negated, format!("{}/**", base_pattern))],
+            true => vec![(negated, base_pattern.to_string()), (negated, format!("{}/**", base_pattern))],
             false => match base_pattern.contains("/") {
                 true => vec![(negated, format!("/{}", base_pattern)), (negated, format!("/{}/**", base_pattern))],
                 false => vec![(negated, format!("/**/{}", base_pattern)), (negated, format!("/**/{}/**", base_pattern))],

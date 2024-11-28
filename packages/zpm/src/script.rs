@@ -148,12 +148,12 @@ impl ScriptResult {
                         .fs_write_text(&format!("=== STDOUT ===\n\n{}\n=== STDERR ===\n\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr)));
 
                     if log_write.is_ok() {
-                        return Err(Error::ChildProcessFailedWithLog(program.clone(), log_path));
+                        Err(Error::ChildProcessFailedWithLog(program.clone(), log_path))
                     } else {
-                        return Err(Error::ChildProcessFailed(program.clone()));
+                        Err(Error::ChildProcessFailed(program.clone()))
                     }
                 } else {
-                    return Err(Error::ChildProcessFailed(program.clone()));
+                    Err(Error::ChildProcessFailed(program.clone()))
                 }
             },
         }
@@ -167,9 +167,9 @@ impl ScriptResult {
     }
 }
 
-impl Into<ExitStatus> for ScriptResult {
-    fn into(self) -> ExitStatus {
-        match self {
+impl From<ScriptResult> for ExitStatus {
+    fn from(val: ScriptResult) -> Self {
+        match val {
             ScriptResult::Success(output) => output.status,
             ScriptResult::Failure(output, _, _) => output.status,
         }
@@ -236,11 +236,11 @@ impl ScriptEnvironment {
 
     pub fn with_project(mut self, project: &Project) -> Self {
         if let Some(pnp_path) = project.pnp_path().if_exists() {
-            self.append_env("NODE_OPTIONS", ' ', &format!("--require {}", pnp_path.to_string()));
+            self.append_env("NODE_OPTIONS", ' ', &format!("--require {}", pnp_path));
         }
 
         if let Some(pnp_loader_path) = project.pnp_loader_path().if_exists() {
-            self.append_env("NODE_OPTIONS", ' ', &format!("--experimental-loader {}", pnp_loader_path.to_string()));
+            self.append_env("NODE_OPTIONS", ' ', &format!("--experimental-loader {}", pnp_loader_path));
         }
 
         self.env.insert("PROJECT_CWD".to_string(), project.project_cwd.to_string());

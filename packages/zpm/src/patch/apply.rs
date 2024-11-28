@@ -86,7 +86,7 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
                 }
 
                 let file_contents = match hunk {
-                    Some(hunk) => hunk.parts[0].lines.join("\n") + hunk.parts[0].no_newline_at_eof.then_some("").unwrap_or("\n"),
+                    Some(hunk) => hunk.parts[0].lines.join("\n") + if hunk.parts[0].no_newline_at_eof { "" } else { "\n" },
                     None => "".to_string(),
                 };
 
@@ -212,8 +212,7 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
         }
     }
 
-    let entries = entry_map.into_iter()
-        .map(|(_, entry)| entry)
+    let entries = entry_map.into_values()
         .collect::<Vec<_>>();
 
     Ok(entries)

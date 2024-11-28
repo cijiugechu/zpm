@@ -18,5 +18,5 @@ fn test_version_parse(#[case] version: Version, #[case] expected: Version) {
 #[case("1.2.3", "2.0.0")]
 #[case("1.2.3-rc.1", "1.2.3")]
 fn test_version_lt(#[case] left: Version, #[case] right: Version) {
-    assert_eq!(left < right, true);
+    assert!(left < right);
 }

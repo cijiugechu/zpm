@@ -7,7 +7,7 @@ pub async fn resolve_descriptor(context: &InstallContext<'_>, descriptor: &Descr
         .expect("The project is required for resolving an anonymous semver range");
 
     if project.config.project.enable_transparent_workspaces.value {
-        if let Ok(workspace) = workspace::resolve_name_descriptor(context, &descriptor, &WorkspaceIdentRange {ident: descriptor.ident.clone()}) {
+        if let Ok(workspace) = workspace::resolve_name_descriptor(context, descriptor, &WorkspaceIdentRange {ident: descriptor.ident.clone()}) {
             if params.range.check(&workspace.resolution.version) {
                 return Ok(workspace);
             }
@@ -17,5 +17,5 @@ pub async fn resolve_descriptor(context: &InstallContext<'_>, descriptor: &Descr
     npm::resolve_semver_descriptor(context, descriptor, &range::RegistrySemverRange {
         ident: None,
         range: params.range.clone(),
-    }.into()).await
+    }).await
 }

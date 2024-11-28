@@ -7,13 +7,13 @@ pub async fn resolve_descriptor(context: &InstallContext<'_>, descriptor: &Descr
         .expect("The project is required for resolving an anonymous tag");
 
     if project.config.project.enable_transparent_workspaces.value {
-        if let Ok(workspace) = workspace::resolve_name_descriptor(context, &descriptor, &WorkspaceIdentRange {ident: descriptor.ident.clone()}) {
+        if let Ok(workspace) = workspace::resolve_name_descriptor(context, descriptor, &WorkspaceIdentRange {ident: descriptor.ident.clone()}) {
             return Ok(workspace);
         }
     }
 
-    npm::resolve_tag_descriptor(context, descriptor, &&range::RegistryTagRange {
+    npm::resolve_tag_descriptor(context, descriptor, &range::RegistryTagRange {
         ident: None,
         tag: params.tag.clone(),
-    }.into()).await
+    }).await
 }

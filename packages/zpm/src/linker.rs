@@ -404,8 +404,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
 
     let dependencies_meta = project.manifest_path()
         .if_exists()
-        .and_then(|path| path.fs_read_text().ok())
-        .and_then(|data| Some(serde_json::from_str::<TopLevelConfiguration>(&data).unwrap().dependencies_meta))
+        .and_then(|path| path.fs_read_text().ok()).map(|data| serde_json::from_str::<TopLevelConfiguration>(&data).unwrap().dependencies_meta)
         .unwrap_or_default()
         .into_iter()
         .map(|(selector, meta)| (selector.ident().clone(), (selector, meta)))
@@ -468,13 +467,13 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         };
 
         let package_info
-            = get_package_info(&physical_package_data)?;
+            = get_package_info(physical_package_data)?;
 
         let mut package_meta = dependencies_meta
             .get(&locator.ident)
             .and_then(|meta_list| {
                 meta_list.iter().find_map(|(selector, meta)| match selector {
-                    PackageSelector::Range(params) => params.range.check(&resolution.version).then(|| meta),
+                    PackageSelector::Range(params) => params.range.check(&resolution.version).then_some(meta),
                     PackageSelector::Ident(_) => Some(meta),
                 })
             })
@@ -491,7 +490,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
 
         // If the builds are disabled by default, let's reflect that in the
         // package's meta
-        if project.config.project.enable_scripts.value == false && package_meta.built.is_none() {
+        if !project.config.project.enable_scripts.value && package_meta.built.is_none() {
             package_meta.built = Some(false);
         }
 

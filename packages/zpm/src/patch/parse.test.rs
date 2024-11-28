@@ -150,7 +150,7 @@ fn simple_case() {
     assert!(matches!(PatchParser::parse(INVALID_HEADERS_2), Err(Error::HunkIntegrityCheckFailed)));
     assert!(matches!(PatchParser::parse(INVALID_HEADERS_3), Err(Error::HunkIntegrityCheckFailed)));
     assert!(matches!(PatchParser::parse(INVALID_HEADERS_4), Err(Error::HunkIntegrityCheckFailed)));
-    assert!(matches!(PatchParser::parse(INVALID_HEADERS_5), Err(Error::InvalidHunkHeader(x)) if x == "@@ -1,4 +1,4@@".to_string()));
+    assert!(matches!(PatchParser::parse(INVALID_HEADERS_5), Err(Error::InvalidHunkHeader(x)) if x == *"@@ -1,4 +1,4@@"));
 
     assert_eq!(PatchParser::parse(ACCIDENTAL_BLANK_LINE).unwrap(), PatchParser::parse(PATCH).unwrap());
 }

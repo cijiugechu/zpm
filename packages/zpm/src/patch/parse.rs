@@ -234,7 +234,7 @@ impl<'a> PatchParser<'a> {
         Self::default()
     }
 
-    fn commit_hunk(&mut self) -> () {
+    fn commit_hunk(&mut self) {
         if let Some(mut hunk) = self.current_hunk.take() {
             if let Some(hunk_mutation_part) = self.current_hunk_mutation_part.take() {
                 hunk.parts.push(hunk_mutation_part);
@@ -248,7 +248,7 @@ impl<'a> PatchParser<'a> {
         self.commit_hunk();
 
         let file_patch
-            = std::mem::replace(&mut self.current_file_patch, FileDeets::default());
+            = std::mem::take(&mut self.current_file_patch);
 
         for hunk in &file_patch.hunks {
             if !hunk.verify_integrity() {
@@ -257,7 +257,7 @@ impl<'a> PatchParser<'a> {
         }
 
         let semver_exclusivity = file_patch.semver_exclusivity
-            .map(|s| semver::Range::from_str(s))
+            .map(semver::Range::from_str)
             .transpose()?;
 
         let mut current_destination_file_path = None;
@@ -315,7 +315,7 @@ impl<'a> PatchParser<'a> {
                 }
             }
 
-            if file_patch.hunks.len() > 0 {
+            if !file_patch.hunks.is_empty() {
                 self.result.push(PatchFilePart::FilePatch {
                     semver_exclusivity,
                     path: current_destination_file_path.clone(),
@@ -459,7 +459,7 @@ impl<'a> PatchParser<'a> {
                                 .as_mut()
                                 .expect("Expected the current hunk mutation part to have been set if missing");
 
-                            if line.len() > 0 {
+                            if !line.is_empty() {
                                 current_hunk_mutation_part.lines.push(line[1..].to_string());
                             } else {
                                 current_hunk_mutation_part.lines.push("".to_string());
@@ -474,7 +474,7 @@ impl<'a> PatchParser<'a> {
 
         self.commit_file_patch()?;
 
-        if self.result.len() == 0 {
+        if self.result.is_empty() {
             return Err(Error::EmptyPatchFile);
         }
 

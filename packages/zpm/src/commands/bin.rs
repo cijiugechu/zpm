@@ -33,7 +33,7 @@ impl Bin {
         let binary_path = project.project_cwd
             .with_join(&binary.path);
 
-        println!("{}", binary_path.to_string());
+        println!("{}", binary_path);
 
         Ok(())
     }

@@ -13,7 +13,7 @@ pub async fn resolve_descriptor(context: &InstallContext<'_>, descriptor: &Descr
 
 pub async fn resolve_locator(context: &InstallContext<'_>, locator: &Locator, _params: &reference::TarballReference, dependencies: Vec<InstallOpResult>) -> Result<ResolutionResult, Error> {
     let fetch_result
-        = fetchers::fetch_locator(context.clone(), &locator, false, dependencies).await?;
+        = fetchers::fetch_locator(context.clone(), locator, false, dependencies).await?;
 
     Ok(fetch_result.into_resolution_result(context))
 }

@@ -25,7 +25,7 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
     for derive_variant_attr in derive_variants_attrs.iter_mut() {
         let mut derive_list = derive_variant_attr.meta.require_list()?.clone();
         derive_list.path = syn::Path::from(syn::Ident::new("derive", derive_list.path.span()));
-        (*derive_variant_attr).meta = Meta::List(derive_list);
+        derive_variant_attr.meta = Meta::List(derive_list);
     }
 
     let name = &ast.ident;
@@ -92,10 +92,8 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
             .filter(|attr| attr.path().is_ident("pattern"))
             .collect::<Vec<_>>();
 
-        if pattern_attrs.is_empty() {
-            if !variant.attrs.iter().any(|attr| attr.path().is_ident("no_pattern")) {
-                panic!("All variants are expected to have either a #[pattern] attribute or #[no_pattern] if it's intended to be manually created");
-            }
+        if pattern_attrs.is_empty() && !variant.attrs.iter().any(|attr| attr.path().is_ident("no_pattern")) {
+            panic!("All variants are expected to have either a #[pattern] attribute or #[no_pattern] if it's intended to be manually created");
         }
 
         for attr in pattern_attrs {

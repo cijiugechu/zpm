@@ -43,7 +43,6 @@ pub fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
         let idents_of_path = path
             .segments
             .iter()
-            .into_iter()
             .fold(String::new(), |mut acc, v| {
                 acc.push_str(&v.ident.to_string());
                 acc.push('|');

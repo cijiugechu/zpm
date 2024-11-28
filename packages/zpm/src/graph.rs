@@ -24,6 +24,12 @@ pub struct GraphTaskResults<TIn, TOut, TErr> {
     failed: Vec<(TIn, TErr)>,
 }
 
+impl<TIn, TOut, TErr> Default for GraphTaskResults<TIn, TOut, TErr> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<TIn, TOut, TErr> GraphTaskResults<TIn, TOut, TErr> {
     pub fn new() -> Self {
         Self {
@@ -47,7 +53,7 @@ impl<TIn, TOut, TErr> GraphTaskResults<TIn, TOut, TErr> {
     }
 
     pub fn ok_or<E>(self, err: E) -> Result<HashMap<TIn, TOut>, E> {
-        if self.failed.len() > 0 {
+        if !self.failed.is_empty() {
             Err(err)
         } else {
             Ok(self.success)
@@ -55,7 +61,7 @@ impl<TIn, TOut, TErr> GraphTaskResults<TIn, TOut, TErr> {
     }
 
     pub fn ok_or_else<E, F: FnOnce(Vec<(TIn, TErr)>) -> E>(self, f: F) -> Result<HashMap<TIn, TOut>, E> {
-        if self.failed.len() > 0 {
+        if !self.failed.is_empty() {
             Err(f(self.failed))
         } else {
             Ok(self.success)

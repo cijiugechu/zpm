@@ -136,7 +136,7 @@ struct RemoteManifestWithScripts {
     scripts: HashMap<String, String>,
 }
 
-fn fix_manifest(manifest: &mut RemoteManifestWithScripts) -> () {
+fn fix_manifest(manifest: &mut RemoteManifestWithScripts) {
     // Manually add node-gyp dependency if there is a script using it and not already set
     // This is because the npm registry will automatically add a `node-gyp rebuild` install script
     // in the metadata if there is not already an install script and a binding.gyp file exists.
@@ -188,7 +188,7 @@ pub async fn resolve_semver_descriptor(context: &InstallContext<'_>, descriptor:
     let package_ident = params.ident.as_ref()
         .unwrap_or(&descriptor.ident);
 
-    let registry_url = project.config.registry_url_for(&package_ident);
+    let registry_url = project.config.registry_url_for(package_ident);
     let url = format!("{}/{}", registry_url, package_ident);
 
     let response = client.get(url.clone()).send().await
@@ -226,7 +226,7 @@ pub async fn resolve_tag_descriptor(context: &InstallContext<'_>, descriptor: &D
     let package_ident = params.ident.as_ref()
         .unwrap_or(&descriptor.ident);
 
-    let registry_url = project.config.registry_url_for(&package_ident);
+    let registry_url = project.config.registry_url_for(package_ident);
     let url = format!("{}/{}", registry_url, package_ident);
 
     let response = client.get(url.clone()).send().await

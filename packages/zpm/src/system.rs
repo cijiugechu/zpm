@@ -35,9 +35,9 @@ pub struct Description {
 impl Description {
     pub fn from_current() -> Self {
         Self {
-            arch: Some((ARCH.to_string(), format!("!{}", ARCH.to_string()))),
-            os: Some((OS.to_string(), format!("!{}", OS.to_string()))),
-            libc: LIBC.map(|s| (s.to_string(), format!("!{}", s.to_string()))),
+            arch: Some((ARCH.to_string(), format!("!{}", ARCH))),
+            os: Some((OS.to_string(), format!("!{}", OS))),
+            libc: LIBC.map(|s| (s.to_string(), format!("!{}", s))),
         }
     }
 }
@@ -65,19 +65,19 @@ impl Requirements {
 
     pub fn validate(&self, info: &Description) -> bool {
         if let Some((requirement, inversed)) = &info.arch {
-            if self.arch.len() > 0 && (!self.arch.contains(&requirement) || self.arch.contains(&inversed)) {
+            if !self.arch.is_empty() && (!self.arch.contains(requirement) || self.arch.contains(inversed)) {
                 return false;
             }
         }
 
         if let Some((requirement, inversed)) = &info.os {
-            if self.os.len() > 0 && (!self.os.contains(&requirement) || self.os.contains(&inversed)) {
+            if !self.os.is_empty() && (!self.os.contains(requirement) || self.os.contains(inversed)) {
                 return false;
             }
         }
 
         if let Some((requirement, inversed)) = &info.libc {
-            if self.libc.len() > 0 && (!self.libc.contains(&requirement) || self.libc.contains(&inversed)) {
+            if !self.libc.is_empty() && (!self.libc.contains(requirement) || self.libc.contains(inversed)) {
                 return false;
             }
         }

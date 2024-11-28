@@ -37,11 +37,3 @@ walkdir = "2.5.0"
 urlencoding = "2.1.3"
 console-subscriber = "0.4.1"
 ring = "0.17.8"
-
-[[bench]]
-name = "json"
-harness = false
-
-[[bench]]
-name = "install"
-harness = false

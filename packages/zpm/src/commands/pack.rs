@@ -38,11 +38,11 @@ impl Pack {
         }
 
         let prepack_script
-            = project.find_script(&"prepack")
+            = project.find_script("prepack")
                 .map(Some).or_else(|e| e.ignore(|e| matches!(e, Error::ScriptNotFound(_))))?;
 
         let postpack_script
-            = project.find_script(&"postpack")
+            = project.find_script("postpack")
                 .map(Some).or_else(|e| e.ignore(|e| matches!(e, Error::ScriptNotFound(_))))?;
 
         if let Some((locator, script)) = prepack_script {

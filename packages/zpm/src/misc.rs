@@ -17,7 +17,7 @@ pub static FIRST_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 macro_rules! print_time {
     ($msg:expr) => {
         let now = std::time::Instant::now();
-        let elapsed = now.duration_since(*crate::misc::FIRST_TIME);
+        let elapsed = now.duration_since(*$crate::misc::FIRST_TIME);
 
         println!("{:?} - {}", elapsed, $msg);
     };

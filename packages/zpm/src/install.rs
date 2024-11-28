@@ -279,24 +279,19 @@ impl InstallCache {
 
 impl<'a> GraphCache<InstallContext<'a>, InstallOp<'a>, InstallOpResult> for InstallCache {
     fn graph_cache(&self, ctx: &InstallContext<'a>, op: &InstallOp) -> Option<InstallOpResult> {
-        match op {
-            InstallOp::Resolve {descriptor} => {
-                if let Some(locator) = self.lockfile.resolutions.get(&descriptor) {
-                    if self.lockfile.metadata.version != LockfileMetadata::new().version {
-                        return Some(InstallOpResult::Pinned(PinnedResult {
-                            locator: locator.clone(),
-                        }));
-                    }
-
-                    let entry = self.lockfile.entries.get(locator)
-                        .unwrap_or_else(|| panic!("Expected a matching resolution to be found in the lockfile for any resolved locator; not found for {}.", locator));
-
-                    return Some(InstallOpResult::Resolved(entry.resolution.clone().into_resolution_result(ctx)));
+        if let InstallOp::Resolve {descriptor} = op {
+            if let Some(locator) = self.lockfile.resolutions.get(descriptor) {
+                if self.lockfile.metadata.version != LockfileMetadata::new().version {
+                    return Some(InstallOpResult::Pinned(PinnedResult {
+                        locator: locator.clone(),
+                    }));
                 }
-            },
 
-            _ => {
-            },
+                let entry = self.lockfile.entries.get(locator)
+                    .unwrap_or_else(|| panic!("Expected a matching resolution to be found in the lockfile for any resolved locator; not found for {}.", locator));
+
+                return Some(InstallOpResult::Resolved(entry.resolution.clone().into_resolution_result(ctx)));
+            }
         }
 
         None
@@ -355,6 +350,12 @@ pub struct InstallManager<'a> {
     result: Install,
 }
 
+impl<'a> Default for InstallManager<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> InstallManager<'a> {
     pub fn new() -> Self {
         InstallManager {
@@ -393,7 +394,7 @@ impl<'a> InstallManager<'a> {
 
         for descriptor in self.roots.clone() {
             graph.register(InstallOp::Resolve {
-                descriptor: descriptor,
+                descriptor,
             });
         }
 
@@ -492,7 +493,7 @@ pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resoluti
         let resolution_override = possible_resolution_overrides
             .and_then(|overrides| {
                 overrides.iter().find_map(|(rule, range)| {
-                    rule.apply(&resolution.locator, &resolution.version, &descriptor, range)
+                    rule.apply(&resolution.locator, &resolution.version, descriptor, range)
                 })
             });
 
