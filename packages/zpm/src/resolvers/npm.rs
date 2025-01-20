@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fmt, marker::PhantomData, str::FromStr, sync::{Arc, LazyLock}};
 
 use regex::Regex;
-use serde::{de::{self, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer};
+use serde::{de::{self, DeserializeOwned, DeserializeSeed, IgnoredAny, Visitor}, Deserialize, Deserializer};
 
 use crate::{error::Error, http::http_client, install::{InstallContext, IntoResolutionResult, ResolutionResult}, manifest::RemoteManifest, primitives::{range, reference, Descriptor, Ident, Locator}, resolvers::Resolution, semver};
 
@@ -48,7 +48,7 @@ pub struct FindHighestCompatibleVersion<T> {
     phantom: PhantomData<T>,
 }
 
-impl<'de, T> DeserializeSeed<'de> for FindHighestCompatibleVersion<T> where T: Deserialize<'de> {
+impl<'de, T> DeserializeSeed<'de> for FindHighestCompatibleVersion<T> where T: DeserializeOwned {
     type Value = Option<(semver::Version, T)>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error> where D: Deserializer<'de> {
@@ -56,7 +56,7 @@ impl<'de, T> DeserializeSeed<'de> for FindHighestCompatibleVersion<T> where T: D
     }
 }
 
-impl<'de, T> Visitor<'de> for FindHighestCompatibleVersion<T> where T: Deserialize<'de> {
+impl<'de, T> Visitor<'de> for FindHighestCompatibleVersion<T> where T: DeserializeOwned {
     type Value = Option<(semver::Version, T)>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -66,20 +66,24 @@ impl<'de, T> Visitor<'de> for FindHighestCompatibleVersion<T> where T: Deseriali
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where A: de::MapAccess<'de> {
         let mut selected = None;
 
-        while let Some(key) = map.next_key::<&str>()? {
+        while let Some(key) = map.next_key::<String>()? {
             let version
-                = semver::Version::from_str(key).unwrap();
+                = semver::Version::from_str(key.as_str()).unwrap();
 
             if self.range.check(&version) && selected.as_ref().map(|(current_version, _)| *current_version < version).unwrap_or(true) {
-                selected = Some((version, map.next_value::<serde_json::Value>()?));
+                selected = Some((version, map.next_value::<sonic_rs::Value>()?));
             } else {
                 map.next_value::<IgnoredAny>()?;
             }
         }
 
-        Ok(selected.map(|(version, version_payload)| {
-            (version, T::deserialize(version_payload).unwrap())
-        }))
+        let (version, version_payload) = selected
+            .ok_or(de::Error::missing_field(""))?;
+
+        let deserialized_payload
+            = T::deserialize(&version_payload).unwrap();
+
+        Ok(Some((version, deserialized_payload)))
     }
 }
 

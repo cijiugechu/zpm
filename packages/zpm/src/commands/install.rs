@@ -14,7 +14,7 @@ impl Install {
     pub async fn execute(&self) -> Result<(), Error> {
         print_time!("Before project");
         let mut project
-            = project::Project::new(None)?;
+            = project::Project::new(None).await?;
 
         print_time!("Before install");
         project.run_install().await?;

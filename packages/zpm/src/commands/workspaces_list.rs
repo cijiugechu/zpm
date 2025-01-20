@@ -11,9 +11,10 @@ pub struct WorkspacesList {
 }
 
 impl WorkspacesList {
-    pub fn execute(&self) -> Result<(), Error> {
+    #[tokio::main()]
+    pub async fn execute(&self) -> Result<(), Error> {
         let project
-            = project::Project::new(None)?;
+            = project::Project::new(None).await?;
 
         let mut sorted_workspaces = project.workspaces
             .values()

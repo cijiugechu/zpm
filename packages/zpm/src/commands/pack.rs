@@ -18,7 +18,7 @@ impl Pack {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<ExitCode, Error> {
         let mut project
-            = project::Project::new(None)?;
+            = project::Project::new(None).await?;
 
         project
             .import_install_state()?;

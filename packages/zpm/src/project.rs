@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet}, fs::Permissions, os::unix::fs::PermissionsExt, sync::Arc};
+use std::{collections::{BTreeMap, BTreeSet}, fs::Permissions, io::ErrorKind, os::unix::fs::PermissionsExt, sync::Arc};
 
 use arca::{Path, ToArcaPath};
 use itertools::Itertools;
@@ -6,7 +6,7 @@ use serde::Deserialize;
 use walkdir::WalkDir;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{read_manifest, BinField, BinManifest, Manifest, ResolutionOverride}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{BinField, BinManifest, Manifest, ResolutionOverride}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
 pub const MANIFEST_NAME: &str = "package.json";
@@ -55,7 +55,7 @@ impl Project {
         Ok((closest_pkg.clone(), closest_pkg))
     }
 
-    pub fn new(cwd: Option<Path>) -> Result<Project, Error> {
+    pub async fn new(cwd: Option<Path>) -> Result<Project, Error> {
         let shell_cwd = cwd
             .map(Ok)
             .unwrap_or_else(|| std::env::current_dir().map(|p| p.to_arca()))?;
@@ -66,10 +66,10 @@ impl Project {
         let config = Config::new(Some(project_cwd.clone()));
 
         let root_workspace
-            = Workspace::from_path(&project_cwd, project_cwd.clone())?;
+            = Workspace::from_path(&project_cwd, project_cwd.clone()).await?;
 
         let mut workspaces: BTreeMap<_, _> = root_workspace
-            .workspaces()?
+            .workspaces().await?
             .into_iter()
             .map(|w| (w.locator().ident, w))
             .collect();
@@ -430,8 +430,19 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub fn from_path(root: &Path, path: Path) -> Result<Workspace, Error> {
-        let manifest = read_manifest(&path.with_join_str(MANIFEST_NAME))?;
+    pub async fn from_path(root: &Path, path: Path) -> Result<Workspace, Error> {
+        let manifest_path
+            = path.with_join_str(MANIFEST_NAME);
+
+        let manifest_text = manifest_path
+            .fs_read_text()
+            .map_err(|err| match err.kind() {
+                ErrorKind::NotFound | ErrorKind::NotADirectory => Error::ManifestNotFound,
+                _ => err.into(),
+            })?;
+
+        let manifest: Manifest
+            = sonic_rs::from_str(manifest_text.as_str())?;
 
         let name = manifest.name.clone().unwrap_or_else(|| {
             Ident::new(if root == &path {
@@ -464,7 +475,7 @@ impl Workspace {
         }.into())
     }
 
-    pub fn workspaces(&self) -> Result<Vec<Workspace>, Error> {
+    pub async fn workspaces(&self) -> Result<Vec<Workspace>, Error> {
         let mut workspaces = vec![];
 
         if let Some(patterns) = &self.manifest.workspaces {
@@ -505,8 +516,20 @@ impl Workspace {
                 }
             }
 
-            for workspace_dir in workspace_dirs {
-                match Workspace::from_path(&self.path, workspace_dir) {
+            let workspace_futures = workspace_dirs.into_iter()
+                .map(|path| {
+                    let clone = self.path.clone();
+                    tokio::spawn(async move {
+                        Workspace::from_path(&clone, path).await
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            let workspace_results
+                = futures::future::join_all(workspace_futures).await;
+
+            for workspace in workspace_results {
+                match workspace.unwrap() {
                     Ok(workspace) => workspaces.push(workspace),
                     Err(Error::ManifestNotFound) => {},
                     Err(err) => return Err(err),

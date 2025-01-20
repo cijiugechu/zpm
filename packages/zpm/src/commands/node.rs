@@ -14,7 +14,7 @@ impl Node {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<ExitStatus, Error> {
         let project
-            = project::Project::new(None)?;
+            = project::Project::new(None).await?;
 
         Ok(ScriptEnvironment::new()
             .with_project(&project)
