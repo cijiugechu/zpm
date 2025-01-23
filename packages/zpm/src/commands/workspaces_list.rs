@@ -16,15 +16,7 @@ impl WorkspacesList {
         let project
             = project::Project::new(None).await?;
 
-        let mut sorted_workspaces = project.workspaces
-            .values()
-            .collect::<Vec<_>>();
-
-        sorted_workspaces.sort_by(|a, b| {
-            a.rel_path.cmp(&b.rel_path)
-        });
-
-        for workspace in sorted_workspaces {
+        for workspace in &project.workspaces {
             if self.json {
                 #[derive(serde::Serialize)]
                 struct Payload<'a> {

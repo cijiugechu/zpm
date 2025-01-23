@@ -6,9 +6,8 @@ pub fn fetch_locator(context: &InstallContext, _locator: &Locator, params: &refe
     let project = context.project
         .expect("The project is required for fetching a workspace package");
 
-    let workspace = project.workspaces
-        .get(&params.ident)
-        .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
+    let workspace
+        = project.workspace_by_ident(&params.ident)?;
 
     Ok(FetchResult::new(PackageData::Local {
         package_directory: workspace.path.clone(),

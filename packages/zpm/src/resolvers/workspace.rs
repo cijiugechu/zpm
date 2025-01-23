@@ -6,10 +6,9 @@ pub fn resolve_name_descriptor(context: &InstallContext<'_>, descriptor: &Descri
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    let workspace = project.workspaces.get(&params.ident)
-        .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
-
-    let manifest = workspace.manifest.clone();
+    let manifest = project.workspace_by_ident(&params.ident)?
+        .manifest
+        .clone();
 
     let reference = reference::WorkspaceReference {
         ident: params.ident.clone(),
@@ -27,21 +26,19 @@ pub fn resolve_path_descriptor(context: &InstallContext<'_>, descriptor: &Descri
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    if let Some(ident) = project.workspaces_by_rel_path.get(&Path::from(&params.path)) {
-        resolve_name_descriptor(context, descriptor, &range::WorkspaceIdentRange {ident: ident.clone()})
-    } else {
-        Err(Error::WorkspacePathNotFound())
-    }
+    let workspace = project.workspace_by_rel_path(&Path::from(&params.path))?;
+
+    resolve_name_descriptor(context, descriptor, &range::WorkspaceIdentRange {ident: workspace.name.clone()})
 }
 
 pub fn resolve_locator(context: &InstallContext<'_>, locator: &Locator, params: &reference::WorkspaceReference) -> Result<ResolutionResult, Error> {
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    let workspace = project.workspaces.get(&params.ident)
-        .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
-
-    let manifest = workspace.manifest.clone();
+    let manifest = project
+        .workspace_by_ident(&params.ident)?
+        .manifest
+        .clone();
 
     let mut resolution = Resolution::from_remote_manifest(locator.clone(), manifest.remote);
 

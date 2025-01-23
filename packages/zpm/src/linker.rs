@@ -427,7 +427,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         }
     }
 
-    for workspace in project.workspaces.values().sorted_by_cached_key(|w| w.descriptor()) {
+    for workspace in project.workspaces.iter().sorted_by_cached_key(|w| w.descriptor()) {
         let locator = workspace.locator();
 
         if workspace.path == project.project_cwd {

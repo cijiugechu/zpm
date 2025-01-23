@@ -21,8 +21,11 @@ impl Add {
             = project.active_package()?;
 
         if let Reference::Workspace(params) = &active_package.reference {
-            let workspace = project.workspaces.get_mut(&params.ident)
+            let workspace_idx = project.workspaces_by_ident.get_mut(&params.ident)
                 .expect("Expected the workspace to exist in the project instance");
+
+            let workspace
+                = &mut project.workspaces[*workspace_idx];
 
             for loose_descriptor in &self.descriptors {
                 workspace.manifest.remote.dependencies.insert(loose_descriptor.descriptor.ident.clone(), loose_descriptor.descriptor.clone());

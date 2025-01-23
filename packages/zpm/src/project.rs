@@ -20,8 +20,9 @@ pub struct Project {
     pub shell_cwd: Path,
 
     pub config: Config,
-    pub workspaces: BTreeMap<Ident, Workspace>,
-    pub workspaces_by_rel_path: BTreeMap<Path, Ident>,
+    pub workspaces: Vec<Workspace>,
+    pub workspaces_by_ident: BTreeMap<Ident, usize>,
+    pub workspaces_by_rel_path: BTreeMap<Path, usize>,
     pub resolution_overrides: BTreeMap<Ident, Vec<(ResolutionOverride, Range)>>,
 
     pub last_changed_at: u128,
@@ -69,30 +70,27 @@ impl Project {
         let root_workspace
             = Workspace::from_path(&project_cwd, project_cwd.clone()).await?;
 
-        let (workspaces, last_changed_at) = root_workspace
+        let (mut workspaces, last_changed_at) = root_workspace
             .workspaces().await?;
 
-        let mut workspaces: BTreeMap<_, _> = workspaces
-            .into_iter()
-            .map(|w| (w.locator().ident, w))
-            .collect();
-
-        workspaces.insert(
-            root_workspace.locator().ident,
-            root_workspace.clone(),
-        );
-
-        let workspaces_by_rel_path = workspaces.values()
-            .map(|w| (w.rel_path.clone(), w.locator().ident))
-            .collect::<BTreeMap<_, _>>();
-
         let mut resolutions_overrides: BTreeMap<Ident, Vec<(ResolutionOverride, Range)>>
-             = BTreeMap::new();
+            = BTreeMap::new();
 
-        for (resolution, range) in root_workspace.manifest.resolutions {
-            resolutions_overrides.entry(resolution.target_ident().clone())
-                .or_default()
-                .push((resolution, range));
+       for (resolution, range) in &root_workspace.manifest.resolutions {
+           resolutions_overrides.entry(resolution.target_ident().clone())
+               .or_default()
+               .push((resolution.clone(), range.clone()));
+       }
+
+       // Add root workspace to the beginning
+        workspaces.insert(0, root_workspace);
+
+        let mut workspaces_by_ident = BTreeMap::new();
+        let mut workspaces_by_rel_path = BTreeMap::new();
+
+        for (idx, workspace) in workspaces.iter().enumerate() {
+            workspaces_by_ident.insert(workspace.locator().ident.clone(), idx);
+            workspaces_by_rel_path.insert(workspace.rel_path.clone(), idx);
         }
 
         Ok(Project {
@@ -102,6 +100,7 @@ impl Project {
 
             config,
             workspaces,
+            workspaces_by_ident,
             workspaces_by_rel_path,
             resolution_overrides: resolutions_overrides,
 
@@ -263,11 +262,7 @@ impl Project {
     }
 
     pub fn root_workspace(&self) -> &Workspace {
-        let root_workspace = self.workspaces_by_rel_path.get(&Path::new())
-            .expect("Expected root workspace to be found");
-
-        self.workspaces.get(root_workspace)
-            .expect("Expected root workspace to be found")
+        &self.workspaces[0]
     }
 
     pub fn active_package(&self) -> Result<Locator, Error> {
@@ -287,8 +282,24 @@ impl Project {
             return Err(Error::ActivePackageNotWorkspace);
         };
 
-        self.workspaces.get(&params.ident)
-            .ok_or(Error::WorkspaceNotFound(params.ident.clone()))
+        let idx = self.workspaces_by_ident.get(&params.ident)
+            .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
+
+        Ok(&self.workspaces[*idx])
+    }
+
+    pub fn workspace_by_ident(&self, ident: &Ident) -> Result<&Workspace, Error> {
+        let idx = self.workspaces_by_ident.get(ident)
+            .ok_or_else(|| Error::WorkspaceNotFound(ident.clone()))?;
+
+        Ok(&self.workspaces[*idx])
+    }
+
+    pub fn workspace_by_rel_path(&self, rel_path: &Path) -> Result<&Workspace, Error> {
+        let idx = self.workspaces_by_rel_path.get(rel_path)
+            .ok_or_else(|| Error::WorkspacePathNotFound(rel_path.clone()))?;
+
+        Ok(&self.workspaces[*idx])
     }
 
     pub fn package_self_binaries(&self, locator: &Locator) -> Result<BTreeMap<String, Binary>, Error> {
@@ -389,7 +400,7 @@ impl Project {
             return Err(Error::ScriptNotFound(name.to_string()));
         }
 
-        let mut iterator = self.workspaces.values();
+        let mut iterator = self.workspaces.iter();
 
         let script_match = iterator
             .find_map(|w| w.manifest.scripts.get(name).map(|s| (w.locator(), s.clone())));
@@ -426,7 +437,7 @@ impl Project {
         InstallManager::new()
             .with_context(install_context)
             .with_lockfile(self.lockfile()?)
-            .with_roots_iter(self.workspaces.values().map(|w| w.descriptor()))
+            .with_roots_iter(self.workspaces.iter().map(|w| w.descriptor()))
             .resolve_and_fetch().await?
             .finalize(self).await?;
 
@@ -575,7 +586,7 @@ impl Workspace {
             }
 
             workspaces.sort_by(|w1, w2| {
-                w1.name.cmp(&w2.name)
+                w1.rel_path.cmp(&w2.rel_path)
             });
         }
 
