@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform:
+          - [linux, latest]
+          - [macos, latest]
+
+    name: 'Building the binary for ${{matrix.platform[0]}}'
+    runs-on: ${{matrix.platform[0]}}-${{matrix.platform[1]}}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build
+      run: cargo build --verbose --release
+
+    - name: Prepare artifacts
+      run: |
+        mkdir artifacts
+        cp target/release/zpm artifacts/zpm-${{matrix.platform[0]}}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: zpm-${{matrix.platform[0]}}
+        path: artifacts/
+        retention-days: 7 
