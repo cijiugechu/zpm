@@ -9,6 +9,7 @@ pub mod cache;
 pub mod commands;
 pub mod config;
 pub mod content_flags;
+pub mod manifest_finder;
 pub mod error;
 pub mod fetchers;
 pub mod formats;

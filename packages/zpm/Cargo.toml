@@ -37,3 +37,5 @@ console-subscriber = "0.4.1"
 ring = "0.17.8"
 sonic-rs = "0.3.17"
 postcard = { git = "https://github.com/jamesmunns/postcard.git", rev = "refs/pull/157/head", features = ["alloc", "use-std"] }
+jwalk = "0.8.1"
+rayon = "1.10.0"

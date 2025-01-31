@@ -1,12 +1,12 @@
-use std::{collections::{BTreeMap, BTreeSet}, fs::Permissions, io::{ErrorKind, Read}, os::unix::fs::{MetadataExt, PermissionsExt}, sync::Arc, time::UNIX_EPOCH};
+use std::{collections::BTreeMap, fs::Permissions, io::{ErrorKind, Read}, os::unix::fs::{MetadataExt, PermissionsExt}, sync::Arc, time::UNIX_EPOCH};
 
 use arca::{Path, ToArcaPath};
-use itertools::Itertools;
+use globset::Glob;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Deserialize;
-use walkdir::WalkDir;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{BinField, BinManifest, Manifest, ResolutionOverride}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, formats::zip::ZipSupport, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{BinField, BinManifest, Manifest, ResolutionOverride}, manifest_finder::{CachedManifestFinder, ManifestFinder}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, script::Binary};
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
 pub const MANIFEST_NAME: &str = "package.json";
@@ -68,7 +68,7 @@ impl Project {
         let config = Config::new(Some(project_cwd.clone()));
 
         let root_workspace
-            = Workspace::from_path(&project_cwd, project_cwd.clone()).await?;
+            = Workspace::from_path(&project_cwd, Path::new())?;
 
         let (mut workspaces, last_changed_at) = root_workspace
             .workspaces().await?;
@@ -134,11 +134,11 @@ impl Project {
     }
 
     pub fn install_state_path(&self) -> Path {
-        self.project_cwd.with_join_str(".yarn/install-state.dat")
+        self.project_cwd.with_join_str(".yarn/ignore/install")
     }
 
     pub fn build_state_path(&self) -> Path {
-        self.project_cwd.with_join_str(".yarn/build-state.json")
+        self.project_cwd.with_join_str(".yarn/ignore/build")
     }
 
     pub fn lockfile(&self) -> Result<Lockfile, Error> {
@@ -455,9 +455,12 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub async fn from_path(root: &Path, path: Path) -> Result<Workspace, Error> {
-        let manifest_path
-            = path.with_join_str(MANIFEST_NAME);
+    pub fn from_path(root: &Path, rel_path: Path) -> Result<Workspace, Error> {
+        let path = root
+            .with_join(&rel_path);
+
+        let manifest_path = path
+            .with_join_str(MANIFEST_NAME);
 
         let manifest_meta = manifest_path.fs_metadata().map_err(|err| match err.kind() {
             ErrorKind::NotFound | ErrorKind::NotADirectory => Error::ManifestNotFound,
@@ -477,15 +480,12 @@ impl Workspace {
             = sonic_rs::from_str(manifest_text.as_str())?;
 
         let name = manifest.name.clone().unwrap_or_else(|| {
-            Ident::new(if root == &path {
+            Ident::new(if rel_path == Path::new() {
                 "root-workspace".to_string()
             } else {
-                path.basename().map_or_else(|| "unnamed-workspace".to_string(), |b| b.to_string())
+                rel_path.basename().map_or_else(|| "unnamed-workspace".to_string(), |b| b.to_string())
             })
         });
-
-        let rel_path = path
-            .relative_to(root);
 
         Ok(Workspace {
             name,
@@ -513,81 +513,38 @@ impl Workspace {
         let mut last_changed_at = self.last_changed_at;
 
         if let Some(patterns) = &self.manifest.workspaces {
-            let mut workspace_dirs = BTreeSet::new();
+            let mut manifest_finder
+                = CachedManifestFinder::new(self.path.clone())?;
 
-            for pattern in patterns {
-                let segments = pattern.split('/')
-                    .collect::<Vec<_>>();
+            let candidate_workspaces = manifest_finder
+                .rsync()?;
 
-                let leading_static_segment_count = segments.iter()
-                    .take_while(|s| **s != "*")
-                    .count();
-
-                let star_segment_count = segments.iter()
-                    .skip(leading_static_segment_count)
-                    .take_while(|s| **s == "*")
-                    .count();
-
-                if leading_static_segment_count + star_segment_count != segments.len() {
-                    return Err(Error::InvalidWorkspacePattern(pattern.clone()));
-                }
-
-                let prefix_path = segments.iter()
-                    .take(leading_static_segment_count)
-                    .join("/");
-
-                let base_path = self.path
-                    .with_join_str(prefix_path);
-
-                let iter = WalkDir::new(base_path.to_path_buf())
-                    .min_depth(star_segment_count)
-                    .max_depth(star_segment_count)
-                    .into_iter()
-                    .collect::<Result<Vec<_>, _>>()?;
-
-                for entry in iter {
-                    let last_modified_at = entry.metadata()?
-                        .modified()?
-                        .elapsed().unwrap()
-                        .as_nanos();
-
-                    if last_modified_at > last_changed_at {
-                        last_changed_at = last_modified_at;
-                    }
-
-                    workspace_dirs.insert(entry.path().to_arca());
-                }
-            }
-
-            let workspace_futures = workspace_dirs.into_iter()
-                .map(|path| {
-                    let clone = self.path.clone();
-                    tokio::spawn(async move {
-                        Workspace::from_path(&clone, path).await
-                    })
-                })
+            let pattern_matchers = patterns.iter()
+                .map(|p| Glob::new(p))
+                .collect::<Result<Vec<_>, _>>()?
+                .iter()
+                .map(|g| g.compile_matcher())
                 .collect::<Vec<_>>();
 
-            let workspace_results
-                = futures::future::join_all(workspace_futures).await;
+            let matching_workspaces = candidate_workspaces.into_iter()
+                .filter(|w| pattern_matchers.iter().any(|m| m.is_match(w.as_str())))
+                .collect::<Vec<_>>();
 
-            for workspace in workspace_results {
-                match workspace.unwrap() {
-                    Ok(workspace) => workspaces.push(workspace),
-                    Err(Error::ManifestNotFound) => {},
-                    Err(err) => return Err(err),
-                }
-            }
+            let mut hydrated_workspaces = matching_workspaces.into_par_iter()
+                .map(|w| Workspace::from_path(&self.path, w.to_owned()))
+                .collect::<Result<Vec<_>, _>>()?;
 
-            for workspace in workspaces.iter_mut() {
+            for workspace in hydrated_workspaces.iter_mut() {
                 if workspace.last_changed_at > last_changed_at {
                     last_changed_at = workspace.last_changed_at;
                 }
             }
 
-            workspaces.sort_by(|w1, w2| {
+            hydrated_workspaces.sort_by(|w1, w2| {
                 w1.rel_path.cmp(&w2.rel_path)
             });
+
+            workspaces.extend(hydrated_workspaces);
         }
 
         Ok((workspaces, last_changed_at))

@@ -65,6 +65,12 @@ pub enum Error {
         backtrace: Arc<std::backtrace::Backtrace>,
     },
 
+    #[error("Time error: {0}")]
+    TimeError(#[from] std::time::SystemTimeError),
+
+    #[error("Glob error")]
+    GlobError(#[from] globset::Error),
+
     #[error("UTF-8 error")]
     Utf8Error(#[from] Arc<std::str::Utf8Error>),
 
@@ -72,7 +78,7 @@ pub enum Error {
     Utf8Error2(#[from] std::str::Utf8Error),
 
     #[error("Error while traversing directories")]
-    WalkDirError(#[from] Arc<walkdir::Error>),
+    WalkDirError(#[from] Arc<jwalk::Error>),
 
     #[error("Invalid JSON data ({0})")]
     InvalidJsonData(#[from] Arc<sonic_rs::Error>),
@@ -258,8 +264,8 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<walkdir::Error> for Error {
-    fn from(error: walkdir::Error) -> Self {
+impl From<jwalk::Error> for Error {
+    fn from(error: jwalk::Error) -> Self {
         Arc::new(error).into()
     }
 }
