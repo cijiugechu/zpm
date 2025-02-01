@@ -14,11 +14,11 @@ jobs:
     strategy:
       matrix:
         platform:
-          - [linux, latest]
-          - [macos, latest]
+          - [linux, ubuntu-latest]
+          - [macos, macos-latest]
 
     name: 'Building the binary for ${{matrix.platform[0]}}'
-    runs-on: ${{matrix.platform[0]}}-${{matrix.platform[1]}}
+    runs-on: ${{matrix.platform[1]}}
 
     steps:
     - uses: actions/checkout@v4
