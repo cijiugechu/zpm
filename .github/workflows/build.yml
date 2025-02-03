@@ -114,6 +114,8 @@ jobs:
         with:
           path: artifacts/
 
+      - run: ls -lR artifacts
+
       - name: Install dependencies
         run: yarn install
   
