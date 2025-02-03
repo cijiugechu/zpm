@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import report from '../../../artifacts/test-report.json';
+import report from '../../../artifacts/test-report/report.json';
 
 interface TestResult {
   title: string;

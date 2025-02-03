@@ -43,14 +43,14 @@ jobs:
 
       - name: Prepare artifacts
         run: |
-          mkdir artifacts
-          cp target/release/zpm artifacts/zpm-${{matrix.platform[0]}}
+          mkdir artifacts/zpm-${{matrix.platform[0]}}
+          cp target/release/zpm artifacts/zpm-${{matrix.platform[0]}}/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: zpm-${{matrix.platform[0]}}
-          path: artifacts/
+          path: artifacts/zpm-${{matrix.platform[0]}}/
           retention-days: 7
 
   test-report:
@@ -77,13 +77,14 @@ jobs:
         env:
           TEST_BINARY: artifact
         run: |
-          bash ./scripts/jest.sh --json --outputFile=$(pwd)/artifacts/test-report.json || true
+          mkdir -p artifacts/test-report
+          bash ./scripts/jest.sh --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: artifacts/
+          path: artifacts/test-report/
 
   publish:
     needs: [build, test-report]
@@ -113,7 +114,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          merge-multiple: true
 
       - run: ls -lR artifacts
 
