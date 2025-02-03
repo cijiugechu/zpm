@@ -13,6 +13,3 @@ debug = true
 
 [profile.release]
 debug = true
-
-[patch.crates-io]
-arca = { path = "../arca-rs" }
