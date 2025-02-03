@@ -3,7 +3,7 @@
 set -e
 
 REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && realpath ..)
-BERRY_DIR=${BERRY_PATH:-~/berry}
+BERRY_DIR=${BERRY_DIR:-~/berry}
 
 export TEST_BINARY=${REPO_DIR}/scripts/exec-${TEST_BINARY:-release}.mjs
 
