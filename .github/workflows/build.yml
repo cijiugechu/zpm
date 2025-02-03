@@ -60,6 +60,7 @@ jobs:
 
       - name: Mark the artifacts as executable
         run: |
+          ls -lR artifacts
           chmod +x artifacts/zpm-*/zpm
   
       - name: Clone the berry repo
