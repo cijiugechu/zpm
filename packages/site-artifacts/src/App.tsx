@@ -6,6 +6,8 @@ interface TestResult {
   status: string;
   duration: number;
   ancestorTitles: string[];
+  failureDetails?: string;
+  failureMessages?: string[];
 }
 
 interface TestReport {
@@ -137,7 +139,20 @@ function TestGrid({ results }: { results: TestResult[] }) {
 }
 
 function TestGroups({ results }: { results: TestResult[] }) {
+  const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
   const groups = processTestResults(results);
+
+  const toggleExpanded = (testId: string) => {
+    setExpandedTests(prev => {
+      const next = new Set(prev);
+      if (next.has(testId)) {
+        next.delete(testId);
+      } else {
+        next.add(testId);
+      }
+      return next;
+    });
+  };
 
   if (Object.keys(groups).length === 0) {
     return (
@@ -157,20 +172,46 @@ function TestGroups({ results }: { results: TestResult[] }) {
 
           <div className="space-y-2">
             {tests.map((test, index) => {
-              const anchor = `${test.ancestorTitles.join('-')}-${test.title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+              const testId = `${test.ancestorTitles.join('-')}-${test.title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+              const isExpanded = expandedTests.has(testId);
               const statusClass = test.status === 'passed' ? 'bg-green-50' : 'bg-red-50';
+              const hasFailureDetails = test.status !== 'passed';
 
               return (
-                <a 
-                  key={index} 
-                  id={anchor} 
-                  href={`#${anchor}`} 
-                  className={`flex items-center space-x-2 p-2 rounded-lg ${statusClass} hover:ring-2 hover:ring-blue-500 hover:ring-offset-2`}
-                >
-                  {test.status === 'passed' ? <CheckIcon /> : <CrossIcon />}
-                  <span className="flex-1">{test.title}</span>
-                  <span className="text-sm text-gray-500">{test.duration}ms</span>
-                </a>
+                <div key={index} id={testId} className="rounded-lg overflow-hidden">
+                  <button 
+                    onClick={() => hasFailureDetails && toggleExpanded(testId)}
+                    className={`w-full flex items-center space-x-2 p-2 ${statusClass} hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all ${hasFailureDetails ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    {test.status === 'passed' ? <CheckIcon /> : <CrossIcon />}
+                    <span className="flex-1 text-left">{test.title}</span>
+                    <span className="text-sm text-gray-500">{test.duration}ms</span>
+                    {hasFailureDetails && (
+                      <svg 
+                        className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </button>
+                  
+                  {isExpanded && hasFailureDetails && (
+                    <div className="p-4 bg-white border-t border-gray-100">
+                      {test.failureMessages && test.failureMessages.length > 0 && (
+                        <div className="space-y-2 whitespace-pre">
+                          {test.failureMessages.map((message, i) => (
+                            <pre key={i} className="whitespace-pre-wrap text-sm text-red-600 font-mono">
+                              {message}
+                            </pre>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -184,7 +225,7 @@ export default function App() {
   const [showSuccessful, setShowSuccessful] = useState(true);
   const [search, setSearch] = useState('');
   
-  const allResults = report.testResults[0].assertionResults;
+  const allResults = report.testResults.map(result => result.assertionResults).flat();
   const filteredResults = allResults.filter(result => {
     const matchesFilter = showSuccessful || result.status !== 'passed';
 
