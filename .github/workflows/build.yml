@@ -108,6 +108,10 @@ jobs:
         with:
           path: artifacts
 
+      - name: Mark the artifacts as executable
+        run: |
+          chmod +x artifacts/zpm-*/zpm
+
       - run: ls -lR artifacts
 
       - name: Install dependencies
