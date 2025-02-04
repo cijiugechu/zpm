@@ -34,12 +34,6 @@ impl Spinner {
         }
     }
 
-    pub fn clear(&self, text: &str) {
-        let mut stdout = std::io::stdout();
-        write!(stdout, "\x1b[2K\r").unwrap();
-        stdout.flush().unwrap();
-    }
-
     pub fn close(self) {
         let mut stdout = std::io::stdout();
         write!(stdout, "\x1b[2K\r").unwrap();

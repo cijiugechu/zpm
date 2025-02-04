@@ -179,6 +179,10 @@ impl ToFileString for GitReference {
             params.push(format!("cwd={}", urlencoding::encode(cwd)));
         }
 
+        if let Some(workspace) = &self.prepare_params.workspace {
+            params.push(format!("workspace={}", urlencoding::encode(workspace)));
+        }
+
         format!("{}#{}", self.repo, params.join("&"))
     }
 }

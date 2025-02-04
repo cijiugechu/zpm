@@ -122,7 +122,7 @@ impl Range {
 impl ToFileString for Range {
     fn to_file_string(&self) -> String {
         match self {
-            Range::AnonymousSemver(params) => params.range.to_string(),
+            Range::AnonymousSemver(params) => params.range.to_file_string(),
             Range::AnonymousTag(params) => params.tag.clone(),
 
             Range::RegistrySemver(params) => match &params.ident {
@@ -135,7 +135,7 @@ impl ToFileString for Range {
                 None => format!("npm:{}", params.tag),
             },
 
-            Range::Patch(params) => format!("patch:{}#{}", params.inner, params.path),
+            Range::Patch(params) => format!("patch:{}#{}", params.inner.to_file_string(), params.path),
             Range::Link(params) => format!("link:{}", params.path),
             Range::Portal(params) => format!("portal:{}", params.path),
             Range::Tarball(params) => format!("file:{}", params.path),
@@ -147,7 +147,7 @@ impl ToFileString for Range {
             Range::WorkspaceIdent(params) => format!("workspace:{}", params.ident.to_file_string()),
             Range::Git(params) => params.git.to_file_string(),
             Range::MissingPeerDependency(_) => "missing!".to_string(),
-            Range::Virtual(params) => format!("virtual:{}#{}", params.inner, params.hash),
+            Range::Virtual(params) => format!("virtual:{}#{}", params.inner.to_file_string(), params.hash.to_file_string()),
         }
     }
 }

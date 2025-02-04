@@ -2,9 +2,8 @@ use std::{str::FromStr, sync::{LazyLock, Mutex}};
 
 use arca::{Path, ToArcaPath};
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
-use zpm_utils::ToFileString;
 
-use crate::{error::Error, primitives::{reference, Ident}, settings::{EnvConfig, ProjectConfig, UserConfig}};
+use crate::{error::Error, primitives::Ident, settings::{EnvConfig, ProjectConfig, UserConfig}};
 
 pub static CONFIG_PATH: LazyLock<Mutex<Option<Path>>> = LazyLock::new(|| Mutex::new(None));
 
