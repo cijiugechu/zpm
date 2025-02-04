@@ -315,7 +315,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         package_peers.sort();
 
         let virtual_dir = Path::from(match &locator.reference {
-            Reference::Virtual(params) => format!("__virtual__/{}/0/", params.hash),
+            Reference::Virtual(params) => format!("__virtual__/{}/0/", params.hash.to_file_string()),
             _ => "".to_string(),
         });
 

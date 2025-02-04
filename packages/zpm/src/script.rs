@@ -298,7 +298,7 @@ impl ScriptEnvironment {
         }
 
         if !dir.fs_exists() {
-            let temp_dir = Path::temp_dir_pattern("zpm-temp-{}")?;
+            let temp_dir = Path::temp_dir_pattern("zpm-temp-<>")?;
             temp_dir.fs_create_dir_all()?;
 
             temp_dir

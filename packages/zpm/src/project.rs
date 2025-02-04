@@ -541,10 +541,10 @@ impl Workspace {
                 .map(|p| manifest_finder.save_state.cache.remove(&p).map(|manifest| (p, manifest)).unwrap())
                 .collect::<Vec<_>>();
 
-            for (rel_path, save_entry) in workspace_paths {
+            for (manifest_rel_path, save_entry) in workspace_paths {
                 if let SaveEntry::Manifest(last_changed_at, manifest) = save_entry {
                     workspaces.push(Workspace::from_info(&self.path, WorkspaceInfo {
-                        rel_path,
+                        rel_path: manifest_rel_path.dirname().unwrap(),
                         manifest,
                         last_changed_at,
                     })?);
