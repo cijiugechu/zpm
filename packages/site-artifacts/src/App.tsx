@@ -77,6 +77,27 @@ function CrossIcon() {
   );
 }
 
+function ClipboardIcon() {
+  return (
+    <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ isExpanded }: { isExpanded: boolean }) {
+  return (
+    <svg 
+      className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+      fill="none" 
+      stroke="currentColor" 
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-white rounded-lg shadow-lg p-6 ${className}`}>
@@ -128,7 +149,7 @@ function TestGrid({ results }: { results: TestResult[] }) {
             <a 
               key={index} 
               href={`#${anchor}`} 
-              className={`aspect-square rounded hover:ring-2 hover:ring-offset-1 hover:ring-blue-500 transition-all ${statusClass}`} 
+              className={`relative aspect-square rounded hover:ring-2 hover:z-10 ring-offset-1 ring-blue-500 transition-all ${statusClass}`} 
               title={`${test.ancestorTitles.join(' › ')} › ${test.title}`}
             />
           );
@@ -138,20 +159,77 @@ function TestGrid({ results }: { results: TestResult[] }) {
   )
 }
 
+interface TestLineProps {
+  test: TestResult;
+  onCopyToClipboard: () => void;
+  children?: React.ReactNode;
+}
+
+function TestLine({ test, onCopyToClipboard, children }: TestLineProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const statusClass = test.status === 'passed' ? 'bg-green-50' : 'bg-red-50';
+  const isExpandable = Boolean(children);
+
+  return (
+    <div className="rounded-lg">
+      <div className="flex items-center gap-2">
+        <button 
+          className={`rounded px-2 h-10 leading-10 flex-1 flex items-center space-x-2 ${statusClass} hover:ring-2 ring-blue-500 ring-offset-2 cursor-pointer`} 
+          onClick={() => isExpandable && setIsExpanded(!isExpanded)}
+        >
+          {test.status === 'passed' ? <CheckIcon /> : <CrossIcon />}
+          <span className="flex-1 text-left">{test.title}</span>
+          <span className="text-sm text-gray-500">{test.duration}ms</span>
+          {isExpandable && <ChevronIcon isExpanded={isExpanded} />}
+        </button>
+        <button 
+          onClick={onCopyToClipboard} 
+          className="h-10 leading-10 aspect-square flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded transition-colors cursor-pointer" 
+          title="Copy test name to clipboard"
+        >
+          <ClipboardIcon />
+        </button>
+      </div>
+      {isExpanded && children}
+    </div>
+  );
+}
+
+interface TestFailureDetailsProps {
+  failureMessages?: string[];
+}
+
+function enhanceMessage(message: string) {
+  message = message.replace(/\/[a-z0-9A-Z/_.-]+\/berry\//g, '/path/to/berry/');
+  message = message.replace(/\/path\/to\/berry\/(packages\/[a-z0-9A-Z/_.-]+):([0-9]+):([0-9]+)/g, ($0, $1, $2) => `<a class="text-red-800 underline" href="https://github.com/yarnpkg/berry/blob/master/${$1}#L${$2}" target="_blank">${$0}</a>`);
+  return message;
+}
+
+function TestFailureDetails({ failureMessages }: TestFailureDetailsProps) {
+  if (!failureMessages?.length)
+    return null;
+
+  return (
+    <div className="p-4 bg-white border-t border-gray-100">
+      <div className="space-y-2 overflow-x-auto">
+        {failureMessages.map((message, i) => (
+          <pre key={i} className="whitespace-pre text-sm text-red-600 font-mono" dangerouslySetInnerHTML={{ __html: enhanceMessage(message) }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TestGroups({ results }: { results: TestResult[] }) {
-  const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
   const groups = processTestResults(results);
 
-  const toggleExpanded = (testId: string) => {
-    setExpandedTests(prev => {
-      const next = new Set(prev);
-      if (next.has(testId)) {
-        next.delete(testId);
-      } else {
-        next.add(testId);
-      }
-      return next;
-    });
+  const copyToClipboard = (test: TestResult) => {
+    const escapedTitle = `${test.ancestorTitles.join(' ')} ${test.title}`
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/'/g, "\\'");
+    
+    const shellSafeString = `'${escapedTitle}'`;
+    navigator.clipboard.writeText(shellSafeString);
   };
 
   if (Object.keys(groups).length === 0) {
@@ -173,44 +251,18 @@ function TestGroups({ results }: { results: TestResult[] }) {
           <div className="space-y-2">
             {tests.map((test, index) => {
               const testId = `${test.ancestorTitles.join('-')}-${test.title}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-              const isExpanded = expandedTests.has(testId);
-              const statusClass = test.status === 'passed' ? 'bg-green-50' : 'bg-red-50';
               const hasFailureDetails = test.status !== 'passed';
 
               return (
-                <div key={index} id={testId} className="rounded-lg overflow-hidden">
-                  <button 
-                    onClick={() => hasFailureDetails && toggleExpanded(testId)}
-                    className={`w-full flex items-center space-x-2 p-2 ${statusClass} hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all ${hasFailureDetails ? 'cursor-pointer' : 'cursor-default'}`}
+                <div key={index} id={testId}>
+                  <TestLine
+                    test={test}
+                    onCopyToClipboard={() => copyToClipboard(test)}
                   >
-                    {test.status === 'passed' ? <CheckIcon /> : <CrossIcon />}
-                    <span className="flex-1 text-left">{test.title}</span>
-                    <span className="text-sm text-gray-500">{test.duration}ms</span>
                     {hasFailureDetails && (
-                      <svg 
-                        className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <TestFailureDetails failureMessages={test.failureMessages} />
                     )}
-                  </button>
-                  
-                  {isExpanded && hasFailureDetails && (
-                    <div className="p-4 bg-white border-t border-gray-100">
-                      {test.failureMessages && test.failureMessages.length > 0 && (
-                        <div className="space-y-2 whitespace-pre">
-                          {test.failureMessages.map((message, i) => (
-                            <pre key={i} className="whitespace-pre-wrap text-sm text-red-600 font-mono">
-                              {message}
-                            </pre>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  </TestLine>
                 </div>
               );
             })}
@@ -218,10 +270,11 @@ function TestGroups({ results }: { results: TestResult[] }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 export default function App() {
+  console.log(report);
   const [showSuccessful, setShowSuccessful] = useState(true);
   const [search, setSearch] = useState('');
   
