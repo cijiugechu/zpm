@@ -1,29 +1,11 @@
 import { useState } from 'react';
 import report from '../../../artifacts/test-report/report.json';
+import {FormattedTestResults} from '@jest/test-result';
 
-interface TestResult {
-  title: string;
-  status: string;
-  duration: number;
-  ancestorTitles: string[];
-  failureDetails?: string;
-  failureMessages?: string[];
-}
+type FormattedAssertionResult = FormattedTestResults[`testResults`][number][`assertionResults`][number];
 
-interface TestReport {
-  numFailedTests: number;
-  numPassedTests: number;
-  numPendingTests: number;
-  numTotalTests: number;
-  testResults: Array<{
-    assertionResults: TestResult[];
-  }>;
-}
-
-type FilterState = 'all' | 'failed';
-
-function processTestResults(results: TestResult[]) {
-  const groups: Record<string, TestResult[]> = {};
+function processTestResults(results: FormattedAssertionResult[]) {
+  const groups: Record<string, FormattedAssertionResult[]> = {};
   
   for (const result of results) {
     const groupKey = result.ancestorTitles.join(' › ');
@@ -137,7 +119,7 @@ function SearchBar({
   );
 }
 
-function TestGrid({ results }: { results: TestResult[] }) {
+function TestGrid({ results }: { results: FormattedAssertionResult[] }) {
   return (
     <Card className="mb-8">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(12px,1fr))] gap-0.5 max-w-[800px]">
@@ -160,7 +142,7 @@ function TestGrid({ results }: { results: TestResult[] }) {
 }
 
 interface TestLineProps {
-  test: TestResult;
+  test: FormattedAssertionResult;
   onCopyToClipboard: () => void;
   children?: React.ReactNode;
 }
@@ -196,7 +178,7 @@ function TestLine({ test, onCopyToClipboard, children }: TestLineProps) {
 }
 
 interface TestFailureDetailsProps {
-  failureMessages?: string[];
+  failureMessages?: string[] | null;
 }
 
 function enhanceMessage(message: string) {
@@ -220,10 +202,10 @@ function TestFailureDetails({ failureMessages }: TestFailureDetailsProps) {
   );
 }
 
-function TestGroups({ results }: { results: TestResult[] }) {
+function TestGroups({ results }: { results: FormattedAssertionResult[] }) {
   const groups = processTestResults(results);
 
-  const copyToClipboard = (test: TestResult) => {
+  const copyToClipboard = (test: FormattedAssertionResult) => {
     const escapedTitle = `${test.ancestorTitles.join(' ')} ${test.title}`
       .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       .replace(/'/g, "\\'");
@@ -274,11 +256,14 @@ function TestGroups({ results }: { results: TestResult[] }) {
 }
 
 export default function App() {
-  console.log(report);
+  const typedReport = report as any as FormattedTestResults;
+
+  console.log(typedReport);
+
   const [showSuccessful, setShowSuccessful] = useState(true);
   const [search, setSearch] = useState('');
   
-  const allResults = report.testResults.map(result => result.assertionResults).flat();
+  const allResults = typedReport.testResults.map(result => result.assertionResults).flat();
   const filteredResults = allResults.filter(result => {
     const matchesFilter = showSuccessful || result.status !== 'passed';
 
