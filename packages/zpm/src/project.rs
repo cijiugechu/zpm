@@ -6,7 +6,7 @@ use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{read_manifest_with_size, BinField, BinManifest, Manifest, ResolutionOverride}, manifest_finder::{CachedManifestFinder, ManifestFinder, SaveEntry}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, report::{StreamReport, StreamReportConfig}, script::Binary};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{read_manifest_with_size, BinField, BinManifest, Manifest, ResolutionOverride}, manifest_finder::{CachedManifestFinder, ManifestFinder, SaveEntry}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, report::{with_report_result, StreamReport, StreamReportConfig}, script::Binary};
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
 pub const MANIFEST_NAME: &str = "package.json";
@@ -247,7 +247,9 @@ impl Project {
             .with_join_str("cache");
 
         let local_cache_path
-            = self.project_cwd.with_join_str(".yarn/cache2");
+            = self.project_cwd
+                .with_join_str(".yarn")
+                .with_join_str(&self.config.project.local_cache_folder_name.value);
 
         let global_cache
             = Some(DiskCache::new(global_cache_path));
@@ -427,23 +429,27 @@ impl Project {
     }
 
     pub async fn run_install(&mut self) -> Result<(), Error> {
-        crate::report::set_current_report(StreamReport::new(StreamReportConfig {
+        let report = StreamReport::new(StreamReportConfig {
             enable_timers: true,
-        })).await;
+        });
 
-        let package_cache
-            = self.package_cache();
+        with_report_result(report, async {
+            let package_cache
+                = self.package_cache();
 
-        let install_context = InstallContext::default()
-            .with_package_cache(Some(&package_cache))
-            .with_project(Some(self));
+            let install_context = InstallContext::default()
+                .with_package_cache(Some(&package_cache))
+                .with_project(Some(self));
 
-        InstallManager::new()
-            .with_context(install_context)
-            .with_lockfile(self.lockfile()?)
-            .with_roots_iter(self.workspaces.iter().map(|w| w.descriptor()))
-            .resolve_and_fetch().await?
-            .finalize(self).await?;
+            InstallManager::new()
+                .with_context(install_context)
+                .with_lockfile(self.lockfile()?)
+                .with_roots_iter(self.workspaces.iter().map(|w| w.descriptor()))
+                .resolve_and_fetch().await?
+                .finalize(self).await?;
+
+            Ok(())
+        }).await?;
 
         Ok(())
     }
@@ -537,7 +543,7 @@ impl Workspace {
                 = CachedManifestFinder::new(self.path.clone())?;
 
             let workspace_paths = manifest_finder.rsync()?.into_iter()
-                .filter(|p| pattern_matchers.iter().any(|m| m.is_match(p.as_str())))
+                .filter(|p| pattern_matchers.iter().any(|m| p.dirname().map(|workspace_rel_dir| m.is_match(workspace_rel_dir.as_str())).unwrap_or_default()))
                 .map(|p| manifest_finder.save_state.cache.remove(&p).map(|manifest| (p, manifest)).unwrap())
                 .collect::<Vec<_>>();
 

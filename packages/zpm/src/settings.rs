@@ -47,6 +47,9 @@ pub struct ProjectConfig {
     #[default(crate::path::home(&Path::from(".yarn/zpm")))]
     pub global_folder: PathField,
 
+    #[default("cache".to_string())]
+    pub local_cache_folder_name: StringField,
+
     #[default(PnpFallbackMode::All)]
     pub pnp_fallback_mode: EnumField<PnpFallbackMode>,
 

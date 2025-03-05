@@ -28,13 +28,6 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 #[derive(Clone, Debug, Encode, Decode, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContentFlags {
     /**
-     * Set to true if the package can work on the current system. If false, the
-     * package build scripts will not be run.
-     */
-    #[serde(default, skip_serializing_if = "is_default")]
-    pub is_compatible: bool,
-
-    /**
      * The build scripts that should be run after the package got installed.
      */
     #[serde(default, skip_serializing_if = "is_default")]
@@ -57,7 +50,6 @@ pub struct ContentFlags {
 impl Default for ContentFlags {
     fn default() -> Self {
         Self {
-            is_compatible: true,
             build_commands: vec![],
             prefer_extracted: None,
             suggest_extracted: false,
@@ -117,11 +109,7 @@ impl ContentFlags {
         let prefer_extracted = meta_manifest.prefer_unplugged;
         let suggest_extracted = entries.iter().any(|entry| UNPLUG_EXT_REGEX.is_match(&entry.name));
 
-        let is_compatible = meta_manifest.requirements
-            .validate(&system::Description::from_current());
-
         Ok(ContentFlags {
-            is_compatible,
             build_commands,
             prefer_extracted,
             suggest_extracted,

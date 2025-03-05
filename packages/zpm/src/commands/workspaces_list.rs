@@ -1,4 +1,3 @@
-use arca::Path;
 use clipanion::cli;
 
 use crate::{error::Error, primitives::Ident, project};
@@ -6,7 +5,7 @@ use crate::{error::Error, primitives::Ident, project};
 #[cli::command]
 #[cli::path("workspaces", "list")]
 pub struct WorkspacesList {
-    #[cli::option("--json", default = true)]
+    #[cli::option("--json", default = false)]
     json: bool,
 }
 
@@ -17,21 +16,29 @@ impl WorkspacesList {
             = project::Project::new(None).await?;
 
         for workspace in &project.workspaces {
+            let workspace_path_str
+                = workspace.rel_path.to_string();
+
+            let workspace_printed_path = match workspace_path_str.is_empty() {
+                true => ".",
+                false => workspace_path_str.as_str(),
+            };
+
             if self.json {
                 #[derive(serde::Serialize)]
                 struct Payload<'a> {
-                    location: &'a Path,
+                    location: &'a str,
                     name: &'a Ident,
                 }
 
                 let payload = Payload {
-                    location: &workspace.rel_path,
+                    location: workspace_printed_path,
                     name: &workspace.name,
                 };
 
                 println!("{}", sonic_rs::to_string(&payload)?);
             } else {
-                println!("{}", workspace.rel_path);
+                println!("{}", workspace_printed_path);
             }
         }
 

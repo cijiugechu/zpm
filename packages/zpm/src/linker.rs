@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_with::serde_as;
 use zpm_utils::ToFileString;
 
-use crate::{build::{self, BuildRequests}, error::Error, fetchers::{PackageData, PackageLinking}, install::Install, primitives::{range::PackageSelector, Descriptor, Ident, Locator, Reference}, project::Project, resolvers::Resolution, settings};
+use crate::{build::{self, BuildRequests}, error::Error, fetchers::{PackageData, PackageLinking}, install::Install, primitives::{range::PackageSelector, Descriptor, Ident, Locator, Reference}, project::Project, resolvers::Resolution, settings, system};
 
 fn is_default<T: Default + PartialEq>(t: &T) -> bool {
     t == &T::default()
@@ -334,7 +334,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
         // The package meta is based on the top-level configuration extracted
         // from the `dependenciesMeta` field.
         //
-        let mut package_meta = dependencies_meta
+        let package_meta = dependencies_meta
             .get(&locator.ident)
             .and_then(|meta_list| {
                 meta_list.iter().find_map(|(selector, meta)| match selector {
@@ -354,32 +354,49 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
             .expect("Expected package flags to be set")
             .flags;
 
-        // Optional dependencies are always unplugged, as we have no way to
-        // know whether they would be unplugged if we were to download them
-        // (this may change depending on the package's files).
-        //
-        if install.install_state.resolution_tree.optional_builds.contains(locator) {
-            package_meta.unplugged = Some(true);
-        }
+        // We don't take into account `is_compatible` here, as it may change
+        // depending on the system and we don't want the paths encoded in the
+        // .pnp.cjs file to change depending on the system.
+        let should_build_if_compatible
+            = package_flags.build_commands.len() > 0
+                && package_meta.built.unwrap_or(project.config.project.enable_scripts.value);
 
-        // If the builds are disabled by default, let's reflect that in the
-        // package's meta
-        if !project.config.project.enable_scripts.value && package_meta.built.is_none() {
-            package_meta.built = Some(false);
-        }
+        // Optional dependencies baked by zip archives are always extracted,
+        // as we have no way to know whether they would be extracted if we
+        // were to download them (this may change depending on the package's
+        // files).
+        let is_optional
+            = install.install_state.resolution_tree.optional_builds.contains(locator);
+
+        let is_baked_by_zip
+            = matches!(physical_package_data, PackageData::Zip {..} | PackageData::MissingZip {..});
+
+        let must_extract =
+            (is_optional && is_baked_by_zip) || package_meta.unplugged.or(package_flags.prefer_extracted)
+                .unwrap_or_else(|| should_build_if_compatible || package_flags.suggest_extracted);
 
         // We don't need to run the build if the package was marked as
         // incompatible with the current system (even if the package isn't
         // marked as optional).
-        //
-        if !package_flags.is_compatible {
-            package_meta.built = Some(false);
-        }
+        let is_compatible = resolution.requirements
+            .validate(&system::Description::from_current());
+
+        let must_build
+            = should_build_if_compatible && is_compatible;
 
         let mut is_physically_on_disk = true;
         let mut is_freshly_unplugged = false;
 
-        if package_flags.prefer_extracted.unwrap_or_else(|| package_meta.built == Some(true) || package_flags.suggest_extracted) {
+        println!("locator: {}", locator.slug());
+        println!("  must_extract: {}", must_extract);
+        println!("  must_build: {}", must_build);
+        println!("  is_compatible: {}", is_compatible);
+        println!("  is_optional: {}", is_optional);
+        println!("  should_build_if_compatible: {}", should_build_if_compatible);
+        println!("  package_meta: {:?}", package_meta);
+        println!("  package_flags: {:?}", package_flags);
+        
+        if must_extract {
             (package_location_abs, is_freshly_unplugged) = extract_archive(&project.project_cwd, locator, physical_package_data)?;
         } else {
             is_physically_on_disk = false;
@@ -418,7 +435,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
                 discard_from_lookup,
             });
 
-        if !package_flags.build_commands.is_empty() && package_meta.built.unwrap_or(true) {
+        if must_build {
             let build_cwd = match is_physically_on_disk {
                 true => package_location_rel.clone(),
                 false => {

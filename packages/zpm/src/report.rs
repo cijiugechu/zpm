@@ -42,10 +42,33 @@ tokio::task_local! {
     static CONTEXT: RefCell<Option<ReportContext>>;
 }
 
-pub fn with_context<F>(context: ReportContext, f: F) -> TaskLocalFuture<RefCell<Option<ReportContext>>, F> where F: Future {
-    CONTEXT.scope(RefCell::new(Some(context)), f)
+pub async fn with_report<F>(report: StreamReport, f: F) -> TaskLocalFuture<RefCell<Option<ReportContext>>, F> where F: Future {
+    set_current_report(report).await;
+
+    CONTEXT.scope(RefCell::new(None), f)
 }
-pub fn with_context_result<F, R>(context: ReportContext, f: F) -> TaskLocalFuture<RefCell<Option<ReportContext>>, impl Future<Output = Result<R, Error>>> where F: Future<Output = Result<R, Error>> {
+
+pub async fn with_report_result<F, R>(report: StreamReport, f: F) -> Result<R, Error> where F: Future<Output = Result<R, Error>> {
+    set_current_report(report).await;
+
+    CONTEXT.scope(RefCell::new(None), async move {
+        let res = f.await;
+
+        if let Err(e) = &res {
+            current_report(|r| {
+                r.report(ReportMessage::Error(e.clone()));
+            }).await;
+        }
+
+        res
+    }).await
+}
+
+pub async fn with_context<F>(context: ReportContext, f: F) -> () where F: Future {
+    CONTEXT.scope(RefCell::new(Some(context)), f).await;
+}
+
+pub async fn with_context_result<F, R>(context: ReportContext, f: F) -> Result<R, Error> where F: Future<Output = Result<R, Error>> {
     CONTEXT.scope(RefCell::new(Some(context)), async move {
         let res = f.await;
 
@@ -56,7 +79,7 @@ pub fn with_context_result<F, R>(context: ReportContext, f: F) -> TaskLocalFutur
         }
 
         res
-    })
+    }).await
 }
 
 pub struct StreamReportConfig {
