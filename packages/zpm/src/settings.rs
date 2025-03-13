@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use zpm_macros::yarn_config;
 use zpm_semver::RangeKind;
 use zpm_utils::{FromFileString, ToFileString};
-use crate::{config_fields::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField}, error::Error};
+use crate::config_fields::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]

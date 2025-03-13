@@ -67,7 +67,9 @@ checksum = "1bec1de6f59aedf83baf9ff929c98f2ad654b97c9510f4e70cf6f661d49fd5b1"
 
 [[package]]
 name = "arca"
-version = "0.12.0"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a762bb1e55d1c5b8e4ef0e3fced16a58978712a12cb0331837136fea935dbd67"
 dependencies = [
  "bincode",
  "bincode_derive",
@@ -300,7 +302,9 @@ checksum = "aaa6b4b263a5d737e9bf6b7c09b72c41a5480aec4d7219af827f6564e950b6a5"
 
 [[package]]
 name = "clipanion"
-version = "0.7.0"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8337ed192a37d28cf799d031a6fc5b8fe37fa77483cee3961573b1c8230340db"
 dependencies = [
  "clipanion-core",
  "clipanion-derive",
@@ -310,14 +314,18 @@ dependencies = [
 
 [[package]]
 name = "clipanion-core"
-version = "0.7.0"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ea2cb0acf86d19af8bbd19e4c553abcb6a8b093220b29a1ae6c5c6fbd66a7bb"
 dependencies = [
  "thiserror 2.0.7",
 ]
 
 [[package]]
 name = "clipanion-derive"
-version = "0.7.0"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc994cdf3c778ec97c56dff7c3b01900fc41387314753ffcb3beaaeccd1f8c30"
 dependencies = [
  "indoc",
  "proc-macro2",
