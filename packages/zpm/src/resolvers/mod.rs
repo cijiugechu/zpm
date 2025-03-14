@@ -68,7 +68,7 @@ impl Resolution {
 
         Resolution {
             locator,
-            version: manifest.version,
+            version: manifest.version.unwrap_or_default(),
             dependencies,
             peer_dependencies: manifest.peer_dependencies,
             optional_dependencies,

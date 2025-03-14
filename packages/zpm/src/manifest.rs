@@ -44,7 +44,8 @@ pub struct BinManifest {
 #[serde(rename_all = "camelCase")]
 pub struct RemoteManifest {
     #[serde(default)]
-    pub version: zpm_semver::Version,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<zpm_semver::Version>,
 
     #[serde(flatten)]
     pub requirements: system::Requirements,
@@ -66,6 +67,7 @@ pub struct RemoteManifest {
     pub optional_dependencies: BTreeMap<Ident, Descriptor>,
 
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dist: Option<DistManifest>,
 }
 
@@ -206,6 +208,7 @@ pub struct Manifest {
     pub scripts: BTreeMap<String, String>,
 
     #[serde(default)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub resolutions: BTreeMap<ResolutionOverride, Range>,
 }
 

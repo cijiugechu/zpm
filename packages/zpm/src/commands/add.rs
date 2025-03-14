@@ -4,7 +4,6 @@ use zpm_utils::FromFileString;
 
 use crate::{error::Error, install::InstallContext, primitives::{loose_descriptor, range::SemverPeerRange, LooseDescriptor, PeerRange}, project};
 
-#[derive(Debug)]
 #[cli::command]
 #[cli::path("add")]
 pub struct Add {
@@ -126,9 +125,6 @@ impl Add {
                 active_workspace.manifest.remote.peer_dependencies.insert(descriptor.ident.clone(), PeerRange::Semver(SemverPeerRange {range: zpm_semver::Range::from_file_string("*").unwrap()}));
             }
 
-            if prod {
-                active_workspace.manifest.remote.dependencies.insert(descriptor.ident.clone(), descriptor.clone());
-            }
         }    
 
         active_workspace.write_manifest()?;

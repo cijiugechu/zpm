@@ -1,8 +1,11 @@
+use std::collections::BTreeSet;
+
 use arca::Path;
 use bincode::{Decode, Encode};
 use colored::Colorize;
 use futures::future::BoxFuture;
 use futures::FutureExt;
+use wax::{Glob, Program};
 use zpm_formats::{tar, tar_iter, iter_ext::IterExt};
 use zpm_macros::parse_enum;
 use zpm_semver::RangeKind;
@@ -43,6 +46,49 @@ pub enum LooseDescriptor {
 }
 
 impl LooseDescriptor {
+    pub fn expand(&self, all_idents: &BTreeSet<Ident>) -> Vec<LooseDescriptor> {
+        match self {
+            LooseDescriptor::Descriptor(descriptor_loose_descriptor) =>
+                self.expand_ident(&descriptor_loose_descriptor.descriptor.ident, all_idents)
+                    .into_iter()
+                    .map(|ident| LooseDescriptor::Descriptor(DescriptorLooseDescriptor {descriptor: Descriptor::new(ident, descriptor_loose_descriptor.descriptor.range.clone())}))
+                    .collect(),
+
+            LooseDescriptor::Ident(ident_loose_descriptor) =>
+                self.expand_ident(&ident_loose_descriptor.ident, all_idents)
+                    .into_iter()
+                    .map(|ident| LooseDescriptor::Ident(IdentLooseDescriptor {ident}))
+                    .collect(),
+
+            LooseDescriptor::Range(_) =>
+                vec![self.clone()],
+        }
+    }
+
+    // Glob expansion doesn't work amazingly well with scoped packages since
+    // they stop at slashes. To avoid that we just replace all slashes with
+    // an arbitrary symbol that doesn't appear in valid identifiers.
+    fn expand_ident(&self, ident: &Ident, all_idents: &BTreeSet<Ident>) -> Vec<Ident> {
+        let noslash_glob = ident.as_str()
+            .replace("/", "&");
+
+        let glob
+            = Glob::new(&noslash_glob).unwrap();
+
+        let mut idents = Vec::new();
+
+        for ident in all_idents.iter() {
+            let noslash_ident = ident.as_str()
+                .replace("/", "&");
+
+            if glob.is_match(noslash_ident.as_str()) {
+                idents.push(ident.clone());
+            }
+        }
+
+        idents
+    }
+
     pub async fn resolve_all<'a>(context: &'a InstallContext<'a>, options: &'a ResolveOptions, loose_descriptors: &[LooseDescriptor]) -> Result<Vec<Descriptor>, Error> {
         let mut futures: Vec<BoxFuture<'a, Result<Descriptor, Error>>> = vec![];
 

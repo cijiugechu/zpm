@@ -16,7 +16,9 @@ mod exec;
 mod install;
 mod node;
 mod pack;
+mod remove;
 mod run;
+mod up;
 mod version;
 mod workspaces_list;
 
@@ -39,7 +41,9 @@ clipanion::program!(YarnCli, [
     install::Install,
     node::Node,
     pack::Pack,
+    remove::Remove,
     run::Run,
+    up::Up,
     version::Version,
     workspaces_list::WorkspacesList,
 ]);
