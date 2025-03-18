@@ -7,6 +7,7 @@ use bincode::{self, Decode, Encode};
 use futures::Future;
 use sha2::Digest;
 use zpm_macros::parse_enum;
+use zpm_utils::ToHumanString;
 
 use crate::error::Error;
 use crate::hash::Sha256;
@@ -88,7 +89,7 @@ impl CompositeCache {
 
     pub async fn ensure_blob<K, R, F>(&self, key: K, ext: &str, func: F) -> Result<CacheEntry, Error>
     where
-        K: Clone + Decode + Encode,
+        K: Clone + Decode + Encode + ToHumanString,
         R: Future<Output = Result<Vec<u8>, Error>>,
         F: FnOnce() -> R,
     {
@@ -111,7 +112,7 @@ impl CompositeCache {
 
     pub async fn upsert_blob<K, R, F>(&self, key: K, ext: &str, func: F) -> Result<DataCacheEntry, Error>
     where
-        K: Clone + Decode + Encode,
+        K: Clone + Decode + Encode + ToHumanString,
         R: Future<Output = Result<Vec<u8>, Error>>,
         F: FnOnce() -> R,
     {
@@ -137,17 +138,15 @@ impl CompositeCache {
 pub struct DiskCache {
     cache_path: Path,
     data_config: bincode::config::Configuration,
+    immutable: bool,
 }
 
 impl DiskCache {
-    pub fn new(cache_path: Path) -> Self {
-        cache_path
-            .fs_create_dir_all()
-            .unwrap();
-
+    pub fn new(cache_path: Path, immutable: bool) -> Self {
         DiskCache {
             cache_path,
             data_config: bincode::config::standard(),
+            immutable,
         }
     }
 
@@ -195,7 +194,7 @@ impl DiskCache {
 
     pub async fn ensure_blob<K, R, F>(&self, key: K, ext: &str, func: F) -> Result<CacheEntry, Error>
     where
-        K: Decode + Encode,
+        K: Decode + Encode + ToHumanString,
         R: Future<Output = Result<Vec<u8>, Error>>,
         F: FnOnce() -> R,
     {
@@ -216,6 +215,10 @@ impl DiskCache {
             },
 
             false => {
+                if self.immutable {
+                    return Err(Error::ImmutableCache(key.to_print_string()));
+                }
+
                 let data = self.fetch_and_store_blob::<R, F>(key_path_buf, func).await?;
 
                 tokio::task::spawn_blocking(move || {
@@ -233,7 +236,7 @@ impl DiskCache {
 
     pub async fn upsert_blob<K, R, F>(&self, key: K, ext: &str, func: F) -> Result<DataCacheEntry, Error>
     where
-        K: Decode + Encode,
+        K: Decode + Encode + ToHumanString,
         R: Future<Output = Result<Vec<u8>, Error>>,
         F: FnOnce() -> R,
     {
@@ -259,6 +262,10 @@ impl DiskCache {
             Err(err) => {
                 if err.kind() != std::io::ErrorKind::NotFound {
                     return Err(err)?;
+                }
+
+                if self.immutable {
+                    return Err(Error::ImmutableCache(key.to_print_string()));
                 }
 
                 let data = self.fetch_and_store_blob::<R, F>(key_path_buf, func).await?;

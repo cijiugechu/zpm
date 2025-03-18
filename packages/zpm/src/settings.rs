@@ -45,6 +45,12 @@ pub struct ProjectConfig {
     #[default(false)]
     pub enable_global_cache: BoolField,
 
+    #[default(false)]
+    pub enable_immutable_cache: BoolField,
+
+    #[default(false)]
+    pub enable_immutable_installs: BoolField,
+
     #[default(true)]
     pub enable_scripts: BoolField,
 

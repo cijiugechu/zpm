@@ -115,8 +115,8 @@ impl ToFileString for Locator {
 
 impl ToHumanString for Locator {
     fn to_print_string(&self) -> String {
-        let serialized_ident = self.ident.to_file_string();
-        let serialized_reference = self.reference.to_file_string();
+        let serialized_ident = self.ident.to_print_string();
+        let serialized_reference = self.reference.to_print_string();
 
         let mut final_str = String::new();
         final_str.push_str(&serialized_ident);
@@ -125,7 +125,7 @@ impl ToHumanString for Locator {
 
         if let Some(parent) = &self.parent {
             final_str.push_str("::parent=");
-            final_str.push_str(&parent.to_file_string());
+            final_str.push_str(&parent.to_print_string());
         }
 
         final_str

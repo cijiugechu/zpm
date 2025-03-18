@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs::Permissions, io::ErrorKind, os::unix::fs::PermissionsExt, sync::Arc, time::UNIX_EPOCH};
 
-use arca::{Path, ToArcaPath};
+use arca::{ImmutableErr, Path, ToArcaPath};
 use globset::Glob;
 use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
@@ -236,13 +236,19 @@ impl Project {
             = sonic_rs::to_string_pretty(lockfile)
                 .map_err(|err| Error::LockfileGenerationError(Arc::new(err)))?;
 
-        lockfile_path
-            .fs_change(contents, Permissions::from_mode(0o644))?;
+        if self.config.project.enable_immutable_installs.value {
+            lockfile_path.fs_expect(contents, Permissions::from_mode(0o644)).map_err(|err| match err {
+                ImmutableErr::Immutable => Error::ImmutableLockfile,
+                ImmutableErr::Io(err) => err.into(),
+            })?;
+        } else {
+            lockfile_path.fs_change(contents, Permissions::from_mode(0o644))?;
+        }
 
         Ok(())
     }
 
-    pub fn package_cache(&self) -> CompositeCache {
+    pub fn package_cache(&self) -> Result<CompositeCache, Error> {
         let global_cache_path = self.config.project.global_folder.value
             .with_join_str("cache");
 
@@ -251,16 +257,28 @@ impl Project {
                 .with_join_str(".yarn")
                 .with_join_str(&self.config.project.local_cache_folder_name.value);
 
+        if !self.config.project.enable_global_cache.value {
+            global_cache_path.fs_create_dir_all()?;
+        }
+
+        if !self.config.project.enable_global_cache.value {
+            if !self.config.project.enable_immutable_cache.value {
+                local_cache_path.fs_create_dir_all()?;
+            } else if !local_cache_path.fs_exists() {
+                return Err(Error::MissingCacheFolder(local_cache_path));
+            }
+        }
+
         let global_cache
-            = Some(DiskCache::new(global_cache_path));
+            = Some(DiskCache::new(global_cache_path, self.config.project.enable_immutable_cache.value));
 
         let local_cache = (!self.config.project.enable_global_cache.value)
-            .then(|| DiskCache::new(local_cache_path));
+            .then(|| DiskCache::new(local_cache_path, self.config.project.enable_immutable_cache.value));
 
-        CompositeCache {
+        Ok(CompositeCache {
             global_cache,
             local_cache,
-        }
+        })
     }
 
     pub fn root_workspace(&self) -> &Workspace {
@@ -468,7 +486,7 @@ impl Project {
 
         with_report_result(report, async {
             let package_cache
-                = self.package_cache();
+                = self.package_cache()?;
 
             let install_context = InstallContext::default()
                 .with_package_cache(Some(&package_cache))

@@ -33,6 +33,18 @@ pub async fn async_section<F: Future>(name: &str, f: F) -> F::Output {
     res
 }
 
+pub async fn error_handler<T, F: Future<Output = Result<(), Error>>>(f: F) -> () {
+    let res = f.await;
+
+    if let Err(e) = &res {
+        current_report(|r| {
+            r.report(ReportMessage::Error(e.clone()));
+        }).await;
+    }
+
+    ()
+}
+
 pub enum ReportContext {
     Descriptor(Descriptor),
     Locator(Locator),
@@ -58,6 +70,8 @@ pub async fn with_report_result<F, R>(report: StreamReport, f: F) -> Result<R, E
             current_report(|r| {
                 r.report(ReportMessage::Error(e.clone()));
             }).await;
+
+            return Err(Error::SilentError);
         }
 
         res
@@ -107,6 +121,10 @@ impl StreamReport {
     }
 
     pub fn report(&mut self, message: ReportMessage) {
+        if let ReportMessage::Error(Error::SilentError) = &message {
+            return;
+        }
+
         CONTEXT.with(move |context| {
             let context = context.borrow();
 

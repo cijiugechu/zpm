@@ -23,7 +23,7 @@ impl DlxWithPackages {
             = setup_project().await?;
 
         let package_cache
-            = project.package_cache();
+            = project.package_cache()?;
 
         let install_context = InstallContext::default()
             .with_package_cache(Some(&package_cache))
@@ -60,7 +60,7 @@ impl Dlx {
             = setup_project().await?;
 
         let package_cache
-            = project.package_cache();
+            = project.package_cache()?;
 
         let install_context = InstallContext::default()
             .with_package_cache(Some(&package_cache))

@@ -31,6 +31,15 @@ pub enum Error {
     #[error("Conflicting options: {0}")]
     ConflictingOptions(String),
 
+    #[error("[YN0028] The lockfile would have been created by this install, which is explicitly forbidden.")]
+    ImmutableLockfile,
+
+    #[error("[YN0056] Cache entry required but missing for {0}.")]
+    ImmutableCache(String),
+
+    #[error("[YN0091] Cache path does not exist ({0}).")]
+    MissingCacheFolder(Path),
+
     #[error("Failed to change the current working directory")]
     FailedToChangeCwd,
 

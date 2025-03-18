@@ -4,7 +4,7 @@ use zpm_utils::FromFileString;
 
 use crate::{error::Error, install::InstallContext, primitives::{loose_descriptor, range::SemverPeerRange, LooseDescriptor, PeerRange}, project};
 
-#[cli::command]
+    #[cli::command]
 #[cli::path("add")]
 pub struct Add {
     #[cli::option("-F,--fixed")]
@@ -62,7 +62,7 @@ impl Add {
         };
 
         let package_cache
-            = project.package_cache();
+            = project.package_cache()?;
 
         let install_context = InstallContext::default()
             .with_package_cache(Some(&package_cache))

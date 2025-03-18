@@ -144,12 +144,12 @@ impl ToFileString for Range {
 
             Range::RegistrySemver(params) => match &params.ident {
                 Some(ident) => format!("npm:{}@{}", ident.to_file_string(), params.range.to_file_string()),
-                None => params.range.to_file_string(),
+                None => format!("npm:{}", params.range.to_file_string()),
             },
 
             Range::RegistryTag(params) => match &params.ident {
                 Some(ident) => format!("npm:{}@{}", ident.to_file_string(), params.tag),
-                None => params.tag.clone(),
+                None => format!("npm:{}", params.tag),
             },
 
             Range::Tarball(params) => {

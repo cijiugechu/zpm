@@ -267,12 +267,14 @@ impl<'a> GraphIn<'a, InstallContext<'a>, InstallOpResult, Error> for InstallOp<'
                     SyncFetchAttempt::Failure(dependencies) => dependencies,
                 };
 
-                let future = tokio::time::timeout(
-                    timeout,
-                    fetch_locator(context.clone(), &locator.clone(), false, dependencies)
-                ).await.map_err(|_| Error::TaskTimeout)?;
+                with_context_result(ReportContext::Locator(locator.clone()), async {
+                    let future = tokio::time::timeout(
+                        timeout,
+                        fetch_locator(context.clone(), &locator.clone(), false, dependencies)
+                    ).await.map_err(|_| Error::TaskTimeout)?;
 
-                Ok(InstallOpResult::Fetched(future?))
+                    Ok(InstallOpResult::Fetched(future?))
+                }).await
             },
 
         }
