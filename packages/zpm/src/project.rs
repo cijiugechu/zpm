@@ -32,6 +32,7 @@ pub struct Project {
 impl Project {
     pub fn find_closest_project(mut p: Path) -> Result<(Path, Path), Error> {
         let mut closest_pkg = None;
+        let mut farthest_pkg = None;
 
         loop {
             let lock_p = p.with_join_str(LOCKFILE_NAME);
@@ -41,7 +42,11 @@ impl Project {
         
             let pkg_p = p.with_join_str(MANIFEST_NAME);
             if pkg_p.fs_exists() {
-                closest_pkg = Some(p.clone());
+                farthest_pkg = Some(p.clone());
+
+                if closest_pkg.is_none() {
+                    closest_pkg = Some(p.clone());
+                }
             }
     
             if let Some(dirname) = p.dirname() {
@@ -51,10 +56,10 @@ impl Project {
             }
         }
     
-        let closest_pkg = closest_pkg
+        let farthest_pkg = farthest_pkg
             .ok_or(Error::ProjectNotFound(p))?;
 
-        Ok((closest_pkg.clone(), closest_pkg))
+        Ok((farthest_pkg, closest_pkg.unwrap()))
     }
 
     pub async fn new(cwd: Option<Path>) -> Result<Project, Error> {

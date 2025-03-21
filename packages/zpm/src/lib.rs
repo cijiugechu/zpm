@@ -1,5 +1,6 @@
 #![deny(unused_crate_dependencies)]
 
+pub mod algolia;
 pub mod build;
 pub mod cache;
 pub mod commands;

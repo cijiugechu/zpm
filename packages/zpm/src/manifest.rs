@@ -212,6 +212,14 @@ pub struct Manifest {
     pub resolutions: BTreeMap<ResolutionOverride, Range>,
 }
 
+impl Manifest {
+    pub fn iter_hard_dependencies(&self) -> impl Iterator<Item = (&Ident, &Descriptor)> {
+        self.remote.dependencies.iter()
+            .chain(self.remote.optional_dependencies.iter())
+            .chain(self.dev_dependencies.iter())
+    }
+}
+
 fn wrap_error<T>(result: Result<T, io::Error>) -> Result<T, Error> {
     result.map_err(|err| match err.kind() {
         ErrorKind::NotFound | ErrorKind::NotADirectory => Error::ManifestNotFound,

@@ -43,6 +43,9 @@ pub enum Error {
     #[error("[YN0091] Cache path does not exist ({0}).")]
     MissingCacheFolder(Path),
 
+    #[error("Algolia registry error")]
+    AlgoliaRegistryError(Arc<reqwest::Error>),
+
     #[error("Failed to change the current working directory")]
     FailedToChangeCwd,
 

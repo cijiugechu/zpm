@@ -9,7 +9,11 @@ Features ► Resolutions ► it should support overriding a packages with anothe
     specific _exact original range_. This capability is removed as it's both
     confusing and quite useless.
 
-Plug'n'Play API › std - v1 › getPackageInformation › it should return the package dependencies
+Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the package dependencies
     The test is actually wrong; it thinks we should only return no-deps as
     dependency, but it forgot that the root-workspace self-dependency should
     also be listed.
+
+Plugins ► typescript ► Adding types ► it should reuse ranges when adding @types if the ranges of the original descriptor match (nested workspaces)
+    We don't support "Nested workspaces" anymore (ie having a `workspaces` field inside multiple
+    package.json files in the same project; it now has to be at the root).

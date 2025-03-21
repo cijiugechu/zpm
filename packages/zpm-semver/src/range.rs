@@ -62,10 +62,51 @@ impl Range {
         extract::extract_tokens(&mut str.as_ref().chars().peekable())
     }
 
-    pub fn check<P: Borrow<Version>>(&self, version: P) -> bool {
-        let mut n = 0;
+    pub fn caret(version: Version) -> Range {
+        let upper_bound
+            = version.next_major_rc();
 
-        self.check_from(version.borrow(), &mut n)
+        Range {
+            source: format!("^{}", version.to_file_string()),
+            tokens: vec![
+                Token::Syntax(TokenType::SAnd),
+                Token::Operation(
+                    OperatorType::GreaterThanOrEqual,
+                    version,
+                ),
+                Token::Operation(
+                    OperatorType::LessThan,
+                    upper_bound,
+                ),
+            ],
+        }
+    }
+
+    pub fn tilde(version: Version) -> Range {
+        let upper_bound
+            = version.next_minor_rc();
+
+        Range {
+            source: format!("~{}", version.to_file_string()),
+            tokens: vec![
+                Token::Syntax(TokenType::SAnd),
+                Token::Operation(
+                    OperatorType::GreaterThanOrEqual,
+                    version,
+                ),
+                Token::Operation(
+                    OperatorType::LessThan,
+                    upper_bound,
+                ),
+            ],
+        }
+    }
+
+    pub fn exact(version: Version) -> Range {
+        Range {
+            source: version.to_file_string(),
+            tokens: vec![Token::Operation(OperatorType::Equal, version)],
+        }
     }
 
     pub fn kind(&self) -> Option<RangeKind> {
@@ -78,6 +119,12 @@ impl Range {
 
             _ => None,
         }
+    }
+
+    pub fn check<P: Borrow<Version>>(&self, version: P) -> bool {
+        let mut n = 0;
+
+        self.check_from(version.borrow(), &mut n)
     }
 
     fn check_from(&self, version: &Version, n: &mut usize) -> bool {
@@ -117,6 +164,60 @@ impl Range {
 
             Some(Token::Operation(OperatorType::LessThanOrEqual, operand)) => {
                 version <= operand
+            }
+
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    pub fn range_min(&self) -> Option<Version> {
+        let mut n = 0;
+
+        self.min_from(&mut n)
+            .into_iter()
+            .filter(|v| self.check(v))
+            .min()
+    }
+
+    fn min_from(&self, n: &mut usize) -> Vec<Version> {
+        let token = self.tokens.get(*n);
+        *n += 1;
+
+        match token {
+            Some(Token::Syntax(TokenType::SAnd)) | Some(Token::Syntax(TokenType::And)) => {
+                let left = self.min_from(n);
+                let right = self.min_from(n);
+
+                left.into_iter().chain(right).collect()
+            }
+
+            Some(Token::Syntax(TokenType::Or)) => {
+                let left = self.min_from(n);
+                let right = self.min_from(n);
+
+                left.into_iter().chain(right).collect()
+            }
+
+            Some(Token::Operation(OperatorType::Equal, operand)) => {
+                vec![operand.clone()]
+            }
+
+            Some(Token::Operation(OperatorType::GreaterThan, operand)) => {
+                vec![operand.next_immediate_spec()]
+            }
+
+            Some(Token::Operation(OperatorType::GreaterThanOrEqual, operand)) => {
+                vec![operand.clone()]
+            }
+
+            Some(Token::Operation(OperatorType::LessThan, ..)) => {
+                vec![]
+            }
+
+            Some(Token::Operation(OperatorType::LessThanOrEqual, ..)) => {
+                vec![]
             }
 
             _ => {

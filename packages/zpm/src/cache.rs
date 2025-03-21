@@ -311,8 +311,6 @@ impl DiskCache {
         let extraneous_count
             = extraneous_cache_files.len();
 
-        println!("Extraneous cache files: {:?}", extraneous_cache_files);
-
         if extraneous_count > 0 && self.immutable {
             return Err(Error::ImmutableCacheCleanup(Path::from(extraneous_cache_files[0].clone())));
         }

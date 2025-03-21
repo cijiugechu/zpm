@@ -95,6 +95,86 @@ impl Version {
         }
     }
 
+    pub fn next_immediate_spec(&self) -> Version {
+        if let Some(rc) = &self.rc {
+            let mut all_but_last = rc[..rc.len() - 1]
+                .to_vec();
+
+            match rc.last() {
+                Some(VersionRc::Number(n)) => {
+                    all_but_last.push(VersionRc::Number(n + 1));
+
+                    return Version {
+                        major: self.major,
+                        minor: self.minor,
+                        patch: self.patch,
+                        rc: Some(all_but_last),
+                    };
+                }
+
+                Some(VersionRc::String(rc_str)) => {
+                    let Some(last_char) = rc_str.chars().last() else {
+                        panic!("VersionRc::String should always have a last character");
+                    };
+
+                    let mut all_but_last_str
+                        = rc_str[..rc_str.len() - 1].to_string();
+
+                    match last_char {
+                        '-' => {
+                            if rc_str.len() == 1 {
+                                all_but_last_str.push('a');
+                            } else {
+                                all_but_last_str.push('0');
+                            }
+                        }
+
+                        '0'..'9' => {
+                            all_but_last_str.push((last_char as u8 + 1) as char);
+                        }
+
+                        '9' => {
+                            all_but_last_str.push('a');
+                        }
+
+                        'a'..'z' => {
+                            all_but_last_str.push((last_char as u8 + 1) as char);
+                        }
+
+                        'z' => {
+                            all_but_last_str.push(last_char);
+                            all_but_last_str.push('a');
+                        }
+
+                        _ => {
+                            unreachable!("VersionRc::String should only contain alphanumeric characters and '-'");
+                        }
+                    }
+
+                    all_but_last.push(VersionRc::String(all_but_last_str));
+
+                    return Version {
+                        major: self.major,
+                        minor: self.minor,
+                        patch: self.patch,
+                        rc: Some(all_but_last),
+                    };
+                }
+
+                None => {
+                    // It shouldn't happen, but if it does the version doesn't have a rc so we can fall through
+                }
+            }
+        }
+
+        Version {
+            major: self.major,
+            minor: self.minor,
+            patch: self.patch + 1,
+            rc: Some(vec![VersionRc::Number(0)]),
+        }
+    }
+
     pub fn to_range(&self, kind: RangeKind) -> Range {
         match kind {
             RangeKind::Caret => Range::from_file_string(&format!("^{}", self.to_file_string())),

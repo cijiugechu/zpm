@@ -70,6 +70,28 @@ fn test_range_check(#[case] range: Range, #[case] version: Version, #[case] expe
     assert_eq!(range.check(version), expected);
 }
 
+#[rstest]
+#[case("1.2.3", Some(Version { major: 1, minor: 2, patch: 3, rc: None }))]
+#[case("1.2.3 || 2.3.4", Some(Version { major: 1, minor: 2, patch: 3, rc: None }))]
+#[case("2.3.4 || 1.2.3", Some(Version { major: 1, minor: 2, patch: 3, rc: None }))]
+#[case("1.2.3 && 2.3.4", None)]
+#[case("1.2.3 2.3.4", None)]
+#[case("1.2.3 - 2.3.4", Some(Version { major: 1, minor: 2, patch: 3, rc: None }))]
+#[case("1", Some(Version { major: 1, minor: 0, patch: 0, rc: None }))]
+#[case("1.2", Some(Version { major: 1, minor: 2, patch: 0, rc: None }))]
+#[case("(^1.5 || ^1.2 || ^1.3) && <1.4", Some(Version { major: 1, minor: 2, patch: 0, rc: None }))]
+fn test_range_min(#[case] range: Range, #[case] expected: Option<Version>) {
+    assert_eq!(range.range_min(), expected);
+}
+
+#[rstest]
+#[case(Range::caret(Version { major: 1, minor: 2, patch: 3, rc: None }), "^1.2.3")]
+#[case(Range::tilde(Version { major: 1, minor: 2, patch: 3, rc: None }), "~1.2.3")]
+#[case(Range::exact(Version { major: 1, minor: 2, patch: 3, rc: None }), "1.2.3")]
+fn test_range_factories(#[case] range: Range, #[case] expected: Range) {
+    assert_eq!(range, expected);
+}
+
 #[test]
 fn test_range_tokenize() {
     assert_eq!(Range::tokenize("1.2.3"), Some(vec![

@@ -213,15 +213,18 @@ impl ManifestFinder for CachedManifestFinder {
         }
 
         let new_manifests = new_manifest_paths.into_par_iter()
-            .map(|manifest_path| {
-                let metadata = manifest_path.fs_metadata()?;
-                let manifest = read_manifest_with_size(&manifest_path, metadata.len())?;
+            .map(|rel_path| {
+                let abs_path = self.root_path
+                    .with_join(&rel_path);
+
+                let metadata = abs_path.fs_metadata()?;
+                let manifest = read_manifest_with_size(&abs_path, metadata.len())?;
 
                 let mtime = metadata.modified()?
                     .duration_since(UNIX_EPOCH)?
                     .as_nanos() as u128;
 
-                Ok((manifest_path, SaveEntry::Manifest(mtime, manifest)))
+                Ok((rel_path, SaveEntry::Manifest(mtime, manifest)))
             })
             .collect::<Result<Vec<_>, Error>>()?;
 

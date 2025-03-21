@@ -43,6 +43,9 @@ pub struct ProjectConfig {
     pub default_semver_range_prefix: EnumField<RangeKind>,
 
     #[default(false)]
+    pub enable_auto_types: BoolField,
+
+    #[default(false)]
     pub enable_global_cache: BoolField,
 
     #[default(false)]

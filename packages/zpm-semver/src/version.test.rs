@@ -20,3 +20,15 @@ fn test_version_parse(#[case] version: Version, #[case] expected: Version) {
 fn test_version_lt(#[case] left: Version, #[case] right: Version) {
     assert!(left < right);
 }
+
+#[rstest]
+#[case("1.2.0", "1.2.1-0")]
+#[case("1.2.9", "1.2.10-0")]
+#[case("1.2.0-42", "1.2.0-43")]
+#[case("1.2.0-rc.1", "1.2.0-rc.2")]
+#[case("1.2.0-rc", "1.2.0-rd")]
+#[case("1.0.0-x-y-z.--", "1.0.0-x-y-z.-0")]
+#[case("1.0.0-x-y-z.-", "1.0.0-x-y-z.a")]
+fn test_version_next_immediate(#[case] left: Version, #[case] right: Version) {
+    assert_eq!(left.next_immediate_spec(), right);
+}

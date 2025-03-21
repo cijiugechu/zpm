@@ -123,6 +123,14 @@ impl Range {
         matches!(&self, Range::Link(_) | Range::Portal(_) | Range::Tarball(_) | Range::Folder(_) | Range::Patch(_) | Range::WorkspaceIdent(_) | Range::WorkspaceMagic(_) | Range::WorkspacePath(_) | Range::WorkspaceSemver(_))
     }
 
+    pub fn to_semver_range(&self) -> Option<zpm_semver::Range> {
+        match self {
+            Range::AnonymousSemver(params) => Some(params.range.clone()),
+            Range::RegistrySemver(params) => Some(params.range.clone()),
+            _ => None,
+        }
+    }
+
     pub fn to_peer_range(&self) -> Result<PeerRange, Error> {
         match self {
             Range::AnonymousSemver(params)
