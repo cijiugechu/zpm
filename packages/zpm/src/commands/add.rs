@@ -15,10 +15,14 @@ struct AddRequest {
 }
 
 async fn expand_with_types<'a>(install_context: &InstallContext<'a>, _resolve_options: &loose_descriptor::ResolveOptions, requests: Vec<(Descriptor, AddRequest)>) -> Result<Vec<(Descriptor, AddRequest)>, Error> {
-    let mut type_requests = requests.clone();
-
     let project = install_context.project
         .expect("Project not found");
+
+    if !project.config.project.enable_auto_types.value {
+        return Ok(requests);
+    }
+
+    let mut type_requests = requests.clone();
 
     let ident_set = requests.iter()
         .map(|(descriptor, _)| descriptor.ident.clone())

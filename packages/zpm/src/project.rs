@@ -70,7 +70,10 @@ impl Project {
         let (project_cwd, package_cwd)
             = Project::find_closest_project(shell_cwd.clone())?;
 
-        let config = Config::new(Some(project_cwd.clone()));
+        let config = Config::new(
+            Some(project_cwd.clone()),
+            Some(package_cwd.clone()),
+        );
 
         let root_workspace
             = Workspace::from_root_path(&project_cwd)?;
@@ -320,30 +323,29 @@ impl Project {
         Ok(active_package)
     }
 
-    pub fn active_workspace(&self) -> Result<&Workspace, Error> {
+    pub fn active_workspace_idx(&self) -> Result<usize, Error> {
         let active_package = self.active_workspace_locator()?;
 
         let Reference::Workspace(params) = &active_package.reference else {
             return Err(Error::ActivePackageNotWorkspace);
         };
 
-        let idx = self.workspaces_by_ident.get(&params.ident)
+        let &idx = self.workspaces_by_ident.get(&params.ident)
             .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
 
-        Ok(&self.workspaces[*idx])
+        Ok(idx)
+    }
+
+    pub fn active_workspace(&self) -> Result<&Workspace, Error> {
+        let idx = self.active_workspace_idx()?;
+
+        Ok(&self.workspaces[idx])
     }
 
     pub fn active_workspace_mut(&mut self) -> Result<&mut Workspace, Error> {
-        let active_package = self.active_workspace_locator()?;
+        let idx = self.active_workspace_idx()?;
 
-        let Reference::Workspace(params) = &active_package.reference else {
-            return Err(Error::ActivePackageNotWorkspace);
-        };
-
-        let idx = self.workspaces_by_ident.get(&params.ident)
-            .ok_or_else(|| Error::WorkspaceNotFound(params.ident.clone()))?;
-
-        Ok(&mut self.workspaces[*idx])
+        Ok(&mut self.workspaces[idx])
     }
 
     pub fn workspace_by_ident(&self, ident: &Ident) -> Result<&Workspace, Error> {

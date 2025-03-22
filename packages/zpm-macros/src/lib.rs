@@ -2,6 +2,7 @@ extern crate proc_macro;
 
 use std::{collections::HashMap, sync::LazyLock};
 
+use convert_case::{Case, Casing};
 use parse_enum::ParseEnumArgs;
 use proc_macro2::Span;
 use quote::{quote, ToTokens, TokenStreamExt};
@@ -105,8 +106,9 @@ fn get_ident_from_type(ty: &Type) -> Ident {
 #[proc_macro_attribute]
 pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
-    let struct_name = &input.ident;
-    let enum_name = Ident::new(&format!("{}Type", struct_name), Span::call_site());
+
+    let struct_sym = &input.ident;
+    let enum_sym = Ident::new(&format!("{}Type", struct_sym), Span::call_site());
 
     let fields = if let syn::Data::Struct(data_struct) = &input.data {
         &data_struct.fields
@@ -119,15 +121,33 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
     let mut default_functions = vec![];
     let mut new_fields = vec![];
     let mut enum_variants = HashMap::new();
+
+    // map.insert("enableAutoType".to_string(), ProjectSettingsType::BoolField(self.enable_auto_type.clone()))
     let mut extract_stmts = vec![];
 
-    for field in fields.iter() {
-        let field_name = field.ident.as_ref().unwrap();
+    // "enable_auto_type" => Ok(ProjectSettingsType::BoolField(... parses `value` as a bool ...))
+    let mut enum_variants_from_file_string = vec![];
 
-        let field_type = &field.ty;
-        let field_type_path = get_expr_path_from_type(field_type);
+    for field in fields.iter() {
+        let primary_name_sym = field.ident.as_ref().unwrap();
+
+        let primary_name_str_cc = primary_name_sym
+            .to_string()
+            .to_case(Case::Camel);
+
+        // Foo<T>
+        let field_ty = &field.ty;
+        // Foo::<T>
+        let field_ty_path = get_expr_path_from_type(field_ty);
+        // Foo_T
+        let field_ty_slug_sym = get_ident_from_type(field_ty);
+
+        if !enum_variants.contains_key(&field_ty_slug_sym.to_string()) {
+            enum_variants.insert(field_ty_slug_sym.to_string(), (field_ty_slug_sym.clone(), field_ty));
+        }
 
         let mut default_value = None;
+        let mut all_names_sym = vec![primary_name_sym.clone()];
 
         for attr in &field.attrs {
             if attr.path().is_ident("default") {
@@ -135,42 +155,83 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
                     default_value = Some(value);
                 }
             }
+
+            if attr.path().is_ident("alias") {
+                if let Ok(ident) = attr.parse_args::<Ident>() {
+                    all_names_sym.push(ident);
+                }
+            }
         }
 
         if let Some(default) = default_value {
-            let func_name = syn::Ident::new(&format!("{}_default_from_env", field_name), field_name.span());
-            let func_name_str = func_name.to_string();
+            let default_func_name_sym = syn::Ident::new(&format!("{}_default_from_env", primary_name_sym), primary_name_sym.span());
+            let default_func_name_str = default_func_name_sym.to_string();
+
+            let env_get = all_names_sym.iter()
+                .map(|setting_name| {
+                    let env_name
+                        = format!("YARN_{}", setting_name)
+                            .to_uppercase();
+
+                    quote!{std::env::var(#env_name)}
+                })
+                .reduce(|a, b| {
+                    quote!{#a.or_else(|_| #b)}
+                })
+                .unwrap();
+
+            let default_expr = match &default {
+                Expr::Closure(_) => quote! {(#default)(crate::config::CONFIG_PATH.lock().unwrap().as_ref().unwrap())},
+                _ => quote! {#default},
+            };
 
             default_functions.push(quote! {
-                fn #func_name() -> #field_type {
-                    match std::env::var(concat!("YARN_", stringify!(#field_name)).to_uppercase()) {
-                        Ok(value) => #field_type_path::from_file_string(&value).unwrap(),
-                        Err(_) => #field_type_path::new(#default),
+                fn #default_func_name_sym() -> #field_ty {
+                    match #env_get {
+                        Ok(value) => #field_ty_path::from_file_string(&value).unwrap(),
+                        Err(_) => #field_ty_path::new(#default_expr),
                     }
                 }
             });
 
+            let aliases = &all_names_sym.iter()
+                .skip(1)
+                .map(|alias_sym| {
+                    let alias_str_cc = alias_sym.to_string()
+                        .to_case(Case::Camel);
+
+                    quote! {#[serde(alias = #alias_str_cc)]}
+                })
+                .collect::<Vec<_>>();
+
             new_fields.push(quote! {
-                #[serde(default = #func_name_str)]
-                pub #field_name: #field_type,
+                #[serde(default = #default_func_name_str)]
+                #(#aliases)*
+                pub #primary_name_sym: #field_ty,
             });
         } else {
             new_fields.push(quote! {
                 #[serde(default)]
-                pub #field_name: #field_type,
+                pub #primary_name_sym: #field_ty,
             });
         }
 
-        let enum_variant_ident
-            = get_ident_from_type(field_type);
+        for name_sym in &all_names_sym {
+            let name_str = name_sym.to_string();
+
+            enum_variants_from_file_string.push(quote! {
+                #name_str => {
+                    let parsed = #field_ty_path::from_file_string(&value)
+                        .map_err(|_| crate::error::Error::InvalidConfigValue(key.to_string(), value.to_string()))?;
+
+                    Ok(#enum_sym::#field_ty_slug_sym(parsed))
+                },
+            });
+        }
 
         extract_stmts.push(quote! {
-            map.insert(stringify!(#field_name).to_string(), #enum_name::#enum_variant_ident(self.#field_name.clone()));
+            map.insert(#primary_name_str_cc.to_string(), #enum_sym::#field_ty_slug_sym(self.#primary_name_sym.clone()));
         });
-    
-        if !enum_variants.contains_key(&enum_variant_ident.to_string()) {
-            enum_variants.insert(enum_variant_ident.to_string(), (enum_variant_ident, field_type));
-        }
     }
 
     let enum_variants_vec = enum_variants.into_values()
@@ -181,30 +242,14 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
             #ident(#ty),
         });
 
-    let enum_variants_from_file_string = fields.iter()
-        .map(|field| {
-            let field_name = field.ident.as_ref().unwrap();
-            let field_type = &field.ty;
-
-            let field_type_path
-                = get_expr_path_from_type(field_type);
-
-            let enum_variant_ident
-                = get_ident_from_type(field_type);
-
-            quote! {
-                stringify!(#field_name) => Ok(#enum_name::#enum_variant_ident(#field_type_path::from_file_string(&value)?)),
-            }
-        });
-
     let enum_variants_to_file_string = enum_variants_vec.iter()
         .map(|(ident, _ty)| quote! {
-            #enum_name::#ident(inner) => inner.to_file_string(),
+            #enum_sym::#ident(inner) => inner.to_file_string(),
         });
 
     let enum_variants_to_human_string = enum_variants_vec.iter()
         .map(|(ident, _ty)| quote! {
-            #enum_name::#ident(inner) => inner.to_print_string(),
+            #enum_sym::#ident(inner) => inner.to_print_string(),
         });
 
     let expanded = quote! {
@@ -212,14 +257,14 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
 
         #[derive(Clone, Debug, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        pub struct #struct_name {
+        pub struct #struct_sym {
             pub path: Option<arca::Path>,
 
             #(#new_fields)*
         }
 
-        impl #struct_name {
-            pub fn to_btree_map(&self) -> std::collections::BTreeMap<String, #enum_name> {
+        impl #struct_sym {
+            pub fn to_btree_map(&self) -> std::collections::BTreeMap<String, #enum_sym> {
                 let mut map = std::collections::BTreeMap::new();
                 #(#extract_stmts)*
                 map
@@ -227,22 +272,22 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
         }
 
         #[derive(Clone, Debug)]
-        pub enum #enum_name {
+        pub enum #enum_sym {
             #(#enum_variants_fields)*
         }
 
-        impl #enum_name {
+        impl #enum_sym {
             pub fn from_file_string(key: &str, value: &str) -> Result<Self, crate::error::Error> {
                 match key {
                     #(#enum_variants_from_file_string)*
 
-                    _ => Err(crate::error::Error::InvalidConfigValue(key.to_string())),
+                    _ => Err(crate::error::Error::ConfigKeyNotFound(key.to_string())),
                 }
             }
         }
 
-        impl #struct_name {
-            pub fn set(&self, name: &str, value: #enum_name) -> Result<(), crate::error::Error> {
+        impl #struct_sym {
+            pub fn set(&self, name: &str, value: #enum_sym) -> Result<(), crate::error::Error> {
                 use arca::OkMissing;
                 use convert_case::{Casing, Case};
 
@@ -267,7 +312,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
             }
         }
 
-        impl zpm_utils::ToFileString for #enum_name {
+        impl zpm_utils::ToFileString for #enum_sym {
             fn to_file_string(&self) -> String {
                 match self {
                     #(#enum_variants_to_file_string)*
@@ -278,7 +323,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
             }
         }
 
-        impl zpm_utils::ToHumanString for #enum_name {
+        impl zpm_utils::ToHumanString for #enum_sym {
             fn to_print_string(&self) -> String {
                 match self {
                     #(#enum_variants_to_human_string)*

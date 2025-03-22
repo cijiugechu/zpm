@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use zpm_macros::yarn_config;
 use zpm_semver::RangeKind;
 use zpm_utils::{FromFileString, ToFileString};
-use crate::config_fields::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField};
+use crate::{config::ConfigPaths, config_fields::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField}};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -37,12 +37,37 @@ pub struct EnvConfig {
 pub struct UserConfig {
 }
 
+fn check_tsconfig(config_paths: &ConfigPaths) -> bool {
+    if let Some(project_cwd) = &config_paths.project_cwd {
+        let root_has_tsconfig = project_cwd
+            .with_join_str("tsconfig.json")
+            .fs_exists();
+
+        if root_has_tsconfig {
+            return true;
+        }
+    }
+
+    if let Some(package_cwd) = &config_paths.package_cwd {
+        let package_has_tsconfig = package_cwd
+            .with_join_str("tsconfig.json")
+            .fs_exists();
+
+        if package_has_tsconfig {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[yarn_config]
 pub struct ProjectConfig {
     #[default(RangeKind::Caret)]
     pub default_semver_range_prefix: EnumField<RangeKind>,
 
-    #[default(false)]
+    #[default(|path| check_tsconfig(path))]
+    #[alias(ts_enable_auto_types)]
     pub enable_auto_types: BoolField,
 
     #[default(false)]

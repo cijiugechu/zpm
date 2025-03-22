@@ -357,6 +357,7 @@ impl FromFileString for PathField {
         if !value.is_absolute() {
             value = CONFIG_PATH.lock().unwrap()
                 .as_ref().unwrap()
+                .rc_path.as_ref().unwrap()
                 .dirname().unwrap()
                 .with_join(&value);
         }
@@ -367,12 +368,15 @@ impl FromFileString for PathField {
 
 impl<'de> Deserialize<'de> for PathField {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        let str = String::deserialize(deserializer)?;
+        let mut value = Path::from(String::deserialize(deserializer)?);
 
-        let value = CONFIG_PATH.lock().unwrap()
-            .as_ref().unwrap()
-            .dirname().unwrap()
-            .with_join_str(&str);
+        if !value.is_absolute() {
+            value = CONFIG_PATH.lock().unwrap()
+                .as_ref().unwrap()
+                .rc_path.as_ref().unwrap()
+                .dirname().unwrap()
+                .with_join(&value);
+        }
 
         Ok(PathField {value, source: Default::default()})
     }
@@ -432,6 +436,8 @@ impl Serialize for Glob {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::ConfigPaths;
+
     use super::*;
     use serde::{Deserialize, Serialize};
     use serde_json;
@@ -646,7 +652,11 @@ mod tests {
     fn test_path_field() {
         // We need to set up the CONFIG_PATH for this test
         let temp_path = Path::from("/tmp/test_config.toml");
-        *CONFIG_PATH.lock().unwrap() = Some(temp_path);
+        *CONFIG_PATH.lock().unwrap() = Some(ConfigPaths {
+            rc_path: Some(temp_path.clone()),
+            project_cwd: None,
+            package_cwd: None,
+        });
 
         // Test FromFileString with absolute path
         let raw_absolute = "/absolute/path/to/file.txt";

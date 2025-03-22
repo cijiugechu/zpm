@@ -184,8 +184,8 @@ pub enum Error {
     #[error("Config key not found ({0})")]
     ConfigKeyNotFound(String),
 
-    #[error("Invalid config value for {0}")]
-    InvalidConfigValue(String),
+    #[error("Invalid config value for {0} ({1})")]
+    InvalidConfigValue(String, String),
 
     #[error("Package conversion error ({0})")]
     PackageConversionError(Arc<Box<dyn std::error::Error + Send + Sync>>),
