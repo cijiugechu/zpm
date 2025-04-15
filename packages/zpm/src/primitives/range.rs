@@ -1,5 +1,6 @@
 use std::{hash::Hash, sync::LazyLock};
 
+use arca::Path;
 use bincode::{Decode, Encode};
 use colored::Colorize;
 use regex::Regex;
@@ -73,14 +74,14 @@ pub enum Range {
         hash: Sha256,
     },
 
+    #[pattern(spec = r"workspace:(?<magic>.*)")]
+    WorkspaceMagic {
+        magic: zpm_semver::RangeKind,
+    },
+
     #[pattern(spec = r"workspace:(?<range>.*)")]
     WorkspaceSemver {
         range: zpm_semver::Range,
-    },
-
-    #[pattern(spec = r"workspace:(?<magic>[~^=*])")]
-    WorkspaceMagic {
-        magic: String,
     },
 
     #[pattern(spec = r"workspace:\((?<ident>.*)\)")]
@@ -90,7 +91,7 @@ pub enum Range {
 
     #[pattern(spec = r"workspace:(?<path>.*)")]
     WorkspacePath {
-        path: String,
+        path: Path,
     },
 
     #[pattern(spec = "(?<git>.*)")]
@@ -182,7 +183,7 @@ impl ToFileString for Range {
 
             Range::Url(params) => params.url.clone(),
             Range::WorkspaceSemver(params) => format!("workspace:{}", params.range.to_file_string()),
-            Range::WorkspaceMagic(params) => format!("workspace:{}", params.magic),
+            Range::WorkspaceMagic(params) => format!("workspace:{}", serde_plain::to_string(&params.magic).unwrap()),
             Range::WorkspacePath(params) => format!("workspace:{}", params.path),
             Range::WorkspaceIdent(params) => format!("workspace:{}", params.ident.to_file_string()),
             Range::Git(params) => params.git.to_file_string(),
@@ -241,19 +242,19 @@ pub enum PeerRange {
         range: zpm_semver::Range,
     },
 
+    #[pattern(spec = r"workspace:(?<magic>.*)")]
+    WorkspaceMagic {
+        magic: zpm_semver::RangeKind,
+    },
+
     #[pattern(spec = "workspace:(?<range>.*)")]
     WorkspaceSemver {
         range: zpm_semver::Range,
     },
 
-    #[pattern(spec = r"workspace:(?<magic>[~^=*])")]
-    WorkspaceMagic {
-        magic: String,
-    },
-
     #[pattern(spec = r"workspace:(?<path>.*)")]
     WorkspacePath {
-        path: String,
+        path: Path,
     }
 }
 

@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use zpm_utils::{impl_serialization_traits, FromFileString, ToFileString, ToHumanString};
 
 use crate::{extract::extract_version, range::RangeKind, Error, Range};
@@ -6,15 +7,13 @@ use crate::{extract::extract_version, range::RangeKind, Error, Range};
 #[path = "./version.test.rs"]
 mod version_tests;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum VersionRc {
     Number(u32),
     String(String),
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+#[derive(Clone, Debug, Default, Decode, Encode, PartialEq, Eq, Hash)]
 pub struct Version {
     pub major: u32,
     pub minor: u32,

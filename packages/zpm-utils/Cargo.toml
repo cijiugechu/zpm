@@ -4,5 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bincode_derive = { version = "2.0.0-rc.3" }
+bincode = { version = "2.0.0-rc.3" }
+clean-path = "0.2.1"
 colored = "3.0.0"
+napi = { version = "2.13.1", default-features = false, features = [] }
+path-slash = "0.2.1"
+radix_trie = "0.2.1"
+serde_derive = { version = "1.0.163" }
+serde = { version = "1.0.163" }
 sonic-rs = "0.3.17"
+tokio = { version = "1.39.2" }
+thiserror = "2.0.12"

@@ -8,17 +8,13 @@ use zpm_utils::ToFileString;
 
 use crate::{build::{self, BuildRequests}, error::Error, fetchers::{PackageData, PackageLinking}, install::Install, primitives::{range::PackageSelector, Descriptor, Ident, Locator, Reference}, project::Project, resolvers::Resolution, settings, system};
 
-fn is_default<T: Default + PartialEq>(t: &T) -> bool {
-    t == &T::default()
-}
-
 #[derive(Debug, Default, Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct PackageMeta {
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     built: Option<bool>,
 
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     unplugged: Option<bool>,
 }
 

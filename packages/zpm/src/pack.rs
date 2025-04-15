@@ -1,152 +1,446 @@
-use arca::{Path, ToArcaPath};
-use walkdir::WalkDir;
+use std::collections::BTreeMap;
+use std::collections::HashSet;
+use std::sync::LazyLock;
+
+use arca::Path;
+use globset::GlobBuilder;
+use globset::GlobMatcher;
+use regex::Regex;
 
 use crate::error::Error;
-use crate::manifest::BinField;
-use crate::project::{Project, Workspace};
+use crate::manifest::helpers::read_manifest;
+use crate::manifest::Manifest;
+use crate::primitives::range::AnonymousSemverRange;
+use crate::primitives::range::SemverPeerRange;
+use crate::primitives::PeerRange;
+use crate::primitives::Range;
+use crate::project::Project;
+use crate::project::Workspace;
 
-static OVERRIDES: &[&str] = &[
-    // Those patterns must always be packed
+#[derive(Default)]
+struct IgnoreFiles {
+    pub gitignore: bool,
+    pub npmignore: bool,
+}
 
-    "package.json",
-
-    "readme",
-    "readme.*",
-
-    "license",
-    "license.*",
-
-    "licence",
-    "licence.*",
-
-    "changelog",
-    "changelog.*",
-
-    // Those patterns must never be packed
-
-    "!yarn.lock",
-    "!.pnp.cjs",
-    "!.pnp.loader.mjs",
-    "!.pnp.data.json",
-
-    "!.yarn/**",
-
-    "!package.tgz",
-    "!package.tar",
-  
-    "!.github/**",
-    "!.git/**",
-    "!.hg/**",
-    "!node_modules/**",
-
-    "!.gitignore",
-
-    "!.#*",
-    "!.DS_Store",
-];
-
-pub fn pack_list(_project: &Project, workspace: &Workspace) -> Result<Vec<Path>, Error> {
-    let mut entries = vec![];
-
-    let mut raw_patterns = match &workspace.manifest.files {
-        Some(files) => files.clone(),
-        None => vec!["**/*".to_string()],
-    };
-
-    raw_patterns.extend(OVERRIDES.iter().map(|s| s.to_string()));
-
-    if let Some(main) = &workspace.manifest.main {
-        raw_patterns.push(format!("/{}", main));
-    }
-
-    // TODO: Deprecate/remove in a future release
-    if let Some(module) = &workspace.manifest.module {
-        raw_patterns.push(format!("/{}", module));
-    }
-
-    // TODO: Deprecate/remove in a future release
-    if let Some(browser) = &workspace.manifest.browser {
-        raw_patterns.push(format!("/{}", browser));
-    }
-
-    if let Some(bin) = &workspace.manifest.bin {
-        match bin {
-            BinField::String(target) => {
-                raw_patterns.push(format!("/{}", target));
-            },
-            BinField::Map(targets) => {
-                for target in targets.values() {
-                    raw_patterns.push(format!("/{}", target));
-                }
-            },
+impl IgnoreFiles {
+    pub fn gitignore() -> Self {
+        Self {
+            gitignore: true,
+            npmignore: false,
         }
     }
 
-    let mut regular_glob_build = globset::GlobSetBuilder::new();
-    let mut negated_glob_build = globset::GlobSetBuilder::new();
+    pub fn npmignore() -> Self {
+        Self {
+            gitignore: false,
+            npmignore: true,
+        }
+    }
+}
 
-    for raw_pattern in raw_patterns {
-        let (negated, base_pattern) = match raw_pattern.starts_with("!") {
-            true => (true, &raw_pattern[1..]),
-            false => (false, raw_pattern.as_str()),
+static GLOB_ABS_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(!)?(\.{0,2}/|\.{0,2}$)?(.*)").unwrap()
+});
+
+struct PackGlob {
+    pub glob_matcher: GlobMatcher,
+    pub is_positive: bool,
+}
+
+impl std::fmt::Debug for PackGlob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PackGlob")
+            .field("glob_matcher", &self.glob_matcher.glob().to_string())
+            .field("is_positive", &self.is_positive)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+struct PackIgnore {
+    pub patterns: Vec<PackGlob>,
+}
+
+impl PackIgnore {
+    pub fn new() -> Self {
+        Self {
+            patterns: vec![],
+        }
+    }
+
+    pub fn add_raw(&mut self, pack_glob: PackGlob) {
+        self.patterns.push(pack_glob);
+    }
+
+    pub fn add(&mut self, from_dir: &Path, pattern: &str) -> Result<(), Error> {
+        let captures = GLOB_ABS_REGEXP
+            .captures(pattern)
+            .expect("Expected the glob regex to match");
+
+        let prefix = &captures.get(1)
+            .map(|m| m.as_str())
+            .unwrap_or("");
+
+        let is_positive =
+            !prefix.contains('!');
+
+        let is_rooted =
+            captures.get(2).is_some() || pattern.contains('/');
+
+        let mut rooted_path = match is_rooted {
+            true => from_dir.with_join_str(&captures[3]),
+            false => from_dir.with_join_str("**").with_join_str(&captures[3]),
         };
 
-        let processed_patterns = match base_pattern.starts_with("/") {
-            true => vec![(negated, base_pattern.to_string()), (negated, format!("{}/**", base_pattern))],
-            false => match base_pattern.contains("/") {
-                true => vec![(negated, format!("/{}", base_pattern)), (negated, format!("/{}/**", base_pattern))],
-                false => vec![(negated, format!("/**/{}", base_pattern)), (negated, format!("/**/{}/**", base_pattern))],
-            },
-        };
+        self.push(&rooted_path.as_str(), is_positive);
+        rooted_path.join_str("**");
+        self.push(&rooted_path.as_str(), is_positive);
 
-        for (negated, pattern) in processed_patterns {
-            let glob = globset::Glob::new(&pattern)
-                .map_err(|_| Error::InvalidFilePattern(pattern))?;
+        Ok(())
+    }
 
-            if negated {
-                negated_glob_build.add(glob);
+    fn push(&mut self, rooted_path: &str, is_positive: bool) {
+        let nested_glob_matcher = GlobBuilder::new(&rooted_path)
+            .build()
+            .expect("Failed to build glob")
+            .compile_matcher();
+
+        self.patterns.push(PackGlob {
+            glob_matcher: nested_glob_matcher,
+            is_positive,
+        });
+    }
+
+    pub fn is_ignored(&self, rel_path: &Path) -> bool {
+        let last_matching_entry = self.patterns.iter().rev()
+            .find(|matcher| matcher.glob_matcher.is_match(rel_path.as_str()));
+
+        last_matching_entry
+            .map(|matcher| matcher.is_positive)
+            .unwrap_or(false)
+    }
+}
+
+struct PackList {
+    pub root_path: Path,
+
+    pub files: Vec<Path>,
+    pub ignore_files: BTreeMap<Path, IgnoreFiles>,
+
+    pub skip_traversal_by_name: HashSet<String>,
+    pub skip_traversal_by_rel_path: HashSet<Path>,
+}
+
+impl PackList {
+    pub fn new(root_path: Path) -> Self {
+        Self {
+            root_path,
+
+            files: vec![],
+            ignore_files: BTreeMap::new(),
+
+            skip_traversal_by_name: HashSet::new(),
+            skip_traversal_by_rel_path: HashSet::new(),
+        }
+    }
+
+    pub fn traverse(&mut self, rel_path: &Path) -> Result<(), Error> {
+        let abs_path = self.root_path
+            .with_join(rel_path);
+
+        let directory_entries = abs_path.fs_read_dir()?
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for entry in directory_entries {
+            let file_type
+                = entry.file_type()?;
+
+            let file_name
+                = entry.file_name()
+                    .into_string()
+                    .map_err(|_| Error::NonUtf8Path)?;
+
+            let entry_rel_path = rel_path
+                .with_join_str(&file_name);
+
+            if file_type.is_dir() {
+                if !self.skip_traversal_by_name.contains(&file_name) && !self.skip_traversal_by_rel_path.contains(&entry_rel_path) {
+                    self.traverse(&entry_rel_path)?;
+                }
+            }
+
+            if file_type.is_file() {
+                if file_name == ".gitignore" {
+                    self.ignore_files.entry(rel_path.clone())
+                        .and_modify(|f| f.gitignore = true)
+                        .or_insert(IgnoreFiles::gitignore());
+                }
+
+                if file_name == ".npmignore" {
+                    self.ignore_files.entry(rel_path.clone())
+                        .and_modify(|f| f.npmignore = true)
+                        .or_insert(IgnoreFiles::npmignore());
+                }
+
+                self.files.push(entry_rel_path);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn load_ignore(&self) -> Result<Vec<String>, Error> {
+        let mut patterns = vec![];
+
+        for (path, ignore_files) in &self.ignore_files {
+            let ignore_name = if ignore_files.npmignore {
+                Some(".npmignore")
+            } else if ignore_files.gitignore {
+                Some(".gitignore")
             } else {
-                regular_glob_build.add(glob);
+                None
+            };
+
+            if let Some(ignore_name) = ignore_name {
+                let abs_glob_root = self.root_path
+                    .with_join(&path);
+
+                let ignore_file = abs_glob_root
+                    .with_join_str(&ignore_name)
+                    .fs_read_text_prealloc()?;
+
+                let ignore_list = ignore_file
+                    .split('\n')
+                    .map(|line| line.trim())
+                    .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                    .map(|line| line.to_string())
+                    .collect::<Vec<_>>();
+
+                patterns.extend(ignore_list);
+            }
+        }
+
+        Ok(patterns)
+    }
+}
+
+pub fn pack_manifest(project: &Project, workspace: &Workspace) -> Result<Manifest, Error> {
+    let manifest_path = workspace.path
+        .with_join_str("package.json");
+
+    let mut manifest
+        = read_manifest(&manifest_path)?;
+
+    if let Some(type_) = &manifest.publish_config.type_ {
+        manifest.type_ = Some(type_.clone());
+    }
+
+    if let Some(main) = &manifest.publish_config.main {
+        manifest.main = Some(main.clone());
+    }
+
+    if let Some(exports) = &manifest.publish_config.exports {
+        manifest.exports = Some(exports.clone());
+    }
+
+    if let Some(imports) = &manifest.publish_config.imports {
+        manifest.imports = Some(imports.clone());
+    }
+
+    if let Some(module) = &manifest.publish_config.module {
+        manifest.module = Some(module.clone());
+    }
+
+    if let Some(browser) = &manifest.publish_config.browser {
+        manifest.browser = Some(browser.clone());
+    }
+
+    if let Some(bin) = &manifest.publish_config.bin {
+        manifest.bin = Some(bin.clone());
+    }
+
+    for (_, descriptor) in manifest.iter_hard_dependencies_mut() {
+        match &descriptor.range {
+            Range::WorkspaceSemver(params) => {
+                descriptor.range = Range::AnonymousSemver(AnonymousSemverRange {
+                    range: params.range.clone()
+                });
+            },
+
+            Range::WorkspaceMagic(params) => {
+                let workspace
+                    = project.workspace_by_ident(&descriptor.ident)?;
+
+                descriptor.range = Range::AnonymousSemver(AnonymousSemverRange {
+                    range: workspace.manifest.remote.version.clone().unwrap_or_default().to_range(params.magic),
+                });
+            },
+
+            Range::WorkspaceIdent(params) => {
+                let workspace
+                    = project.workspace_by_ident(&params.ident)?;
+
+                descriptor.range = Range::AnonymousSemver(AnonymousSemverRange {
+                    range: workspace.manifest.remote.version.clone().unwrap_or_default().to_range(zpm_semver::RangeKind::Exact),
+                });
+            },
+
+            Range::WorkspacePath(params) => {
+                let workspace
+                    = project.workspace_by_rel_path(&params.path)?;
+
+                descriptor.range = Range::AnonymousSemver(AnonymousSemverRange {
+                    range: workspace.manifest.remote.version.clone().unwrap_or_default().to_range(zpm_semver::RangeKind::Exact),
+                });
+            },
+
+            _ => {}
+        }
+    }
+
+    for (ident, peer_range) in &mut manifest.remote.peer_dependencies {
+        match peer_range {
+            PeerRange::WorkspaceMagic(params) => {
+                let workspace
+                    = project.workspace_by_ident(ident)?;
+
+                *peer_range = PeerRange::Semver(SemverPeerRange {
+                    range: workspace.manifest.remote.version.clone().unwrap_or_default().to_range(params.magic),
+                });
+            },
+
+            PeerRange::WorkspacePath(params) => {
+                let workspace
+                    = project.workspace_by_rel_path(&params.path)?;
+
+                *peer_range = PeerRange::Semver(SemverPeerRange {
+                    range: workspace.manifest.remote.version.clone().unwrap_or_default().to_range(zpm_semver::RangeKind::Exact),
+                });
+            },
+
+            PeerRange::WorkspaceSemver(params) => {
+                *peer_range = PeerRange::Semver(SemverPeerRange {
+                    range: params.range.clone(),
+                });
+            },
+
+            _ => {}
+        }
+    }
+
+    Ok(manifest)
+}
+
+pub fn pack_list(project: &Project, workspace: &Workspace, manifest: &Manifest) -> Result<Vec<arca::Path>, Error> {
+    let mut pack_list = PackList::new(workspace.path.clone());
+
+    pack_list.skip_traversal_by_name.insert(".git".to_string());
+    pack_list.skip_traversal_by_name.insert(".github".to_string());
+    pack_list.skip_traversal_by_name.insert(".hg".to_string());
+    pack_list.skip_traversal_by_name.insert(".vscode".to_string());
+    pack_list.skip_traversal_by_name.insert(".yarn".to_string());
+    pack_list.skip_traversal_by_name.insert("node_modules".to_string());
+    pack_list.skip_traversal_by_name.insert("target".to_string());
+
+    for workspace in &project.workspaces {
+        pack_list.skip_traversal_by_rel_path.insert(workspace.rel_path.clone());
+    }
+
+    pack_list.traverse(&Path::new())?;
+    pack_list.files.sort();
+
+    let mut glob_ignore = PackIgnore::new();
+
+    if let Some(files) = &workspace.manifest.files {
+        pack_list.ignore_files.remove(&Path::new());
+
+        glob_ignore.add(&Path::new(), "*")?;
+
+        for pattern in files {
+            if pattern.starts_with('!') {
+                glob_ignore.add(&Path::new(), &pattern[1..])?;
+            } else {
+                glob_ignore.add(&Path::new(), &format!("!{}", pattern))?;
             }
         }
     }
 
-    let regular_glob = regular_glob_build.build()
-        .expect("Expected the glob pattern to be valid");
-    let negated_glob = negated_glob_build.build()
-        .expect("Expected the glob pattern to be valid");
+    let user_patterns = pack_list
+        .load_ignore()?;
 
-    let walk = WalkDir::new(workspace.path.to_path_buf())
-        .follow_links(false)
-        .sort_by_file_name()
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|err| match err.into_io_error() {
-            Some(err) => err.into(),
-            None => Error::Unsupported,
-        })?;
-
-    for entry in walk {
-        if !entry.file_type().is_file() && !entry.file_type().is_symlink() {
-            continue;
-        }
-
-        let rel_path = entry.path()
-            .to_arca()
-            .relative_to(&workspace.path);
-
-        let rooted_path = Path::from("/")
-            .with_join(&rel_path);
-
-        let candidate
-            = globset::Candidate::new(rooted_path.as_str());
-
-        if !regular_glob.is_match_candidate(&candidate) || negated_glob.is_match_candidate(&candidate) {
-            continue;
-        }
-
-        entries.push(rel_path);
+    for pattern in &user_patterns {
+        glob_ignore.add(&Path::new(), pattern)?;
     }
 
-    Ok(entries)
+    let always_ignored = GlobBuilder::new("{.#*,.DS_Store,.gitignore,.npmignore,.pnp.*,.yarnrc,yarn.lock}")
+        .build()
+        .expect("Failed to build glob")
+        .compile_matcher();
+
+    glob_ignore.add_raw(PackGlob {
+        glob_matcher: always_ignored,
+        is_positive: true,
+    });
+
+    let always_allowed = GlobBuilder::new("package.json")
+        .build()
+        .expect("Failed to build glob")
+        .compile_matcher();
+
+    glob_ignore.add_raw(PackGlob {
+        glob_matcher: always_allowed,
+        is_positive: false,
+    });
+
+    let misc_files = GlobBuilder::new("{readme,licence,license,changelog}{,.*}")
+        .empty_alternates(true)
+        .case_insensitive(true)
+        .build()
+        .expect("Failed to build glob")
+        .compile_matcher();
+
+    glob_ignore.add_raw(PackGlob {
+        glob_matcher: misc_files,
+        is_positive: false,
+    });
+
+    if let Some(main) = &manifest.main {
+        glob_ignore.add(&Path::new(), &format!("!/{}", main))?;
+    }
+
+    if let Some(exports) = &manifest.exports {
+        for export_path in exports.paths() {
+            glob_ignore.add(&Path::new(), &format!("!/{}", export_path.path))?;
+        }
+    }
+
+    if let Some(imports) = &manifest.imports {
+        for import_path in imports.paths() {
+            glob_ignore.add(&Path::new(), &format!("!/{}", import_path.path))?;
+        }
+    }
+
+    if let Some(browser) = &manifest.browser {
+        glob_ignore.add(&Path::new(), &format!("!/{}", browser))?;
+    }
+
+    if let Some(module) = &manifest.module {
+        glob_ignore.add(&Path::new(), &format!("!/{}", module))?;
+    }
+
+    if let Some(bin) = &manifest.bin {
+        for path in bin.paths() {
+            glob_ignore.add(&Path::new(), &format!("!/{}", path))?;
+        }
+    }
+
+    let final_list = pack_list
+        .files
+        .into_iter()
+        .filter(|path| !glob_ignore.is_ignored(path))
+        .collect();
+
+    Ok(final_list)
 }

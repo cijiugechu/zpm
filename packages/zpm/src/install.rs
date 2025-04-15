@@ -474,7 +474,7 @@ impl<'a> InstallManager<'a> {
 
         for entry in installed_entries {
             match entry {
-                (InstallOp::Resolve {descriptor, ..}, InstallOpResult::Validated) => {
+                (InstallOp::Resolve {..}, InstallOpResult::Validated) => {
                 },
 
                 (InstallOp::Resolve {descriptor, ..}, InstallOpResult::Pinned(PinnedResult {locator})) => {

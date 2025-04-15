@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use serde::{Deserialize, Serialize};
+use bincode::{Decode, Encode};
 use zpm_utils::{impl_serialization_traits, FromFileString, ToFileString, ToHumanString};
 
 use crate::Error;
@@ -9,21 +9,50 @@ use super::{extract, Version};
 #[cfg(test)]
 #[path = "./range.test.rs"]
 mod range_tests;
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+
+#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum RangeKind {
-#[serde(alias = "name")]
-    #[serde(rename = "caret", alias = "^")]
     Caret,
-
-    #[serde(rename = "tilde", alias = "~")]
     Tilde,
-
-    #[serde(rename = "exact", alias = "=", alias = "")]
     Exact,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+impl FromFileString for RangeKind {
+    type Error = Error;
+
+    fn from_file_string(raw: &str) -> Result<Self, Self::Error> {
+        match raw {
+            "^" | "caret" => Ok(RangeKind::Caret),
+            "~" | "tilde" => Ok(RangeKind::Tilde),
+            "=" | "exact" | "*" | "" => Ok(RangeKind::Exact),
+            _ => Err(Error::InvalidRange(raw.to_string())),
+        }
+    }
+}
+
+impl ToFileString for RangeKind {
+    fn to_file_string(&self) -> String {
+        match self {
+            RangeKind::Caret => "^".to_string(),
+            RangeKind::Tilde => "~".to_string(),
+            RangeKind::Exact => "=".to_string(),
+        }
+    }
+}
+
+impl ToHumanString for RangeKind {
+    fn to_print_string(&self) -> String {
+        match self {
+            RangeKind::Caret => "^".to_string(),
+            RangeKind::Tilde => "~".to_string(),
+            RangeKind::Exact => "=".to_string(),
+        }
+    }
+}
+
+impl_serialization_traits!(RangeKind);
+
+#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TokenType {
     LParen,
     RParen,
@@ -32,8 +61,7 @@ pub enum TokenType {
     Or,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+#[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum OperatorType {
     Equal,
     LessThan,
@@ -42,15 +70,13 @@ pub enum OperatorType {
     GreaterThanOrEqual,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Token {
     Syntax(TokenType),
     Operation(OperatorType, Version),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "bincode", derive(bincode_derive::Decode, bincode_derive::Encode))]
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Range {
     pub source: String,
 

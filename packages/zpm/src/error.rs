@@ -100,11 +100,17 @@ pub enum Error {
     #[error("Glob error")]
     GlobError(#[from] globset::Error),
 
+    #[error("Glob walk error")]
+    GlobWalkError(#[from] Arc<wax::walk::WalkError>),
+
     #[error("UTF-8 error")]
     Utf8Error(#[from] Arc<std::str::Utf8Error>),
 
     #[error("UTF-8 error")]
     Utf8Error2(#[from] std::str::Utf8Error),
+
+    #[error("Non-UTF-8 path")]
+    NonUtf8Path,
 
     #[error("Invalid JSON data ({0})")]
     InvalidJsonData(#[from] Arc<sonic_rs::Error>),
@@ -321,6 +327,12 @@ impl From<std::io::Error> for Error {
             inner: Arc::new(error),
             backtrace: Arc::new(std::backtrace::Backtrace::capture()),
         }
+    }
+}
+
+impl From<wax::walk::WalkError> for Error {
+    fn from(error: wax::walk::WalkError) -> Self {
+        Arc::new(error).into()
     }
 }
 

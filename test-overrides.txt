@@ -17,3 +17,10 @@ Plug'n'Play API ► std - v1 ► getPackageInformation ► it should return the 
 Plugins ► typescript ► Adding types ► it should reuse ranges when adding @types if the ranges of the original descriptor match (nested workspaces)
     We don't support "Nested workspaces" anymore (ie having a `workspaces` field inside multiple
     package.json files in the same project; it now has to be at the root).
+
+Commands ► pack ► it should support gitignore patterns (**)
+    This test now fails because we fixed a bug! Previously Yarn was ignoring the order of
+    include vs exclude patterns, so something like `["*", "!*.js", "not-this-one.js"]`
+    would also erroneously pattern-match `not-this-one.js`. Not anymore.
+
+    Ref: https://github.com/yarnpkg/berry/issues/5872

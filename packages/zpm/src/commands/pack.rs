@@ -1,8 +1,10 @@
-use std::process::ExitCode;
+use std::collections::BTreeSet;
 
+use arca::Path;
 use clipanion::cli;
+use zpm_utils::ToFileString;
 
-use crate::{error::Error, pack::pack_list, project, script::ScriptEnvironment};
+use crate::{error::Error, pack::{pack_list, pack_manifest}, primitives::Locator, project::{self, Project, Workspace}, script::ScriptEnvironment};
 
 #[cli::command(proxy)]
 #[cli::path("pack")]
@@ -12,30 +14,22 @@ pub struct Pack {
 
     #[cli::option("--install-if-needed")]
     install_if_needed: bool,
+
+    #[cli::option("--json")]
+    json: bool,
+
+    #[cli::option("--out")]
+    out: Option<Path>,
 }
 
 impl Pack {
     #[tokio::main()]
-    pub async fn execute(&self) -> Result<ExitCode, Error> {
+    pub async fn execute(&self) -> Result<(), Error> {
         let mut project
             = project::Project::new(None).await?;
 
         project
             .import_install_state()?;
-
-        let active_workspace
-            = project.active_workspace()?;
-
-        let pack_list
-            = pack_list(&project, active_workspace)?;
-
-        if self.dry_run {
-            for pack in pack_list {
-                println!("{}", pack);
-            }
-
-            return Ok(ExitCode::SUCCESS);
-        }
 
         let prepack_script
             = project.find_script("prepack")
@@ -45,7 +39,15 @@ impl Pack {
             = project.find_script("postpack")
                 .map(Some).or_else(|e| e.ignore(|e| matches!(e, Error::ScriptNotFound(_))))?;
 
-        if let Some((locator, script)) = prepack_script {
+        self.maybe_run_script(&project, prepack_script).await?;
+        let result = self.run_command(&project).await;
+        self.maybe_run_script(&project, postpack_script).await?;
+
+        result
+    }
+
+    async fn maybe_run_script(&self, project: &Project, script: Option<(Locator, String)>) -> Result<(), Error> {
+        if let Some((locator, script)) = script {
             ScriptEnvironment::new()
                 .with_project(&project)
                 .with_package(&project, &locator)?
@@ -54,28 +56,111 @@ impl Pack {
                 .ok()?;
         }
 
-        let entries
+        Ok(())
+    }
+
+    async fn run_command(&self, project: &Project) -> Result<(), Error> {
+        let active_workspace
+            = project.active_workspace()?;
+
+        if self.dry_run {
+            self.dry_run(&project, active_workspace).await
+        } else {
+            self.gen_archive(&project, active_workspace).await
+        }
+    }
+
+    async fn dry_run(&self, project: &Project, active_workspace: &Workspace) -> Result<(), Error> {
+        let manifest
+            = pack_manifest(project, active_workspace)?;
+
+        let pack_list
+            = pack_list(&project, active_workspace, &manifest)?;
+
+        if self.json {
+            for path in pack_list {
+                println!("{}", sonic_rs::json!({ "location": path }));
+            }
+        } else {
+            for path in pack_list {
+                println!("{}", path);
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn gen_archive(&self, project: &Project, active_workspace: &Workspace) -> Result<(), Error> {
+        let manifest
+            = pack_manifest(project, active_workspace)?;
+
+        let pack_list
+            = pack_list(&project, active_workspace, &manifest)?;
+
+        let mut entries
             = zpm_formats::entries_from_files(&active_workspace.path, &pack_list)?;
 
+        let mut executable_files
+            = manifest.publish_config.executable_files
+                .clone()
+                .unwrap_or_default()
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+
+        if let Some(bin) = &manifest.bin {
+            executable_files.extend(bin.paths().cloned());
+        }
+
+        for entry in entries.iter_mut() {
+            if executable_files.contains(&Path::from(&entry.name)) {
+                entry.mode = 0o755;
+            } else {
+                entry.mode = 0o644;
+            }
+        }
+
+        let manifest_entry = entries
+            .iter_mut()
+            .find(|entry| entry.name == "package.json");
+
+        if let Some(manifest_entry) = manifest_entry {
+            manifest_entry.data = sonic_rs::to_string_pretty(&manifest).unwrap().into_bytes().into();
+        }
+
         let entries
-            = zpm_formats::prefix_entries(entries, active_workspace.name.nm_subdir());
+            = zpm_formats::prefix_entries(entries, "package");
 
         let packed_file
             = zpm_formats::tar::craft_tgz(&entries)?;
 
-        if let Some((locator, script)) = postpack_script {
-            ScriptEnvironment::new()
-                .with_project(&project)
-                .with_package(&project, &locator)?
-                .run_script(&script, &Vec::<&str>::new())
-                .await
-                .ok()?;
-        }
+        
+        let package_name
+            = manifest.name.map_or_else(
+                || "package".to_string(),
+                |name| name.slug());
 
-        active_workspace.path
-            .with_join_str("package.tgz")
+        let package_version
+            = manifest.remote.version.as_ref().map_or_else(
+                || "0.0.0".to_string(),
+                |v| v.to_file_string());
+
+        self.get_out_path(&active_workspace.path, &package_name, &package_version)?
+            .fs_create_parent()?
             .fs_write(&packed_file)?;
 
-        Ok(ExitCode::SUCCESS)
+        Ok(())
+    }
+
+    fn get_out_path(&self, workspace_abs_path: &Path, package_name: &str, package_version: &str) -> Result<Path, Error> {
+        let Some(out) = &self.out else {
+            return Ok(workspace_abs_path.with_join_str("package.tgz"));
+        };
+
+        let out_str = out.to_string();
+
+        let out_str = out_str.replace("%s", package_name);
+        let out_str = out_str.replace("%v", package_version);
+
+        Ok(Path::current_dir()?.with_join_str(&out_str))
     }
 }

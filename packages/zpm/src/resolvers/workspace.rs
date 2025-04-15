@@ -1,5 +1,3 @@
-use arca::Path;
-
 use crate::{error::Error, install::{InstallContext, IntoResolutionResult, ResolutionResult}, primitives::{range, reference, Descriptor, Locator}, resolvers::Resolution};
 
 pub fn resolve_name_descriptor(context: &InstallContext<'_>, descriptor: &Descriptor, params: &range::WorkspaceIdentRange) -> Result<ResolutionResult, Error> {
@@ -26,7 +24,7 @@ pub fn resolve_path_descriptor(context: &InstallContext<'_>, descriptor: &Descri
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    let workspace = project.workspace_by_rel_path(&Path::from(&params.path))?;
+    let workspace = project.workspace_by_rel_path(&params.path)?;
 
     resolve_name_descriptor(context, descriptor, &range::WorkspaceIdentRange {ident: workspace.name.clone()})
 }

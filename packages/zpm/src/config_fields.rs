@@ -442,19 +442,6 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use serde_json;
 
-    // Test helper to verify serialize/deserialize roundtrip
-    fn test_serde_roundtrip<T, TItem>(value: &T, expected_json: &str)
-    where
-        T: Serialize + for<'de> Deserialize<'de> + std::fmt::Debug + Field<TItem>,
-        TItem: PartialEq + std::fmt::Debug,
-    {
-        let serialized = serde_json::to_string(value).unwrap();
-        assert_eq!(serialized, expected_json);
-
-        let deserialized: T = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(deserialized.value(), value.value());
-    }
-
     #[test]
     fn test_string_field() {
         // Test FromFileString

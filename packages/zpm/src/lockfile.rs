@@ -7,16 +7,12 @@ use zpm_utils::ToFileString;
 
 use crate::{config::ENV_CONFIG, content_flags::ContentFlags, error::Error, hash::Sha256, primitives::{Descriptor, Locator}, resolvers::Resolution};
 
-fn is_default<T: Default + PartialEq>(value: &T) -> bool {
-    value == &T::default()
-}
-
 #[derive(Clone, Debug, Encode, Decode, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LockfileEntry {
     pub checksum: Option<Sha256>,
     pub resolution: Resolution,
 
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     pub flags: ContentFlags,
 }
 

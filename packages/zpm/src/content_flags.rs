@@ -13,10 +13,6 @@ static UNPLUG_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\.(exe|bin|h|hh|hpp|c|cc|cpp|java|jar|node)$").unwrap()
 });
 
-fn is_default<T: Default + PartialEq>(value: &T) -> bool {
-    value == &T::default()
-}
-
 /**
  * The package metadata struct contains various fields that instruct the
  * package manager (the linker, mostly) about the content of the package.
@@ -30,20 +26,20 @@ pub struct ContentFlags {
     /**
      * The build scripts that should be run after the package got installed.
      */
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     pub build_commands: Vec<build::Command>,
 
     /**
      * Whether the package requests to be extracted to the filesystem.
      */
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     pub prefer_extracted: Option<bool>,
 
     /**
      * Whether Yarn thinks the package should be extracted, based on its
      * content.
      */
-    #[serde(default, skip_serializing_if = "is_default")]
+    #[serde(default, skip_serializing_if = "zpm_utils::is_default")]
     pub suggest_extracted: bool,
 }
 

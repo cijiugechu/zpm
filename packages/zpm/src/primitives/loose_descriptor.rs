@@ -13,7 +13,7 @@ use zpm_utils::{impl_serialization_traits, ToFileString, ToHumanString};
 
 use crate::error::Error;
 use crate::install::InstallContext;
-use crate::manifest::{parse_manifest_from_bytes, read_manifest};
+use crate::manifest::helpers::{parse_manifest_from_bytes, read_manifest};
 use crate::resolvers;
 
 use super::range::{AnonymousSemverRange, AnonymousTagRange, FolderRange, RegistrySemverRange, RegistryTagRange, TarballRange, WorkspaceMagicRange};
@@ -291,10 +291,8 @@ impl LooseDescriptor {
                     .expect("Project is required for resolving loose identifiers");
 
                 if project.workspace_by_ident(&ident).is_ok() {
-                    let range = Range::WorkspaceMagic(match options.range_kind {
-                        RangeKind::Exact => WorkspaceMagicRange {magic: "*".to_string()},
-                        RangeKind::Tilde => WorkspaceMagicRange {magic: "~".to_string()},
-                        RangeKind::Caret => WorkspaceMagicRange {magic: "^".to_string()},
+                    let range = Range::WorkspaceMagic(WorkspaceMagicRange {
+                        magic: options.range_kind,
                     });
 
                     return Ok(Descriptor::new(

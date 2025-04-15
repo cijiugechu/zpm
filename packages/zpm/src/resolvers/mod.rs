@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, install::{normalize_resolutions, InstallContext, InstallOpResult, IntoResolutionResult, ResolutionResult, ValidatedResult}, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, range, reference, Descriptor, Ident, Locator, PeerRange, Range, Reference}, system};
+use crate::{error::Error, install::{normalize_resolutions, InstallContext, InstallOpResult, IntoResolutionResult, ResolutionResult}, manifest::RemoteManifest, primitives::{descriptor::{descriptor_map_deserializer, descriptor_map_serializer}, range, reference, Descriptor, Ident, Locator, PeerRange, Range, Reference}, system};
 
 pub mod folder;
 pub mod git;
@@ -17,10 +17,6 @@ pub mod tarball;
 pub mod url;
 pub mod workspace;
 
-fn is_default<T: Default + PartialEq>(value: &T) -> bool {
-    value == &T::default()
-}
-
 /**
  * Contains the information we keep in the lockfile for a given package.
  */
@@ -31,7 +27,7 @@ pub struct Resolution {
     pub version: zpm_semver::Version,
 
     #[serde(default)]
-    #[serde(skip_serializing_if = "is_default")]
+    #[serde(skip_serializing_if = "zpm_utils::is_default")]
     pub requirements: system::Requirements,
 
     #[serde(default)]

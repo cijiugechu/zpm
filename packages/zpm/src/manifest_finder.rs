@@ -4,7 +4,7 @@ use arca::Path;
 use bincode::{Decode, Encode};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use crate::{error::Error, manifest::{read_manifest_with_size, Manifest}};
+use crate::{error::Error, manifest::{helpers::read_manifest_with_size, Manifest}};
 
 #[derive(Debug, Encode, Decode)]
 pub enum SaveEntry {

@@ -6,7 +6,7 @@ use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
 use zpm_macros::track_time;
 
-use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{read_manifest_with_size, BinField, BinManifest, Manifest, ResolutionOverride}, manifest_finder::{CachedManifestFinder, ManifestFinder, SaveEntry}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, report::{with_report_result, StreamReport, StreamReportConfig}, script::Binary};
+use crate::{cache::{CompositeCache, DiskCache}, config::Config, error::Error, install::{InstallContext, InstallManager, InstallState}, lockfile::{from_legacy_berry_lockfile, Lockfile}, manifest::{bin::BinField, helpers::read_manifest_with_size, resolutions::ResolutionSelector, BinManifest, Manifest}, manifest_finder::{CachedManifestFinder, ManifestFinder, SaveEntry}, primitives::{range, reference, Descriptor, Ident, Locator, Range, Reference}, report::{with_report_result, StreamReport, StreamReportConfig}, script::Binary};
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
 pub const MANIFEST_NAME: &str = "package.json";
@@ -28,7 +28,7 @@ pub struct Project {
     pub workspaces: Vec<Workspace>,
     pub workspaces_by_ident: BTreeMap<Ident, usize>,
     pub workspaces_by_rel_path: BTreeMap<Path, usize>,
-    pub resolution_overrides: BTreeMap<Ident, Vec<(ResolutionOverride, Range)>>,
+    pub resolution_overrides: BTreeMap<Ident, Vec<(ResolutionSelector, Range)>>,
 
     pub last_changed_at: u128,
     pub install_state: Option<InstallState>,
@@ -86,7 +86,7 @@ impl Project {
         let (mut workspaces, last_changed_at) = root_workspace
             .workspaces().await?;
 
-        let mut resolutions_overrides: BTreeMap<Ident, Vec<(ResolutionOverride, Range)>>
+        let mut resolutions_overrides: BTreeMap<Ident, Vec<(ResolutionSelector, Range)>>
             = BTreeMap::new();
 
         for (resolution, range) in &root_workspace.manifest.resolutions {
@@ -177,7 +177,7 @@ impl Project {
             .map_err(|err| Error::LockfileParseError(Arc::new(err)))
     }
 
-    pub fn resolution_overrides(&self, ident: &Ident) -> Option<&Vec<(ResolutionOverride, Range)>> {
+    pub fn resolution_overrides(&self, ident: &Ident) -> Option<&Vec<(ResolutionSelector, Range)>> {
         self.resolution_overrides.get(ident)
     }
 
@@ -390,7 +390,7 @@ impl Project {
         Ok(match manifest.bin {
             Some(BinField::String(bin)) => {
                 if let Some(name) = manifest.name {
-                    BTreeMap::from_iter([(name.name().to_string(), Binary::new(self, location.with_join(&bin)))])
+                    BTreeMap::from_iter([(name.name().to_string(), Binary::new(self, location.with_join(&bin.path)))])
                 } else {
                     BTreeMap::new()
                 }
@@ -398,7 +398,7 @@ impl Project {
 
             Some(BinField::Map(bins)) => bins
                 .into_iter()
-                .map(|(name, path)| (name, Binary::new(self, location.with_join(&path))))
+                .map(|(name, path)| (name, Binary::new(self, location.with_join(&path.path))))
                 .collect(),
 
             None => BTreeMap::new(),
@@ -584,7 +584,7 @@ impl Workspace {
 
     pub fn descriptor(&self) -> Descriptor {
         Descriptor::new(self.name.clone(), range::WorkspaceMagicRange {
-            magic: "^".to_string(),
+            magic: zpm_semver::RangeKind::Caret,
         }.into())
     }
 
@@ -600,7 +600,7 @@ impl Workspace {
 
         if let Some(patterns) = &self.manifest.workspaces {
             let pattern_matchers = patterns.iter()
-                .map(|p| Glob::new(p))
+                .map(|p| Glob::new(Path::from(p).as_str()))
                 .collect::<Result<Vec<_>, _>>()?
                 .iter()
                 .map(|g| g.compile_matcher())
