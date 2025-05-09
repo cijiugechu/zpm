@@ -15,7 +15,7 @@ pub struct SetVersion {
 impl SetVersion {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<(), Error> {
-        let Ok(switch_detected_root) = std::env::var("YARN_SWITCH_DETECTED_ROOT") else {
+        let Ok(switch_detected_root) = std::env::var("YARNSW_DETECTED_ROOT") else {
             return Err(Error::FailedToGetSwitchDetectedRoot);
         };
 

@@ -34,7 +34,7 @@ impl ProxyCommand {
             = find_closest_package_manager(&lookup_path)?;
 
         if let Some(detected_root_path) = find_result.detected_root_path {
-            std::env::set_var("YARN_SWITCH_DETECTED_ROOT", detected_root_path.to_string());
+            std::env::set_var("YARNSW_DETECTED_ROOT", detected_root_path.to_string());
         }
 
         let reference = match find_result.detected_package_manager {
@@ -67,7 +67,7 @@ impl InitCommand {
             = find_closest_package_manager(&lookup_path)?;
 
         if let Some(detected_root_path) = find_result.detected_root_path {
-            std::env::set_var("YARN_SWITCH_DETECTED_ROOT", detected_root_path.to_string());
+            std::env::set_var("YARNSW_DETECTED_ROOT", detected_root_path.to_string());
         }
 
         let reference = match find_result.detected_package_manager {
@@ -119,7 +119,7 @@ impl ExplicitCommand {
             = find_closest_package_manager(&lookup_path)?;
 
         if let Some(detected_root_path) = find_result.detected_root_path {
-            std::env::set_var("YARN_SWITCH_DETECTED_ROOT", detected_root_path.to_string());
+            std::env::set_var("YARNSW_DETECTED_ROOT", detected_root_path.to_string());
         }
 
         ExplicitCommand::run(&self.package_manager.reference, &self.args).await
@@ -138,7 +138,7 @@ async fn main() -> ExitCode {
         .unwrap()
         .to_string();
 
-    std::env::set_var("YARN_SWITCH_EXEC_PATH", self_path);
+    std::env::set_var("YARNSW_EXEC_PATH", self_path);
 
     SwitchExecCli::run_default().await
 }

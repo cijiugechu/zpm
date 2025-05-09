@@ -74,7 +74,9 @@ jobs:
           export TEST_BINARY=artifact
 
           mkdir -p artifacts/test-report
-          bash ./scripts/jest.sh --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
+
+          bash ./yarn.sh
+          bash ./yarn.sh berry test:integration --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
 
       - name: Upload test report
         uses: actions/upload-artifact@v4

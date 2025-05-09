@@ -4,6 +4,30 @@ This repository is a prototype of a Rust-powered package manager heavily inspire
 
 It's a work in progress and is not meant to be used in production.
 
+## Usage
+
+1. Clone both this repository and the `berry` repository.
+
+```bash
+git clone https://github.com/yarnpkg/zpm.git
+git clone https://github.com/yarnpkg/berry.git
+```
+
+2. Build the project. We build in release mode to reproduce as closely as possible the performances in which zpm will be used. Rust is known to be significantly slower in debug mode.
+
+```bash
+cd zpm && cargo build -r -p zpm-switch -p zpm
+```
+
+3. Run the tests.
+
+```bash
+cd zpm && ./yarn.sh berry test:integration
+```
+
+> [!NOTE]
+> You can set the `BERRY_PATH` environment variable to a pre-existing clone of the `berry` repository to avoid cloning it again.
+
 ## Differences in architecture
 
 ### Redesigned steps
@@ -18,11 +42,22 @@ The Berry codebase uses a fairly sequential architecture: resolution, then fetch
 
 ### Serialization protocol
 
-Many types are using the `yarn_serialization_protocol` macro. String serialization required a lot of boilerplate to support Serde, TryFrom, and FromStr, and I wanted to have a single place where all those details were handled (with the idea that this would also allow us to standardize things like color management).
+I wasn't satisfied with the `Display` and `Debug` traits, as they don't differentiate output intended for humans from output intended for serialization format (`Display` is arguably for humans, but `Debug` most certainly isn't intended for serialization).
+
+> [!NOTE]
+> I could have used the `Serialize` and `Deserialize` traits from `serde`, but if I remember correctly I was thinking that some data structures may want to be serialized / deserialized differently when targeting a file vs when targeting a string (typically a command-line argument).
+
+To address that, I created three different traits:
+
+- `ToHumanString` is meant to be used when printing things on the screen.
+- `ToFileString` is meant to be used when writing something to a file.
+- `FromFileString` is meant to be used when reading something from a file.
 
 ### JSON lockfile
 
-The Berry lockfile was written in Yaml. Since performances are a heavy focus of zpm, I decided to switch to JSON for the lockfile. This allows us to use `serde_json` which is much faster than `serde_yaml`. Some improvements would be useful to decrease the risks of conflicts (namely by adding blank lines between each lockfile record), but it doesn't require Yaml.
+The Berry lockfile was written in Yaml. Since performances are a heavy focus of zpm, I decided to switch to JSON for the lockfile. This allows us to use `sonic_rs` or `serde_json`, which are both much faster than `serde_yaml`.
+
+Some improvements to the output format would be useful to decrease risks of conflicts when merging branches together, in particular by adding blank lines between each lockfile record, but we don't require Yaml for that.
 
 ### No plugins
 

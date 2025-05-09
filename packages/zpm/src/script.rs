@@ -122,7 +122,7 @@ impl ScriptBinaries {
     }
 
     pub fn with_standard(mut self) -> Result<Self, Error> {
-        let self_path = std::env::var("YARN_SWITCH_EXEC_PATH")
+        let self_path = std::env::var("YARNSW_EXEC_PATH")
             .ok()
             .map(|path| Path::from_file_string(&path))
             .unwrap_or_else(|| Path::current_exe())?
@@ -273,8 +273,8 @@ impl ScriptEnvironment {
             shell_forwarding: false,
         };
 
-        if let Ok(val) = std::env::var("YARN_SWITCH_DETECTED_ROOT") {
-            value.env.insert("YARN_SWITCH_DETECTED_ROOT".to_string(), val);
+        if let Ok(val) = std::env::var("YARNSW_DETECTED_ROOT") {
+            value.env.insert("YARNSW_DETECTED_ROOT".to_string(), val);
         }
 
         Ok(value)

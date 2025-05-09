@@ -47,7 +47,7 @@ pub async fn fix_cwd(args: &mut Vec<String>) -> Result<(), Error> {
 }
 
 pub async fn get_default_yarn_version(release_line: Option<&str>) -> Result<PackageManagerReference, Error> {
-    if let Ok(env) = std::env::var("YARN_SWITCH_DEFAULT") {
+    if let Ok(env) = std::env::var("YARNSW_DEFAULT") {
         return Ok(PackageManagerReference::from_file_string(&env)?);
     }
 

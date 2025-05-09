@@ -154,7 +154,7 @@ async fn prepare_yarn_classic_project(folder_path: &Path, params: &PrepareParams
 
     ScriptEnvironment::new()?
         .with_cwd(folder_path.clone())
-        .with_env_variable("YARN_SWITCH_DEFAULT", &default_yarn)
+        .with_env_variable("YARNSW_DEFAULT", &default_yarn)
 
         // Remove environment variables that limit the install to just production dependencies
         .delete_env_variable("NODE_ENV")
@@ -173,7 +173,7 @@ async fn prepare_yarn_classic_project(folder_path: &Path, params: &PrepareParams
 
     ScriptEnvironment::new()?
         .with_cwd(folder_path.clone())
-        .with_env_variable("YARN_SWITCH_DEFAULT", &default_yarn)
+        .with_env_variable("YARNSW_DEFAULT", &default_yarn)
         .run_exec("yarn", pack_args)
         .await
         .ok()?;
