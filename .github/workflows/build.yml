@@ -49,7 +49,7 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Download artifacts
+      - name: Download the binary
         uses: actions/download-artifact@v4
         with:
           name: zpm-linux
@@ -69,15 +69,13 @@ jobs:
       - name: Generate the test report
         run: |
           export BERRY_DIR=$GITHUB_WORKSPACE/berry
-          mkdir -p artifacts/test-report
-
-          ./yarn.sh berry test:integration --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
+          ./yarn.sh berry test:integration --json --outputFile=$(pwd)/report.json || true
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: artifacts/test-report/
+          path: report.json
 
   publish:
     needs: [build, test-report]
@@ -101,14 +99,19 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Download all artifacts
+      - name: Download the binary
         uses: actions/download-artifact@v4
         with:
           name: zpm-linux
-
+  
       - name: Puts back the binaries
         run: unzip ./artifacts.zip
-  
+    
+      - name: Download the test report
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report
+    
       - name: Install dependencies
         run: ./yarn.sh install
   

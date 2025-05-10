@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import report from '../../../artifacts/test-report/report.json';
+import report from '../../../report.json';
 import {FormattedTestResults} from '@jest/test-result';
 
 type FormattedAssertionResult = FormattedTestResults[`testResults`][number][`assertionResults`][number];
