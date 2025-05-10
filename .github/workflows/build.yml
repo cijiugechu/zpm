@@ -63,14 +63,15 @@ jobs:
           repository: yarnpkg/berry
           path: berry
 
+      - name: Install dependencies
+        run: ./yarn.sh install
+  
       - name: Generate the test report
         run: |
           export BERRY_DIR=$GITHUB_WORKSPACE/berry
-
           mkdir -p artifacts/test-report
 
-          bash ./yarn.sh
-          bash ./yarn.sh berry test:integration --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
+          ./yarn.sh berry test:integration --json --outputFile=$(pwd)/artifacts/test-report/report.json || true
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -94,9 +95,6 @@ jobs:
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
