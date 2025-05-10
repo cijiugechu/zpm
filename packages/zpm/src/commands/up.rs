@@ -8,16 +8,16 @@ use crate::{error::Error, install::InstallContext, primitives::{loose_descriptor
 #[cli::command]
 #[cli::path("up")]
 pub struct Up {
-    #[cli::option("-F,--fixed")]
+    #[cli::option("-F,--fixed", default = false)]
     fixed: bool,
 
-    #[cli::option("-E,--exact")]
+    #[cli::option("-E,--exact", default = false)]
     exact: bool,
 
-    #[cli::option("-T,--tilde")]
+    #[cli::option("-T,--tilde", default = false)]
     tilde: bool,
 
-    #[cli::option("-C,--caret")]
+    #[cli::option("-C,--caret", default = false)]
     caret: bool,
 
     // ---

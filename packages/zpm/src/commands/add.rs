@@ -103,30 +103,30 @@ async fn expand_with_types<'a>(install_context: &InstallContext<'a>, _resolve_op
 #[cli::command]
 #[cli::path("add")]
 pub struct Add {
-    #[cli::option("-F,--fixed")]
+    #[cli::option("-F,--fixed", default = false)]
     fixed: bool,
 
-    #[cli::option("-E,--exact")]
+    #[cli::option("-E,--exact", default = false)]
     exact: bool,
 
-    #[cli::option("-T,--tilde")]
+    #[cli::option("-T,--tilde", default = false)]
     tilde: bool,
 
-    #[cli::option("-C,--caret")]
+    #[cli::option("-C,--caret", default = false)]
     caret: bool,
 
     // ---
 
-    #[cli::option("-P,--peer")]
+    #[cli::option("-P,--peer", default = false)]
     peer: bool,
 
-    #[cli::option("-D,--dev")]
+    #[cli::option("-D,--dev", default = false)]
     dev: bool,
 
-    #[cli::option("-O,--optional")]
+    #[cli::option("-O,--optional", default = false)]
     optional: bool,
 
-    #[cli::option("--prefer-dev")]
+    #[cli::option("--prefer-dev", default = false)]
     prefer_dev: bool,
 
     // ---

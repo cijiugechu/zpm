@@ -9,13 +9,13 @@ use crate::{error::Error, pack::{pack_list, pack_manifest}, primitives::Locator,
 #[cli::command(proxy)]
 #[cli::path("pack")]
 pub struct Pack {
-    #[cli::option("-n,--dry-run")]
+    #[cli::option("-n,--dry-run", default = false)]
     dry_run: bool,
 
-    #[cli::option("--install-if-needed")]
+    #[cli::option("--install-if-needed", default = false)]
     install_if_needed: bool,
 
-    #[cli::option("--json")]
+    #[cli::option("--json", default = false)]
     json: bool,
 
     #[cli::option("--out")]
