@@ -32,8 +32,8 @@ pub enum Error {
     #[error("Failed to parse manifest: {0}")]
     FailedToParseManifest(Arc<sonic_rs::Error>),
 
-    #[error("Server answered with HTTP {0}")]
-    HttpStatus(StatusCode),
+    #[error("Server answered with HTTP {0} ({1})")]
+    HttpStatus(StatusCode, String),
 
     #[error("Failed to retrieve the latest tag from the Yarn registry")]
     FailedToRetrieveLatestYarnTag,

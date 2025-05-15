@@ -7,6 +7,8 @@ use crate::{config::Config, error::Error, primitives::Ident, project::{Project, 
 
 #[cli::command]
 #[cli::path("remove")]
+#[cli::category("Dependency management")]
+#[cli::description("Remove dependencies from the project")]
 pub struct Remove {
     #[cli::option("-A,--all", default = false)]
     all: bool,

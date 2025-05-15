@@ -6,6 +6,8 @@ use crate::{error::Error, project, script::ScriptEnvironment};
 
 #[cli::command(proxy)]
 #[cli::path("exec")]
+#[cli::category("Scripting commands")]
+#[cli::description("Run a shell command in the package environment")]
 pub struct Exec {
     script: String,
     args: Vec<String>,

@@ -11,8 +11,10 @@ pub struct CheckSemverVersion {
 
 impl CheckSemverVersion {
     pub fn execute(&self) -> Result<(), Error> {
-        let version = zpm_semver::Version::from_file_string(&self.version)?;
-        let stringified = version.to_file_string();
+        let version
+            = zpm_semver::Version::from_file_string(&self.version)?;
+        let stringified
+            = version.to_file_string();
 
         println!("{}", stringified);
         println!("{:#?}", version);

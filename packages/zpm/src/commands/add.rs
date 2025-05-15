@@ -102,6 +102,8 @@ async fn expand_with_types<'a>(install_context: &InstallContext<'a>, _resolve_op
 
 #[cli::command]
 #[cli::path("add")]
+#[cli::category("Dependency management")]
+#[cli::description("Add new dependencies to the project")]
 pub struct Add {
     #[cli::option("-F,--fixed", default = false)]
     fixed: bool,

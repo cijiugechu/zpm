@@ -7,6 +7,8 @@ use crate::{error::Error, project, script::ScriptEnvironment};
 
 #[cli::command(default, proxy)]
 #[cli::path("run")]
+#[cli::category("Scripting commands")]
+#[cli::description("Run a dependency binary or local script")]
 pub struct Run {
     #[cli::option("-T,--top-level", default = false)]
     top_level: bool,

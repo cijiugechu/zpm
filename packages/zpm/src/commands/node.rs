@@ -6,6 +6,8 @@ use crate::{error::Error, project, script::ScriptEnvironment};
 
 #[cli::command(proxy)]
 #[cli::path("node")]
+#[cli::category("Scripting commands")]
+#[cli::description("Run a Node.js script in the package environment")]
 pub struct Node {
     args: Vec<String>,
 }

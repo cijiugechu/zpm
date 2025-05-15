@@ -11,8 +11,10 @@ pub struct CheckReference {
 
 impl CheckReference {
     pub fn execute(&self) -> Result<(), Error> {
-        let reference = Reference::from_file_string(&self.reference)?;
-        let stringified = reference.to_file_string();
+        let reference
+            = Reference::from_file_string(&self.reference)?;
+        let stringified
+            = reference.to_file_string();
 
         println!("{}", stringified);
         println!("{:#?}", reference);

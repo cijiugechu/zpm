@@ -8,7 +8,8 @@ use crate::{error::Error, project::Project, ui::tree::Node};
 #[cli::command]
 #[cli::path("config")]
 #[cli::path("config", "get")]
-#[derive(Debug)]
+#[cli::category("Configuration commands")]
+#[cli::description("List the project's configuration values")]
 pub struct Config {
 }
 

@@ -9,6 +9,8 @@ use super::YarnCli;
 
 #[cli::command(proxy)]
 #[cli::path("workspace")]
+#[cli::category("Workspace commands")]
+#[cli::description("Run a command in a workspace")]
 pub struct Workspace {
     workspace: Ident,
     args: Vec<String>,

@@ -6,7 +6,8 @@ use crate::{error::Error, project::Project};
 
 #[cli::command]
 #[cli::path("config", "get")]
-#[derive(Debug)]
+#[cli::category("Configuration commands")]
+#[cli::description("Get a project configuration value")]
 pub struct ConfigGet {
     name: String,
 }

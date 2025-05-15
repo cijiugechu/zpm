@@ -8,6 +8,8 @@ use crate::{error::Error, pack::{pack_list, pack_manifest}, primitives::Locator,
 
 #[cli::command(proxy)]
 #[cli::path("pack")]
+#[cli::category("Release commands")]
+#[cli::description("Pack the project into a distributable archive")]
 pub struct Pack {
     #[cli::option("-n,--dry-run", default = false)]
     dry_run: bool,

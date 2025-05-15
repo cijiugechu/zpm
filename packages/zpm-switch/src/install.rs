@@ -2,7 +2,6 @@ use std::{future::Future, process::Command};
 
 use blake2::{Blake2s256, Digest};
 use serde::Serialize;
-use zpm_semver::Version;
 use zpm_utils::{get_system_string, FromFileString, Path};
 
 use crate::{errors::Error, http::fetch, manifest::VersionPackageManagerReference};
@@ -78,14 +77,10 @@ async fn install_node_js_from_url(url: &str) -> Result<Command, Error> {
     Ok(command)
 }
 
-fn get_registry_url(name: &str, version: &Version) -> String {
-    format!("https://registry.yarnpkg.com/{}/-/{}-{}.tgz", name, name, version)
-}
-
-async fn install_node_js_from_package(name: &str, version: &Version, main_file: Path) -> Result<Command, Error> {
-    let cache_path = cache((name, version), |p| async move {
+async fn install_node_js_from_package(url: &str, main_file: Path) -> Result<Command, Error> {
+    let cache_path = cache(url, |p| async move {
         let compressed_data
-            = fetch(&get_registry_url(name, version)).await?;
+            = fetch(url).await?;
 
         let data
             = zpm_formats::tar::unpack_tgz(&compressed_data)?;
@@ -113,13 +108,25 @@ async fn install_node_js_from_package(name: &str, version: &Version, main_file: 
 }
 
 pub async fn install_package_manager(package_manager: &VersionPackageManagerReference) -> Result<Command, Error> {
-    if zpm_semver::Range::from_file_string(">=5.0.0-0").unwrap().check(&package_manager.version) {
-        return install_native_from_url(&format!("https://repo.yarnpkg.com/releases/{}/yarn-{}", package_manager.version, get_system_string())).await;
+    let version
+        = package_manager.version.to_string();
+    let platform
+        = get_system_string();
+
+    let url
+        = format!("https://repo.yarnpkg.com/tags/{}/{}", version, platform);
+
+    if zpm_semver::Range::from_file_string(">=6.0.0-0").unwrap().check(&package_manager.version) {
+        return install_native_from_url(&url).await;
     }
 
     if zpm_semver::Range::from_file_string(">=2.0.0-0").unwrap().check(&package_manager.version) {
-        return install_node_js_from_url(&format!("https://repo.yarnpkg.com/{}/packages/yarnpkg-cli/bin/yarn.js", package_manager.version.to_string())).await;
+        return install_node_js_from_url(&url).await;
     }
 
-    return install_node_js_from_package("yarn", &package_manager.version, Path::try_from("bin/yarn.js").unwrap()).await;
+    if zpm_semver::Range::from_file_string(">=0.0.0-0").unwrap().check(&package_manager.version) {
+        return install_node_js_from_package(&url, Path::try_from("bin/yarn.js").unwrap()).await;
+    }
+
+    unreachable!()
 }

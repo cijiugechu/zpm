@@ -31,13 +31,18 @@ jobs:
 
       - name: Build
         run: |
+          export INFRA_GIT_SHA=$GITHUB_SHA
+
           cargo build --verbose --release
+          strip target/release/{zpm,zpm-switch}
           zip -r artifacts.zip target/release/{zpm,zpm-switch}
+
+          echo "INFRA_PLATFORM=$(./target/release/zpm debug print-platform)" >> $GITHUB_ENV
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: zpm-${{matrix.platform[0]}}
+          name: zpm-${{env.INFRA_PLATFORM}}
           path: artifacts.zip
           retention-days: 7
 
@@ -52,7 +57,7 @@ jobs:
       - name: Download the binary
         uses: actions/download-artifact@v4
         with:
-          name: zpm-linux
+          name: zpm-x86_64-unknown-linux-gnu
 
       - name: Puts back the binaries
         run: unzip ./artifacts.zip
@@ -102,7 +107,7 @@ jobs:
       - name: Download the binary
         uses: actions/download-artifact@v4
         with:
-          name: zpm-linux
+          name: zpm-x86_64-unknown-linux-gnu
   
       - name: Puts back the binaries
         run: unzip ./artifacts.zip

@@ -8,6 +8,8 @@ use crate::{error::Error, manifest::helpers::read_manifest};
 
 #[cli::command]
 #[cli::path("set", "version")]
+#[cli::category("Configuration commands")]
+#[cli::description("Set the version of Yarn to use with the local project")]
 pub struct SetVersion {
     version: zpm_semver::Range,
 }

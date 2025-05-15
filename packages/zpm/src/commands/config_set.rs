@@ -5,7 +5,8 @@ use crate::{error::Error, project::Project, settings::ProjectConfigType};
 
 #[cli::command]
 #[cli::path("config", "set")]
-#[derive(Debug)]
+#[cli::category("Configuration commands")]
+#[cli::description("Set a project configuration value")]
 pub struct ConfigSet {
     name: String,
     value: String,

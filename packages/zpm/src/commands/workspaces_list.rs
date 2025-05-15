@@ -4,6 +4,8 @@ use crate::{error::Error, primitives::Ident, project};
 
 #[cli::command]
 #[cli::path("workspaces", "list")]
+#[cli::category("Workspace commands")]
+#[cli::description("List the workspaces in the project")]
 pub struct WorkspacesList {
     #[cli::option("--json", default = false)]
     json: bool,

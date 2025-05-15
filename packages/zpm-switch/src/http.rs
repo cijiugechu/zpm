@@ -27,7 +27,7 @@ pub async fn fetch(url: &str) -> Result<Vec<u8>, Error> {
         = request.status();
 
     if !status.is_success() {
-        return Err(Error::HttpStatus(status));
+        return Err(Error::HttpStatus(status, url.to_string()));
     }
 
     let data

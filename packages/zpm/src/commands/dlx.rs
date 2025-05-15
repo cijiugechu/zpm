@@ -8,6 +8,8 @@ use crate::{error::Error, install::InstallContext, primitives::{loose_descriptor
 
 #[cli::command(proxy)]
 #[cli::path("dlx")]
+#[cli::category("Scripting commands")]
+#[cli::description("Install a temporary package and run it")]
 pub struct DlxWithPackages {
     #[cli::option("-p,--package", min_len = 1)]
     packages: Vec<LooseDescriptor>,

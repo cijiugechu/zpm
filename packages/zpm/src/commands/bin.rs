@@ -15,6 +15,8 @@ impl BinList {
 
 #[cli::command]
 #[cli::path("bin")]
+#[cli::category("Scripting commands")]
+#[cli::description("Get the path of an accessible binary")]
 pub struct Bin {
     name: String,
 }

@@ -4,6 +4,8 @@ use crate::{error::Error, project::{self, RunInstallOptions}};
 
 #[cli::command(default)]
 #[cli::path("install")]
+#[cli::category("Dependency management")]
+#[cli::description("Install dependencies")]
 pub struct Install {
     #[cli::option("--check-resolutions", default = false)]
     check_resolutions: bool,
