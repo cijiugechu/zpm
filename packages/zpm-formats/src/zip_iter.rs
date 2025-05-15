@@ -1,6 +1,15 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::Read};
 
 use crate::{zip_structs::{CentralDirectoryRecord, EndOfCentralDirectoryRecord, GeneralRecord}, Entry, Error};
+
+fn unpack_deflate(data: &[u8]) -> Result<Vec<u8>, Error> {
+    let mut decoder = flate2::read::DeflateDecoder::new(data);
+
+    let mut buffer = Vec::new();
+    decoder.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
+}
 
 pub struct ZipIterator<'a> {
     buffer: &'a [u8],
@@ -46,15 +55,20 @@ impl<'a> ZipIterator<'a> {
             = std::str::from_utf8(&self.buffer[name_offset..name_offset + general_record.header.file_name_length as usize])?;
 
         let data_size
-            = general_record.header.compressed_size as usize;
+            = central_directory_record.header.compressed_size as usize;
         let data
             = &self.buffer[data_offset..data_offset + data_size];
+
+        let data = match central_directory_record.header.compression_method {
+            8 => Cow::Owned(unpack_deflate(data)?),
+            _ => Cow::Borrowed(data),
+        };
 
         Ok(Entry {
             name: name.to_string(),
             mode: (central_directory_record.external_file_attributes as u64 >> 16) as u32,
             crc: general_record.header.crc_32,
-            data: Cow::Borrowed(data),
+            data,
         })
     }
 }

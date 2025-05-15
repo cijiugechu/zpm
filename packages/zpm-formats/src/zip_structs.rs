@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 #[repr(packed)]
 pub struct FileHeader {
@@ -13,6 +14,7 @@ pub struct FileHeader {
     pub extra_field_length: u16,
 }
 
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 #[repr(packed)]
 pub struct GeneralRecord {
