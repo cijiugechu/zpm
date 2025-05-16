@@ -2,12 +2,13 @@ use std::fmt;
 
 use zpm_utils::{Path, RawPath};
 use bincode::{Decode, Encode};
-use serde::{de::{self, Visitor}, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::{self, Visitor}, ser::{SerializeMap, SerializeSeq}, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
 pub enum ExportsField {
     Path(RawPath),
     Map(Vec<(String, ExportsField)>),
+    Array(Vec<ExportsField>),
 }
 
 impl<'a> ExportsField {
@@ -25,14 +26,31 @@ impl<'de> Deserialize<'de> for ExportsField {
 impl Serialize for ExportsField {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match self {
-            ExportsField::Path(raw_path) => serializer.serialize_str(&raw_path.raw),
+            ExportsField::Path(raw_path) => {
+                serializer.serialize_str(&raw_path.raw)
+            },
+
             ExportsField::Map(entries) => {
-                let mut map = serializer.serialize_map(Some(entries.len()))?;
+                let mut map
+                    = serializer.serialize_map(Some(entries.len()))?;
+
                 for (key, value) in entries {
                     map.serialize_entry(key, value)?;
                 }
+
                 map.end()
-            }
+            },
+
+            ExportsField::Array(entries) => {
+                let mut seq
+                    = serializer.serialize_seq(Some(entries.len()))?;
+
+                for value in entries {
+                    seq.serialize_element(value)?;
+                }
+
+                seq.end()
+            },
         }
     }
 }
@@ -52,6 +70,16 @@ impl<'de> Visitor<'de> for ExportsFieldVisitor {
             .map_err(|err| de::Error::custom(err))?;
 
         Ok(ExportsField::Path(RawPath {path, raw: value.to_string()}))
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error> where A: de::SeqAccess<'de> {
+        let mut entries = vec![];
+
+        while let Some(value) = seq.next_element::<ExportsField>()? {
+            entries.push(value);
+        }
+
+        Ok(ExportsField::Array(entries))
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where A: de::MapAccess<'de> {
@@ -83,12 +111,21 @@ impl<'a> Iterator for ExportsFieldPathIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(current) = self.stack.pop() {
             match current {
-                ExportsField::Path(path) => return Some(path),
+                ExportsField::Path(path) => {
+                    return Some(path);
+                },
+
                 ExportsField::Map(entries) => {
                     for (_, child) in entries.iter().rev() {
                         self.stack.push(child);
                     }
-                }
+                },
+
+                ExportsField::Array(entries) => {
+                    for child in entries.iter().rev() {
+                        self.stack.push(child);
+                    }
+                },
             }
         }
 
