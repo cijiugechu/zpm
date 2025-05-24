@@ -249,6 +249,24 @@
         }
       }
     },
+    "@esbuild/aix-ppc64@npm:0.25.4": {
+      "checksum": "cd4ac4e3bb6724d7f203012872ef1f8dd928f49da1a1864ce5f651b527a7e986e53c2f085394f993f7c18121b3371612cdb8e6e66099d2995d15e209838dac82",
+      "resolution": {
+        "resolution": "@esbuild/aix-ppc64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "ppc64"
+          ],
+          "os": [
+            "aix"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/android-arm@npm:0.21.5": {
       "checksum": "23400b21976751699e53a2af7c36599aa36aa3b814d90cef0f2ccbacf4ad03101d20bd03f31d1db32195ac689666545959f2e582eb7cc6860b4bedd2628a5465",
       "resolution": {
@@ -262,6 +280,24 @@
             "android"
           ]
         }
+      }
+    },
+    "@esbuild/android-arm@npm:0.25.4": {
+      "checksum": "9a5964c09468550a38654f50da57754be9377b5a890009038deb60b6a7cdd0715404935e0ad0173adf2a584a58f708ab6a2e1cb47736239770a47b8bcc0820b8",
+      "resolution": {
+        "resolution": "@esbuild/android-arm@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm"
+          ],
+          "os": [
+            "android"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/android-arm64@npm:0.21.5": {
@@ -279,6 +315,24 @@
         }
       }
     },
+    "@esbuild/android-arm64@npm:0.25.4": {
+      "checksum": "9c0fc16d5cebcd08151d651300b18769ec066f4b25f4654c6da19d51ee8cabdd86e02c5ae893efb01f6b225e6dbef7729bfa6a1a144815670e27ec83a6643126",
+      "resolution": {
+        "resolution": "@esbuild/android-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "android"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/android-x64@npm:0.21.5": {
       "checksum": "cfcea02f56310eba751c7244c536b0e9ae10c14074265d08379fd7b589a7d3898cb464d8a2869de4b6c4ab70f21471f8f196215132957c52db6e1dec56601fa1",
       "resolution": {
@@ -292,6 +346,24 @@
             "android"
           ]
         }
+      }
+    },
+    "@esbuild/android-x64@npm:0.25.4": {
+      "checksum": "712acdce6dd221d7e0aa52eb3a3955af00c886207d71ddf1706ad736f6207cb9de7e5dbcd0a9668327b09b62acafbcb3e45b31cac345a159dac4037bd0e224eb",
+      "resolution": {
+        "resolution": "@esbuild/android-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "android"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/darwin-arm64@npm:0.21.5": {
@@ -309,6 +381,24 @@
         }
       }
     },
+    "@esbuild/darwin-arm64@npm:0.25.4": {
+      "checksum": "cead581f989fd58fe160270b08042e041d1d83565cd7016ae34d6d839e34d55dae7aa9fa3fc9269463898aeb319701a9ea4a6e9ab4edfadeecc936a8f8e594bf",
+      "resolution": {
+        "resolution": "@esbuild/darwin-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "darwin"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/darwin-x64@npm:0.21.5": {
       "checksum": "f55bab8e3f3b09f4ffbb7c3e10ffd7feaa96f9d18481fe95bea41672be64fc71ff7f4fc2797d6b51f06e2566c12cf879adb616216964a0d81b002c3604a4cc22",
       "resolution": {
@@ -322,6 +412,24 @@
             "darwin"
           ]
         }
+      }
+    },
+    "@esbuild/darwin-x64@npm:0.25.4": {
+      "checksum": "5ecba60047c0a54818e6c320693974e6281f3f46700eb74ddc41c8f7769cd4526156bfe71d965754ec17d5e1e0ab449ab9236bdeb25641f7b40710be36dad636",
+      "resolution": {
+        "resolution": "@esbuild/darwin-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "darwin"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/freebsd-arm64@npm:0.21.5": {
@@ -339,6 +447,24 @@
         }
       }
     },
+    "@esbuild/freebsd-arm64@npm:0.25.4": {
+      "checksum": "43034aa473c2a32e0dec75a61225b1c39c0596d6ed0a11d76dbe337c60377a9141a5dc4bc7a081425a86d40dc1f5cf8892ed4bb66a2a02e3c4e52821868f3d3e",
+      "resolution": {
+        "resolution": "@esbuild/freebsd-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "freebsd"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/freebsd-x64@npm:0.21.5": {
       "checksum": "6a58442513b719bf87d85c73757b2e0a07bb497c881fe478d7eafef63b3dcf7e5e356874ee7e4621c2c2abea027ca4ea78d1c0cb7cebd7cb7309624aaee962ef",
       "resolution": {
@@ -352,6 +478,24 @@
             "freebsd"
           ]
         }
+      }
+    },
+    "@esbuild/freebsd-x64@npm:0.25.4": {
+      "checksum": "bf837e8c4034947b568f80439c1fabc7e8badc8303eafb09142652810dc7fa3b589b2d50d4cd0c00b0d90b4144addf9d6d3243ad937f597b5654c5fd960f4629",
+      "resolution": {
+        "resolution": "@esbuild/freebsd-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "freebsd"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/linux-arm@npm:0.21.5": {
@@ -369,6 +513,24 @@
         }
       }
     },
+    "@esbuild/linux-arm@npm:0.25.4": {
+      "checksum": "8bdfb7c2857562a4ec764e2e108d9f02d9e81060dc115d022ffe64902464b81bd5d8f3f2a13b1410f12cceeb326a8814245c20205b6c8325a4d673b39660aa1c",
+      "resolution": {
+        "resolution": "@esbuild/linux-arm@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/linux-arm64@npm:0.21.5": {
       "checksum": "730b5994cd3b20805d869160cdd00c555454af5d4fe053e1267ff673b4134cbbdb91a926b0fdc934097160b4d2e2e37aa2f71b264ea9820fbedb9b4bc94dfd44",
       "resolution": {
@@ -382,6 +544,24 @@
             "linux"
           ]
         }
+      }
+    },
+    "@esbuild/linux-arm64@npm:0.25.4": {
+      "checksum": "5b4830eb88045d96121f5bb996bc03c582d25207469b7396d08e6748102133a39b9049ac6aed62524ececf1ce49899a3fe5ea6d2eb105a4c5f58574a0410e7e2",
+      "resolution": {
+        "resolution": "@esbuild/linux-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/linux-ia32@npm:0.21.5": {
@@ -399,6 +579,24 @@
         }
       }
     },
+    "@esbuild/linux-ia32@npm:0.25.4": {
+      "checksum": "a9d07a8d0104fcc7c5b88998dc81c5c165699e0bb19039e3e29bd2c548323d198f65c65c915152041d541b2ffe951666823d27bf262a132643a099f9eae9369f",
+      "resolution": {
+        "resolution": "@esbuild/linux-ia32@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "ia32"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/linux-loong64@npm:0.21.5": {
       "checksum": "9e97cc5198fec91847197d6c4b460be6d6b12de3bfc55cdf24a0da21b97d78afd4ee1426478707a1a4447fbaf36735697fc2c8a443c97514c766e837b218c45b",
       "resolution": {
@@ -412,6 +610,24 @@
             "linux"
           ]
         }
+      }
+    },
+    "@esbuild/linux-loong64@npm:0.25.4": {
+      "checksum": "8c2fba7545d2aacf7aa8e134805988e465aaa007b9daad2022105614a739898ec1f2b38395a59d0b5b57e2e72275b7a7f21d8bf63c7e86cba926a1f68b460fb8",
+      "resolution": {
+        "resolution": "@esbuild/linux-loong64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "loong64"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/linux-mips64el@npm:0.21.5": {
@@ -429,6 +645,24 @@
         }
       }
     },
+    "@esbuild/linux-mips64el@npm:0.25.4": {
+      "checksum": "29b73a869dfc2f815182b0f824125d2b446a9c7309c099b5b6eda065bb6ec5e2984d577db218727620edb3db22634b68d69cf28f7c578e5e5e44a6ef817a7800",
+      "resolution": {
+        "resolution": "@esbuild/linux-mips64el@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "mips64el"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/linux-ppc64@npm:0.21.5": {
       "checksum": "e40ad36812520e763a2151cd180e32a2c7eb5a2f10a93c3560caf453e51e4a27465cceb55178e0d3505837cfea6862a2f27137a251b2c9618db0a05b41761a33",
       "resolution": {
@@ -442,6 +676,24 @@
             "linux"
           ]
         }
+      }
+    },
+    "@esbuild/linux-ppc64@npm:0.25.4": {
+      "checksum": "ac2a0ab483d5e4056e8732b3026ced11fa1c764a366767787608891f9188a306f0af43ccd91c7dd31f33f04be24c965556449a98f7517e9e6911cbab8e06d1d4",
+      "resolution": {
+        "resolution": "@esbuild/linux-ppc64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "ppc64"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/linux-riscv64@npm:0.21.5": {
@@ -459,6 +711,24 @@
         }
       }
     },
+    "@esbuild/linux-riscv64@npm:0.25.4": {
+      "checksum": "f55f05321a139011472a0746266708692062d10eb4b8ad492b17c34541e1f2fd094b3964acc5fdf20b3d7d56f91f05f32eee0661cb3dde04d13dea0ec54882a7",
+      "resolution": {
+        "resolution": "@esbuild/linux-riscv64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "riscv64"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/linux-s390x@npm:0.21.5": {
       "checksum": "0bfccee475c13aaea8bdc2f515aa34b4fd096821574909875f2bf3b676d314947d9959cdfef5abc34c00a8fef87729f763d61e36aa2d0682b4dec57b94e7f6a2",
       "resolution": {
@@ -472,6 +742,24 @@
             "linux"
           ]
         }
+      }
+    },
+    "@esbuild/linux-s390x@npm:0.25.4": {
+      "checksum": "ac625f32c417d8751f3d921680f6952c15b616b7e8779fefa45a48eb214303fad8e371c03c6d05613890af132fdfddc00d62742865bf775510f93d90cd27b155",
+      "resolution": {
+        "resolution": "@esbuild/linux-s390x@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "s390x"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/linux-x64@npm:0.21.5": {
@@ -489,6 +777,42 @@
         }
       }
     },
+    "@esbuild/linux-x64@npm:0.25.4": {
+      "checksum": "a8229966b263ea1ff9524c433dbda536d2a7c459277223555f6fa57198dec403eb59604d22ce0bc6f519b8df44fa350361f5bddc2c2aa6a9a20ad71187e3fb02",
+      "resolution": {
+        "resolution": "@esbuild/linux-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "linux"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
+    "@esbuild/netbsd-arm64@npm:0.25.4": {
+      "checksum": "436f9cc34f466954318d4e00c9ac6d964ad535c5045da8e4f67561df00f29b30ab70078fec92ad53f7b157dcf21c7a4e00702390701f2d759ca5370d21135574",
+      "resolution": {
+        "resolution": "@esbuild/netbsd-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "netbsd"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/netbsd-x64@npm:0.21.5": {
       "checksum": "f3fb90f62549f7c8878a64a16f063555f02644484065d4c4509a9757ab2634f300fbfa587d3e09a6ab3752af8e065b1014ffee522784d39c7be954cde1423e77",
       "resolution": {
@@ -502,6 +826,39 @@
             "netbsd"
           ]
         }
+      }
+    },
+    "@esbuild/netbsd-x64@npm:0.25.4": {
+      "checksum": "4c5653b166c44637447581058a43a3c92afe87cea2cba4ba5b8cd25c8bb525c592df2d4e13e095467a68fd6d44acfb88c58f10b673c7ce24d228696de2567936",
+      "resolution": {
+        "resolution": "@esbuild/netbsd-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "netbsd"
+          ]
+        }
+      }
+    },
+    "@esbuild/openbsd-arm64@npm:0.25.4": {
+      "checksum": "5247895c60656d062b53542fc0d06f338b80ece299ae32b113072caa279fc162dbfb1f6b894f8a68ed4d63125a4cf1c99e28e3312a8e2718a868d4f7fe12f3eb",
+      "resolution": {
+        "resolution": "@esbuild/openbsd-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "openbsd"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/openbsd-x64@npm:0.21.5": {
@@ -519,6 +876,24 @@
         }
       }
     },
+    "@esbuild/openbsd-x64@npm:0.25.4": {
+      "checksum": "5d37cfaf026a00c6a0099d990d17680a5978e90f2f17d9cba17c21c4d7176accb8534b5ee504281f9272569393510a3e7d5bb18f0a5d3087b242d42a51b505bf",
+      "resolution": {
+        "resolution": "@esbuild/openbsd-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "openbsd"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
+      }
+    },
     "@esbuild/sunos-x64@npm:0.21.5": {
       "checksum": "ffcd4157c39b838614915b7f039b4b8331e632e3fb68901ea32ea613c95e013364027730327ad442a550ea75bc6fb672ecd10d791c850cf423a5401a663a7ebf",
       "resolution": {
@@ -532,6 +907,24 @@
             "sunos"
           ]
         }
+      }
+    },
+    "@esbuild/sunos-x64@npm:0.25.4": {
+      "checksum": "946ce5adf375c407c5aaeba54f8996f431b4b77d1e7ecbdd9cbeddb6144fe264d9c974cf6b56d44dffaff0677f2a730be4ecfc6e2215c46c688f28495eec12d2",
+      "resolution": {
+        "resolution": "@esbuild/sunos-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "sunos"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true
       }
     },
     "@esbuild/win32-arm64@npm:0.21.5": {
@@ -549,6 +942,25 @@
         }
       }
     },
+    "@esbuild/win32-arm64@npm:0.25.4": {
+      "checksum": "b4ea80b747c6a50c69e6c10173d11939239d468ba8176c9a2e51ef8e066b91921aa240f4298bee00bbc07179a5a1eca1196c1b97fe3bc69f40aead8214172846",
+      "resolution": {
+        "resolution": "@esbuild/win32-arm64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "arm64"
+          ],
+          "os": [
+            "win32"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true,
+        "suggest_extracted": true
+      }
+    },
     "@esbuild/win32-ia32@npm:0.21.5": {
       "checksum": "1c68e6f4aaa857de01cc77b05864f3d3bb5b9cd49e6fe976e5212186cf04e083b3bb700023ffb67cbcb1ac87f9746e169f183a691c16b8ee19f952c0066e0138",
       "resolution": {
@@ -564,6 +976,25 @@
         }
       }
     },
+    "@esbuild/win32-ia32@npm:0.25.4": {
+      "checksum": "feb2fae90478936a7b1e9ea55508cfb7bee847a59b25bac8e81326fe418d1e2d8def392b2f50542bfd567b6a64632528686211fa5ebe565de3ce208fe4d3079a",
+      "resolution": {
+        "resolution": "@esbuild/win32-ia32@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "ia32"
+          ],
+          "os": [
+            "win32"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true,
+        "suggest_extracted": true
+      }
+    },
     "@esbuild/win32-x64@npm:0.21.5": {
       "checksum": "639c6576c66f49bc8dcffb893b1b6e068b2dd54c8cd060645d40b30f8bb7cf66a79f12f0717bae4d2cec4a5a6164398f96426dd0e3fc4d6af990df686166a77c",
       "resolution": {
@@ -577,6 +1008,25 @@
             "win32"
           ]
         }
+      }
+    },
+    "@esbuild/win32-x64@npm:0.25.4": {
+      "checksum": "984326cd1a414a6493204f3c7d0321e6a7de569f6e93ac31856742ab126d5fbb9e6a71f184c22eedb5d4642a70245f4c3e556eee394127a224728d144aac5a3c",
+      "resolution": {
+        "resolution": "@esbuild/win32-x64@npm:0.25.4",
+        "version": "0.25.4",
+        "requirements": {
+          "cpu": [
+            "x64"
+          ],
+          "os": [
+            "win32"
+          ]
+        }
+      },
+      "flags": {
+        "prefer_extracted": true,
+        "suggest_extracted": true
       }
     },
     "@isaacs/cliui@npm:^8.0.2": {
@@ -1370,6 +1820,13 @@
         }
       }
     },
+    "@types/lodash@npm:^4.17.17": {
+      "checksum": "b563ac851acf5a3d6dadaf93545e8215959ed3c447ffd26173b2b9f59f96a7a6d73ce64cb5db23fdf71305243490cdf2ed95effb75efc325164d621f57b66d5a",
+      "resolution": {
+        "resolution": "@types/lodash@npm:4.17.17",
+        "version": "4.17.17"
+      }
+    },
     "@types/node@npm:*": {
       "checksum": "a50896ed46f137d99bbeac15950a46b2c0f1fa30232aed866eebab4e782a4366e430ae45004f5fef45635c83cb5a4db7adfee592839214284e8cfa899c8620e5",
       "resolution": {
@@ -1377,6 +1834,16 @@
         "version": "22.13.8",
         "dependencies": {
           "undici-types": "~6.20.0"
+        }
+      }
+    },
+    "@types/node@npm:^22.15.20": {
+      "checksum": "b26a795309241733f02dd5539db160a489069de6c174362e8f992b41184064175758f1f3771fde54d4bbbdca9ad4f00f8dd794b2e23ffedd71df7dadd42bf6e7",
+      "resolution": {
+        "resolution": "@types/node@npm:22.15.20",
+        "version": "22.15.20",
+        "dependencies": {
+          "undici-types": "~6.21.0"
         }
       }
     },
@@ -1446,6 +1913,16 @@
         },
         "peerDependencies": {
           "vite": "^4.2.0 || ^5.0.0 || ^6.0.0"
+        }
+      }
+    },
+    "@yarnpkg/types@npm:^4.0.1": {
+      "checksum": "74ed4ec3970d9afe35023ed77ee895cad6ac118b42c387c096237ec90bf808287ed810a62e5ec5370eb9b95a7d928933792383e230ffc5a7152bdb52bd2402c9",
+      "resolution": {
+        "resolution": "@yarnpkg/types@npm:4.0.1",
+        "version": "4.0.1",
+        "dependencies": {
+          "tslib": "^2.4.0"
         }
       }
     },
@@ -1654,13 +2131,6 @@
         }
       }
     },
-    "deps@workspace:^": {
-      "checksum": null,
-      "resolution": {
-        "resolution": "deps@workspace:deps",
-        "version": "0.0.0"
-      }
-    },
     "detect-libc@npm:^1.0.3": {
       "checksum": "ca13b1093428d582023d1a1725200c4dab7274157f6bf5fe6e7559ac53cd85680bb62a1ffea42ff0d426544e6c3d2a33cb49728da83cee28318d999c2f1ea073",
       "resolution": {
@@ -1785,6 +2255,74 @@
           "@esbuild/win32-arm64",
           "@esbuild/win32-ia32",
           "@esbuild/win32-x64"
+        ]
+      }
+    },
+    "esbuild@npm:^0.25.4": {
+      "checksum": "fd58ef3df4fe763f8f8f6d42162aded70db9589c2921fd50d3ac334be124437ada1ea3956adc7bcd2fed10f7217c727a305f589ccdb4718a4b515d205d26ed56",
+      "resolution": {
+        "resolution": "esbuild@npm:0.25.4",
+        "version": "0.25.4",
+        "dependencies": {
+          "@esbuild/aix-ppc64": "0.25.4",
+          "@esbuild/android-arm": "0.25.4",
+          "@esbuild/android-arm64": "0.25.4",
+          "@esbuild/android-x64": "0.25.4",
+          "@esbuild/darwin-arm64": "0.25.4",
+          "@esbuild/darwin-x64": "0.25.4",
+          "@esbuild/freebsd-arm64": "0.25.4",
+          "@esbuild/freebsd-x64": "0.25.4",
+          "@esbuild/linux-arm": "0.25.4",
+          "@esbuild/linux-arm64": "0.25.4",
+          "@esbuild/linux-ia32": "0.25.4",
+          "@esbuild/linux-loong64": "0.25.4",
+          "@esbuild/linux-mips64el": "0.25.4",
+          "@esbuild/linux-ppc64": "0.25.4",
+          "@esbuild/linux-riscv64": "0.25.4",
+          "@esbuild/linux-s390x": "0.25.4",
+          "@esbuild/linux-x64": "0.25.4",
+          "@esbuild/netbsd-arm64": "0.25.4",
+          "@esbuild/netbsd-x64": "0.25.4",
+          "@esbuild/openbsd-arm64": "0.25.4",
+          "@esbuild/openbsd-x64": "0.25.4",
+          "@esbuild/sunos-x64": "0.25.4",
+          "@esbuild/win32-arm64": "0.25.4",
+          "@esbuild/win32-ia32": "0.25.4",
+          "@esbuild/win32-x64": "0.25.4"
+        },
+        "optionalDependencies": [
+          "@esbuild/aix-ppc64",
+          "@esbuild/android-arm",
+          "@esbuild/android-arm64",
+          "@esbuild/android-x64",
+          "@esbuild/darwin-arm64",
+          "@esbuild/darwin-x64",
+          "@esbuild/freebsd-arm64",
+          "@esbuild/freebsd-x64",
+          "@esbuild/linux-arm",
+          "@esbuild/linux-arm64",
+          "@esbuild/linux-ia32",
+          "@esbuild/linux-loong64",
+          "@esbuild/linux-mips64el",
+          "@esbuild/linux-ppc64",
+          "@esbuild/linux-riscv64",
+          "@esbuild/linux-s390x",
+          "@esbuild/linux-x64",
+          "@esbuild/netbsd-arm64",
+          "@esbuild/netbsd-x64",
+          "@esbuild/openbsd-arm64",
+          "@esbuild/openbsd-x64",
+          "@esbuild/sunos-x64",
+          "@esbuild/win32-arm64",
+          "@esbuild/win32-ia32",
+          "@esbuild/win32-x64"
+        ]
+      },
+      "flags": {
+        "build_commands": [
+          {
+            "Script": "node install.js"
+          }
         ]
       }
     },
@@ -2269,6 +2807,13 @@
         }
       }
     },
+    "lodash@npm:^4.17.21": {
+      "checksum": "b716d2c102dbfd1338b43f4f9b7e50c54a1b924ddeaf2edd8721f98daff991b7f6fb51cb8c7058ebecb30bcd0c0574f0b08454307cca0b188c8075472f05b326",
+      "resolution": {
+        "resolution": "lodash@npm:4.17.21",
+        "version": "4.17.21"
+      }
+    },
     "loose-envify@npm:^1.1.0": {
       "checksum": "5d04087f66b3939061f1607cadf0e674f949bbc24f3b4c8e0b0ac795a07b495f8cfc373c01f66f48a8ac4107cbb61bb5bc30e6d34af2e398d2fca2fc2405694d",
       "resolution": {
@@ -2694,7 +3239,15 @@
       "checksum": null,
       "resolution": {
         "resolution": "root-workspace@workspace:root-workspace",
-        "version": "0.0.0"
+        "version": "0.0.0",
+        "dependencies": {
+          "@types/lodash": "^4.17.17",
+          "@types/node": "^22.15.20",
+          "@yarnpkg/types": "^4.0.1",
+          "esbuild": "^0.25.4",
+          "lodash": "^4.17.21",
+          "typescript": "^5.8.3"
+        }
       }
     },
     "safer-buffer@npm:>= 2.1.2 < 3.0.0": {
@@ -2946,11 +3499,39 @@
         }
       }
     },
+    "tslib@npm:^2.4.0": {
+      "checksum": "1c9083eb49529c2b172cd78e91d54851d2e7372fdd0dd1502e76f90392e03fa6cd30adcce0fc94801c155314a1e1e23793b022e53491c196718bebc5b573e1e6",
+      "resolution": {
+        "resolution": "tslib@npm:2.8.1",
+        "version": "2.8.1"
+      }
+    },
+    "typescript@npm:^5.8.3": {
+      "checksum": "afd97ab64160495cb7acc25d719b9f23e629a6dca3c05aa3a3fffc97ac56d7b6af7d15dbd7ec8f20b37f605f51cb1b6f563a9aaa77be0190b21daeee19b06f51",
+      "resolution": {
+        "resolution": "typescript@npm:5.9.0-dev.20250520",
+        "version": "5.9.0-dev.20250520"
+      }
+    },
+    "typescript@patch:typescript%40npm%3A%5E5.8.3#<builtin>::parent=root-workspace@workspace:root-workspace": {
+      "checksum": "97e3bb886de378721f6e4e776572683b423d5be077c16312b45ff6d6247dd071b2c9f0d187f575a3fbdb5210d38d38aa35ed5f59cee9ab1ad5be169f7c6cb804",
+      "resolution": {
+        "resolution": "typescript@patch:typescript%40npm%3A5.9.0-dev.20250520#<builtin>::parent=root-workspace@workspace:root-workspace",
+        "version": "5.9.0-dev.20250520"
+      }
+    },
     "undici-types@npm:~6.20.0": {
       "checksum": "018a7b375675816550f02f4b045c19407460d554a80655ff134946d0440720521fe0ce10cd4f827efc69dea2e0c29e984197438a7cdadc4da44d6624f1de1bd7",
       "resolution": {
         "resolution": "undici-types@npm:6.20.0",
         "version": "6.20.0"
+      }
+    },
+    "undici-types@npm:~6.21.0": {
+      "checksum": "44fd6fde7a9d1ab9df8f651ba632b6a24efacafc3021d251c6f24a04d78218bf76964e65c07adea92d70c47b1429673da88d1e93bfac3296f5d3e1991e030bab",
+      "resolution": {
+        "resolution": "undici-types@npm:6.21.0",
+        "version": "6.21.0"
       }
     },
     "unique-filename@npm:^4.0.0": {
@@ -3076,6 +3657,13 @@
       "resolution": {
         "resolution": "yallist@npm:5.0.0",
         "version": "5.0.0"
+      }
+    },
+    "zpm-constraints@workspace:^": {
+      "checksum": null,
+      "resolution": {
+        "resolution": "zpm-constraints@workspace:zpm-constraints",
+        "version": "0.0.0"
       }
     }
   }

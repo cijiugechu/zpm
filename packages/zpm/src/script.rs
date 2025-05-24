@@ -261,6 +261,7 @@ pub struct ScriptEnvironment {
     env: BTreeMap<String, String>,
     deleted_env: BTreeSet<String>,
     shell_forwarding: bool,
+    stdin: Option<String>,
 }
 
 impl ScriptEnvironment {
@@ -271,6 +272,7 @@ impl ScriptEnvironment {
             env: BTreeMap::new(),
             deleted_env: BTreeSet::new(),
             shell_forwarding: false,
+            stdin: None,
         };
 
         if let Ok(val) = std::env::var("YARNSW_DETECTED_ROOT") {
@@ -314,6 +316,11 @@ impl ScriptEnvironment {
 
     pub fn enable_shell_forwarding(mut self) -> Self {
         self.shell_forwarding = true;
+        self
+    }
+
+    pub fn with_stdin(mut self, stdin: Option<String>) -> Self {
+        self.stdin = stdin;
         self
     }
 
@@ -433,7 +440,8 @@ impl ScriptEnvironment {
 
     #[track_time]
     pub async fn run_exec<I, S>(&mut self, program: &str, args: I) -> ScriptResult where I: IntoIterator<Item = S>, S: AsRef<str> {
-        let mut cmd = Command::new(program);
+        let mut cmd
+            = Command::new(program);
 
         let args = args.into_iter()
             .map(|arg| arg.as_ref().to_string())
@@ -466,12 +474,36 @@ impl ScriptEnvironment {
 
         cmd.args(&args);
 
+        if self.stdin.is_some() {
+            cmd.stdin(std::process::Stdio::piped());
+        }
+
+        if !self.shell_forwarding {
+            cmd.stdout(std::process::Stdio::piped());
+            cmd.stderr(std::process::Stdio::piped());
+        }
+
+        let mut child
+            = cmd.spawn().unwrap();
+        
+        if let Some(stdin) = &self.stdin {
+            if let Some(mut child_stdin) = child.stdin.take() {
+                use tokio::io::AsyncWriteExt;
+                child_stdin.write_all(stdin.as_bytes()).await.unwrap();
+            }
+        }
+
         let output = match self.shell_forwarding {
-            false => cmd.output().await.unwrap(),
-            true => Output {
-                status: cmd.status().await.unwrap(),
-                stdout: Vec::new(),
-                stderr: Vec::new(),
+            false => {
+                child.wait_with_output().await.unwrap()
+            },
+
+            true => {
+                Output {
+                    status: child.wait().await.unwrap(),
+                    stdout: Vec::new(),
+                    stderr: Vec::new(),
+                }
             },
         };
 

@@ -153,6 +153,16 @@ pub enum PatchFilePart {
 }
 
 impl PatchFilePart {
+    pub fn semver_exclusivity(&self) -> Option<&zpm_semver::Range> {
+        match self {
+            PatchFilePart::FilePatch { semver_exclusivity, .. } => semver_exclusivity.as_ref(),
+            PatchFilePart::FileDeletion { semver_exclusivity, .. } => semver_exclusivity.as_ref(),
+            PatchFilePart::FileCreation { semver_exclusivity, .. } => semver_exclusivity.as_ref(),
+            PatchFilePart::FileRename { semver_exclusivity, .. } => semver_exclusivity.as_ref(),
+            PatchFilePart::FileModeChange { semver_exclusivity, .. } => semver_exclusivity.as_ref(),
+        }
+    }
+
     pub fn source_path(&self) -> &Path {
         match self {
             PatchFilePart::FilePatch { path, .. } => path,

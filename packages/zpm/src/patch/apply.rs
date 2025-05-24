@@ -72,7 +72,7 @@ fn evaluate_hunk(hunk: &Hunk, file_lines: &[String], mut offset: usize) -> Optio
     Some(modifications)
 }
 
-pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry<'a>>, Error> {
+pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str, package_version: &zpm_semver::Version) -> Result<Vec<Entry<'a>>, Error> {
     let mut entry_map = entries.into_iter()
         .map(|entry| (entry.name.clone(), entry))
         .collect::<BTreeMap<_, _>>();
@@ -81,6 +81,16 @@ pub fn apply_patch<'a>(entries: Vec<Entry<'a>>, patch: &str) -> Result<Vec<Entry
         = crate::patch::parse::PatchParser::parse(patch)?;
 
     for patch_entry in patch_entries.iter() {
+        let semver_exclusivity
+            = patch_entry.semver_exclusivity();
+
+        let is_compatible = semver_exclusivity
+            .map_or(true, |range| range.check(package_version));
+
+        if !is_compatible {
+            continue;
+        }
+
         match patch_entry {
             PatchFilePart::FileCreation {path, mode, hunk, ..} => {
                 if entry_map.contains_key(path.as_str()) {

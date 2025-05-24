@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use browser::BrowserField;
+use serde_with::{serde_as, DefaultOnError};
 use zpm_switch::PackageManagerField;
 use zpm_utils::Path;
 use bin::BinField;
@@ -31,11 +32,13 @@ pub struct BinManifest {
     pub bin: Option<BinField>,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Default, Deserialize, Serialize, Encode, Decode)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteManifest {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
     pub version: Option<zpm_semver::Version>,
 
     #[serde(flatten)]

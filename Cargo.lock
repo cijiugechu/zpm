@@ -40,6 +40,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-no-stdlib"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7bb162ec39d46ab1ca8c77bf72e890535becd1751bb45f64c597edb4c8c6b3"
+
+[[package]]
+name = "alloc-stdlib"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94fb8275041c72129eb51b7d0322c29b8387a0386127718b096429201a5d6ece"
+dependencies = [
+ "alloc-no-stdlib",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -180,6 +195,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "brotli"
+version = "8.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9991eea70ea4f293524138648e41ee89b0b2b12ddef3b255effa43c8056e0e0d"
+dependencies = [
+ "alloc-no-stdlib",
+ "alloc-stdlib",
+ "brotli-decompressor",
+]
+
+[[package]]
+name = "brotli-decompressor"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "874bb8112abecc98cbd6d81ea4fa7e94fb9449648c93cc89aa40c81c24d7de03"
+dependencies = [
+ "alloc-no-stdlib",
+ "alloc-stdlib",
 ]
 
 [[package]]
@@ -2425,26 +2461,6 @@ dependencies = [
 
 [[package]]
 name = "sonic-rs"
-version = "0.3.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0275f9f2f07d47556fe60c2759da8bc4be6083b047b491b2d476aa0bfa558eb1"
-dependencies = [
- "bumpalo",
- "bytes",
- "cfg-if",
- "faststr",
- "itoa",
- "ref-cast",
- "ryu",
- "serde",
- "simdutf8",
- "sonic-number",
- "sonic-simd",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "sonic-rs"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93070f7e7c0d7ec7d08406b1b407234af30420320fd854f304029e3c6db4a899"
@@ -3732,6 +3748,7 @@ version = "6.0.0-alpha.0"
 dependencies = [
  "bincode",
  "blake2",
+ "brotli",
  "bytes",
  "clipanion",
  "colored 3.0.0",
@@ -3740,6 +3757,7 @@ dependencies = [
  "futures",
  "globset",
  "hex",
+ "indexmap 2.9.0",
  "itertools 0.13.0",
  "pretty-duration",
  "rayon",
@@ -3752,7 +3770,7 @@ dependencies = [
  "serde_with",
  "serde_yaml",
  "sha2",
- "sonic-rs 0.3.17",
+ "sonic-rs",
  "thiserror 1.0.69",
  "tokio",
  "trust-dns",
@@ -3795,11 +3813,14 @@ dependencies = [
 name = "zpm-parsers"
 version = "0.1.0"
 dependencies = [
+ "indoc",
  "regex",
  "serde",
+ "serde_json",
  "serde_yaml",
- "sonic-rs 0.3.17",
+ "sonic-rs",
  "thiserror 1.0.69",
+ "zpm-utils",
 ]
 
 [[package]]
@@ -3828,7 +3849,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_with",
- "sonic-rs 0.5.1",
+ "sonic-rs",
  "thiserror 2.0.12",
  "tokio",
  "zpm-formats",
@@ -3850,8 +3871,9 @@ dependencies = [
  "radix_trie",
  "serde",
  "serde_derive",
+ "serde_json",
  "shlex",
- "sonic-rs 0.3.17",
+ "sonic-rs",
  "thiserror 2.0.12",
  "tokio",
 ]

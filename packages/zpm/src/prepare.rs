@@ -24,14 +24,24 @@ enum PackageManager {
 }
 
 pub async fn prepare_project(_locator: &Locator, folder_path: &Path, params: &PrepareParams) -> Result<Vec<u8>, Error> {
-    let package_manager = get_package_manager(folder_path)?;
+    let package_manager
+        = get_package_manager(folder_path)?;
 
     match package_manager {
-        PackageManager::Npm => prepare_npm_project(folder_path, params).await,
-        PackageManager::Pnpm => prepare_pnpm_project(folder_path, params).await,
-        PackageManager::YarnClassic => prepare_yarn_classic_project(folder_path, params).await,
-        PackageManager::YarnModern => prepare_yarn_modern_project(folder_path, params).await,
-        PackageManager::YarnZpm => prepare_yarn_zpm_project(folder_path, params).await,
+        PackageManager::Npm
+            => prepare_npm_project(folder_path, params).await,
+
+        PackageManager::Pnpm
+            => prepare_pnpm_project(folder_path, params).await,
+
+        PackageManager::YarnClassic
+            => prepare_yarn_classic_project(folder_path, params).await,
+
+        PackageManager::YarnModern
+            => prepare_yarn_modern_project(folder_path, params).await,
+
+        PackageManager::YarnZpm
+            => prepare_yarn_zpm_project(folder_path, params).await,
     }
 }
 
@@ -120,7 +130,8 @@ async fn prepare_npm_project(folder_path: &Path, params: &PrepareParams) -> Resu
         .await
         .ok()?;
 
-    let stdout = &pack_result.output().stdout;
+    let stdout
+        = &pack_result.output().stdout;
 
     // We retrieve the last line of the output; it's the name of the pack file
     let first_char_index = stdout.iter()

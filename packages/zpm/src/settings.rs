@@ -70,7 +70,7 @@ pub struct ProjectConfig {
     #[alias(ts_enable_auto_types)]
     pub enable_auto_types: BoolField,
 
-    #[default(false)]
+    #[default(true)]
     pub enable_global_cache: BoolField,
 
     #[default(false)]

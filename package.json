@@ -1,9 +1,17 @@
 {
+  "packageManager": "yarn@1.22.22",
   "workspaces": [
     "packages/*"
   ],
+  "devDependencies": {
+    "@types/lodash": "^4.17.17",
+    "@types/node": "^22.15.20",
+    "@yarnpkg/types": "^4.0.1",
+    "esbuild": "^0.25.4",
+    "lodash": "^4.17.21",
+    "typescript": "^5.8.3"
+  },
   "scripts": {
     "berry": "cd ${BERRY_DIR:-~/berry} && yarn"
-  },
-  "packageManager": "yarn@1.22.22+sha256.c17d3797fb9a9115bf375e31bfd30058cac6bc9c3b8807a3d8cb2094794b51ca"
+  }
 }

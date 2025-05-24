@@ -1,11 +1,11 @@
-use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData};
+use std::{collections::{BTreeMap, BTreeSet}, fs::Permissions, hash::Hash, marker::PhantomData, os::unix::fs::PermissionsExt};
 
 use zpm_utils::Path;
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use zpm_utils::{FromFileString, ToFileString};
 
-use crate::{build, cache::CompositeCache, content_flags::ContentFlags, error::Error, fetchers::{fetch_locator, try_fetch_locator_sync, PackageData, SyncFetchAttempt}, graph::{GraphCache, GraphIn, GraphOut, GraphTasks}, linker, lockfile::{Lockfile, LockfileEntry, LockfileMetadata}, primitives::{range, Descriptor, Ident, Locator, PeerRange, Range, Reference}, project::Project, report::{async_section, with_context_result, ReportContext}, resolvers::{resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution, Resolution, SyncResolutionAttempt}, system, tree_resolver::{ResolutionTree, TreeResolver}};
+use crate::{build, cache::CompositeCache, content_flags::ContentFlags, error::Error, fetchers::{fetch_locator, try_fetch_locator_sync, PackageData, SyncFetchAttempt}, graph::{GraphCache, GraphIn, GraphOut, GraphTasks}, linker, lockfile::{Lockfile, LockfileEntry, LockfileMetadata}, primitives::{range, Descriptor, Ident, Locator, PeerRange, Range, Reference}, project::Project, report::{async_section, with_context_result, ReportContext}, resolvers::{resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution, Resolution, SyncResolutionAttempt}, serialize::UrlEncoded, system, tree_resolver::{ResolutionTree, TreeResolver}};
 
 
 #[derive(Clone, Default)]
@@ -410,6 +410,15 @@ impl Install {
             }
         }
 
+        let ignore_path
+            = project.ignore_path();
+
+        if ignore_path.fs_exists() {
+            ignore_path
+                .with_join_str(".gitignore")
+                .fs_change("*", Permissions::from_mode(0o644))?;
+        }
+
         Ok(())
     }
 }
@@ -566,13 +575,61 @@ impl<'a> InstallManager<'a> {
     }
 }
 
-pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resolution) -> (BTreeMap<Ident, Descriptor>, BTreeMap<Ident, PeerRange>) {
-    let root_workspace = context.project
-        .expect("The project is required to bind a parent to a descriptor")
-        .root_workspace();
+fn normalize_resolution(context: &InstallContext<'_>, descriptor: &mut Descriptor, resolution: &Resolution) -> () {
+    let possible_resolution_overrides = context.project
+        .and_then(|project| project.resolution_overrides(&descriptor.ident));
 
-    let mut dependencies = resolution.dependencies.clone();
-    let mut peer_dependencies = resolution.peer_dependencies.clone();
+    let resolution_override = possible_resolution_overrides
+        .and_then(|overrides| {
+            overrides.iter().find_map(|(rule, range)| {
+                rule.apply(&resolution.locator, &resolution.version, descriptor, range)
+            })
+        });
+
+    if let Some(replacement_range) = resolution_override {
+        descriptor.range = replacement_range;
+
+        if descriptor.range.must_bind() {
+            let root_workspace = context.project
+                .expect("The project is required to bind a parent to a descriptor")
+                .root_workspace();
+    
+            descriptor.parent = Some(root_workspace.locator());
+        }
+    } else if descriptor.range.must_bind() {
+        descriptor.parent = Some(resolution.locator.clone());
+    }
+
+    match &mut descriptor.range {
+        Range::Patch(params) => {
+            normalize_resolution(context, &mut params.inner.as_mut().0, resolution);
+        },
+
+        Range::AnonymousSemver(params)
+            => descriptor.range = range::RegistrySemverRange {ident: None, range: params.range.clone()}.into(),
+
+        Range::AnonymousTag(params)
+            => descriptor.range = range::RegistryTagRange {ident: None, tag: params.tag.clone()}.into(),
+
+        _ => {},
+    };
+
+    if matches!(descriptor.ident.as_str(), "typescript") {
+        descriptor.range = range::PatchRange {
+            inner: Box::new(UrlEncoded::new(descriptor.clone())),
+            path: "<builtin>".to_string(),
+        }.into();
+
+        descriptor.parent = Some(resolution.locator.clone());
+    }
+}
+
+pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resolution) -> (BTreeMap<Ident, Descriptor>, BTreeMap<Ident, PeerRange>) {
+    let mut dependencies
+        = resolution.dependencies.clone();
+
+    let mut peer_dependencies
+        = resolution.peer_dependencies.clone();
 
     // Some protocols need to know about the package that declares the
     // dependency (for example the `portal:` protocol, which always points
@@ -583,35 +640,7 @@ pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resoluti
     // independently from any other.
     //
     for descriptor in dependencies.values_mut() {
-        let possible_resolution_overrides = context.project
-            .and_then(|project| project.resolution_overrides(&descriptor.ident));
-
-        let resolution_override = possible_resolution_overrides
-            .and_then(|overrides| {
-                overrides.iter().find_map(|(rule, range)| {
-                    rule.apply(&resolution.locator, &resolution.version, descriptor, range)
-                })
-            });
-
-        if let Some(replacement_range) = resolution_override {
-            descriptor.range = replacement_range;
-
-            if descriptor.range.must_bind() {
-                descriptor.parent = Some(root_workspace.locator());
-            }
-        } else if descriptor.range.must_bind() {
-            descriptor.parent = Some(resolution.locator.clone());
-        }
-
-        match &descriptor.range {
-            Range::AnonymousSemver(params)
-                => descriptor.range = range::RegistrySemverRange {ident: None, range: params.range.clone()}.into(),
-
-            Range::AnonymousTag(params)
-                => descriptor.range = range::RegistryTagRange {ident: None, tag: params.tag.clone()}.into(),
-
-            _ => {},
-        };
+        normalize_resolution(context, descriptor, resolution);
     }
 
     for name in peer_dependencies.keys().filter(|ident| ident.scope() != Some("@types")).cloned().collect::<Vec<_>>() {

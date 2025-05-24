@@ -1,8 +1,9 @@
 use std::{collections::BTreeMap, fs::Permissions, io::ErrorKind, os::unix::fs::PermissionsExt, sync::Arc, time::UNIX_EPOCH};
 
+use indexmap::IndexMap;
 use zpm_utils::Path;
-use globset::Glob;
-use serde::Deserialize;
+use globset::GlobBuilder;
+use serde::{Deserialize, Serialize};
 use zpm_formats::zip::ZipSupport;
 use zpm_macros::track_time;
 
@@ -146,12 +147,16 @@ impl Project {
         self.project_cwd.with_join_str("node_modules")
     }
 
+    pub fn ignore_path(&self) -> Path {
+        self.project_cwd.with_join_str(".yarn/ignore")
+    }
+
     pub fn install_state_path(&self) -> Path {
-        self.project_cwd.with_join_str(".yarn/ignore/install")
+        self.ignore_path().with_join_str("install")
     }
 
     pub fn build_state_path(&self) -> Path {
-        self.project_cwd.with_join_str(".yarn/ignore/build")
+        self.ignore_path().with_join_str("build")
     }
 
     pub fn lockfile(&self) -> Result<Lockfile, Error> {
@@ -606,7 +611,7 @@ impl Workspace {
                 .collect::<Result<Vec<_>, _>>()?;
 
             let glob_patterns = normalized_patterns.into_iter()
-                .map(|p| Glob::new(p.as_str()))
+                .map(|p| GlobBuilder::new(p.as_str()).literal_separator(true).build())
                 .collect::<Result<Vec<_>, _>>()?;
 
             let pattern_matchers = glob_patterns.into_iter()
@@ -617,7 +622,7 @@ impl Workspace {
                 = CachedManifestFinder::new(self.path.clone())?;
 
             let workspace_paths = manifest_finder.rsync()?.into_iter()
-                .filter(|p| pattern_matchers.iter().any(|m| p.dirname().map(|workspace_rel_dir| m.is_match(workspace_rel_dir.as_str())).unwrap_or_default()))
+                .filter(|p| pattern_matchers.iter().any(|m| p.dirname().map(|workspace_rel_dir| m.is_match(workspace_rel_dir.as_str())).unwrap_or(false)))
                 .map(|p| manifest_finder.save_state.cache.remove(&p).map(|manifest| (p, manifest)).unwrap())
                 .collect::<Vec<_>>();
 
@@ -644,12 +649,35 @@ impl Workspace {
     }
 
     pub fn write_manifest(&self) -> Result<(), Error> {
-        let serialized
-            = sonic_rs::to_string_pretty(&self.manifest)?;
+        #[derive(Deserialize, Serialize)]
+        struct IndexDict {
+            #[serde(flatten)]
+            extra: IndexMap<String, sonic_rs::Value>,
+        }
+
+        let original_manifest_content = self.path
+            .with_join_str(MANIFEST_NAME)
+            .fs_read_text()?;
+
+        let patched_manifest_content
+            = sonic_rs::to_string(&self.manifest)?;
+
+        let mut original_manifest
+            = sonic_rs::from_str::<IndexDict>(&original_manifest_content)?;
+
+        let patched_manifest
+            = sonic_rs::from_str::<IndexDict>(&patched_manifest_content)?;
+
+        for (key, value) in patched_manifest.extra {
+            original_manifest.extra.insert(key, value);
+        }
+
+        let output_content
+            = sonic_rs::to_string_pretty(&original_manifest)?;
 
         self.path
             .with_join_str(MANIFEST_NAME)
-            .fs_change(serialized, Permissions::from_mode(0o644))?;
+            .fs_change(output_content, Permissions::from_mode(0o644))?;
 
         Ok(())
     }

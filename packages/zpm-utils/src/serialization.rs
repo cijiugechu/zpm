@@ -36,7 +36,7 @@ impl ToHumanString for String {
 }
 
 #[macro_export]
-macro_rules! impl_serialization_traits(($type:ty) => {
+macro_rules! impl_serialization_traits_no_serde(($type:ty) => {
     impl std::str::FromStr for $type {
         type Err = <$type as $crate::FromFileString>::Error;
 
@@ -93,6 +93,17 @@ macro_rules! impl_serialization_traits(($type:ty) => {
         }
     }
 
+    impl std::fmt::Display for $type {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", <$type as $crate::ToHumanString>::to_print_string(self))
+        }
+    }
+});
+
+#[macro_export]
+macro_rules! impl_serialization_traits(($type:ty) => {
+    $crate::impl_serialization_traits_no_serde!($type);
+
     impl serde::Serialize for $type {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
             serializer.serialize_str(&self.to_file_string())
@@ -103,12 +114,6 @@ macro_rules! impl_serialization_traits(($type:ty) => {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
             let s = String::deserialize(deserializer)?;
             <$type as $crate::FromFileString>::from_file_string(&s).map_err(serde::de::Error::custom)
-        }
-    }
-
-    impl std::fmt::Display for $type {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", <$type as $crate::ToHumanString>::to_print_string(self))
         }
     }
 });

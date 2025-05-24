@@ -4,6 +4,7 @@ pub mod algolia;
 pub mod build;
 pub mod cache;
 pub mod commands;
+pub mod constraints;
 pub mod config_fields;
 pub mod config;
 pub mod content_flags;

@@ -22,7 +22,7 @@ fn simple_case() {
     }];
 
     let res
-        = apply_patch(entries, PATCH).unwrap();
+        = apply_patch(entries, PATCH, &zpm_semver::Version::new()).unwrap();
 
     assert_eq!(res, vec![Entry {
         name: "index.ts".to_string(),

@@ -1,13 +1,13 @@
 use bincode::{Decode, Encode};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use zpm_macros::parse_enum;
-use zpm_utils::FromFileString;
+use zpm_utils::{impl_serialization_traits, FromFileString, ToFileString, ToHumanString};
 
 use crate::{error::Error, primitives::{Descriptor, Ident, Locator, Range}};
 
 #[parse_enum(or_else = |s| Err(Error::InvalidResolution(s.to_string())))]
-#[derive(Clone, Debug, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord, Encode, Decode)]
-#[derive_variants(Clone, Debug, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord, Encode, Decode)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Encode, Decode)]
+#[derive_variants(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Encode, Decode)]
 pub enum ResolutionSelector {
     #[pattern(spec = r"^(?<descriptor>.*)$")]
     Descriptor {
@@ -91,11 +91,32 @@ impl ResolutionSelector {
     }
 }
 
-impl<'de> Deserialize<'de> for ResolutionSelector {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        let s
-            = String::deserialize(deserializer)?;
+impl ToFileString for ResolutionSelector {
+    fn to_file_string(&self) -> String {
+        match self {
+            ResolutionSelector::Descriptor(params) => {
+                params.descriptor.to_file_string()
+            },
 
-        ResolutionSelector::from_file_string(&s).map_err(serde::de::Error::custom)
+            ResolutionSelector::Ident(params) => {
+                params.ident.to_file_string()
+            },
+
+            ResolutionSelector::DescriptorIdent(params) => {
+                params.parent_descriptor.to_file_string() + "/" + &params.ident.to_file_string()
+            },
+
+            ResolutionSelector::IdentIdent(params) => {
+                params.parent_ident.to_file_string() + "/" + &params.ident.to_file_string()
+            },
+        }
     }
 }
+
+impl ToHumanString for ResolutionSelector {
+    fn to_print_string(&self) -> String {
+        self.to_file_string()
+    }
+}
+
+impl_serialization_traits!(ResolutionSelector);

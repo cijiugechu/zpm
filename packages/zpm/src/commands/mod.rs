@@ -11,6 +11,7 @@ mod bin;
 mod config;
 mod config_get;
 mod config_set;
+mod constraints;
 mod dlx;
 mod exec;
 mod install;
@@ -36,6 +37,7 @@ program!(YarnCli, [
     config::Config,
     config_get::ConfigGet,
     config_set::ConfigSet,
+    constraints::Constraints,
     dlx::DlxWithPackages,
     dlx::Dlx,
     exec::Exec,

@@ -25,7 +25,7 @@ rstest = "0.22.0"
 serde_with = "3.9.0"
 serde_yaml = "0.9.34"
 sha2 = "0.10.8"
-sonic-rs = "0.3.17"
+sonic-rs = "0.5.1"
 thiserror = "1.0.63"
 tokio = { version = "1.39.2", features = ["full"] }
 trust-dns = "0.23.2"
@@ -42,3 +42,5 @@ zpm-utils = { path = "../zpm-utils" }
 pretty-duration = "0.1.1"
 convert_case = "0.8.0"
 serde_plain = "1.0.2"
+brotli = "8.0.1"
+indexmap = { version = "2.9.0", "features" = ["serde"] }

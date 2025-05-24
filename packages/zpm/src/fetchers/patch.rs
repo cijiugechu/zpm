@@ -1,15 +1,25 @@
+use std::io::Read;
+
 use zpm_formats::zip::ZipSupport;
 
 use crate::{error::Error, install::{FetchResult, InstallContext, InstallOpResult}, manifest::Manifest, patch, primitives::{reference, Locator}, resolvers::Resolution};
 
 use super::PackageData;
 
+const TYPESCRIPT_PATCH: &[u8] = std::include_bytes!("../../patches/typescript.brotli.dat");
+
+const BUILTIN_PATCHES: &[(&str, &[u8])] = &[
+    ("typescript", TYPESCRIPT_PATCH),
+];
+
 pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, params: &reference::PatchReference, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
     let project = context.project
         .expect("The project is required to fetch a patch package");
 
-    let parent_data = dependencies[0].as_fetched();
-    let original_data = dependencies[1].as_fetched();
+    let parent_data
+        = dependencies[0].as_fetched();
+    let original_data
+        = dependencies[1].as_fetched();
 
     let cached_blob = context.package_cache.unwrap().upsert_blob(locator.clone(), ".zip", || async {
         let original_bytes = match &original_data.package_data {
@@ -37,16 +47,51 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             },
         };
 
-        let patch_path = match params.path.starts_with("~/") {
-            true => project.project_cwd.with_join_str(&params.path[2..]),
-            false => parent_data.package_data.context_directory().with_join_str(&params.path),
+        let patch_content = match params.path.as_str() {
+            "<builtin>" => {
+                let compressed_patch = BUILTIN_PATCHES.iter()
+                    .find(|(name, _)| name == &locator.ident.as_str())
+                    .unwrap()
+                    .1;
+
+                let mut decompressor
+                    = brotli::Decompressor::new(compressed_patch, 4096);
+
+                let mut decompressed_bytes = Vec::new();
+                decompressor.read_to_end(&mut decompressed_bytes).unwrap();
+
+                let decompressed_string
+                    = String::from_utf8(decompressed_bytes)?;
+
+                decompressed_string
+            },
+
+            path if path.starts_with("~/") => {
+                project.project_cwd
+                    .with_join_str(&path[2..])
+                    .fs_read_text_with_zip()?
+            },
+
+            path => {
+                parent_data.package_data.context_directory()
+                    .with_join_str(path)
+                    .fs_read_text_with_zip()?
+            },
         };
 
-        let patch_content = patch_path
-            .fs_read_text_with_zip()?;
+        // I have to locate the package.json and extract its version to pass it as
+        // parameter to patch::apply::apply_patch
+
+        let package_json_entry
+            = original_entries.iter()
+                .find(|entry| entry.name == "package.json")
+                .ok_or(Error::MissingPackageManifest)?;
+
+        let package_json_content
+            = sonic_rs::from_slice::<Manifest>(&package_json_entry.data)?;
 
         let patched_entries
-            = patch::apply::apply_patch(original_entries, &patch_content)?;
+            = patch::apply::apply_patch(original_entries, &patch_content, package_json_content.remote.version.as_ref().unwrap())?;
 
         Ok(zpm_formats::convert::convert_entries_to_zip(&locator.ident.nm_subdir(), patched_entries)?)
     }).await?;
