@@ -2,8 +2,50 @@ use zpm_utils::Path;
 use serde::{Deserialize, Serialize};
 use zpm_macros::yarn_config;
 use zpm_semver::RangeKind;
-use zpm_utils::{FromFileString, ToFileString};
-use crate::{config::ConfigPaths, config_fields::{BoolField, EnumField, GlobField, PathField, StringField, UintField, VecField}};
+use zpm_utils::{FromFileString, ToFileString, ToHumanString};
+use std::collections::BTreeMap;
+use crate::{
+    config::ConfigPaths, 
+    config_fields::{BoolField, DictField, EnumField, GlobField, PathField, StringField, UintField, VecField},
+    primitives::{
+        descriptor::{descriptor_map_deserializer, descriptor_map_serializer},
+        Descriptor, Ident, PeerRange, SemverDescriptor
+    }
+};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageExtension {
+    #[serde(default)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(serialize_with = "descriptor_map_serializer")]
+    #[serde(deserialize_with = "descriptor_map_deserializer")]
+    pub dependencies: BTreeMap<Ident, Descriptor>,
+
+    #[serde(default)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub peer_dependencies: BTreeMap<Ident, PeerRange>,
+}
+
+impl ToFileString for PackageExtension {
+    fn to_file_string(&self) -> String {
+        sonic_rs::to_string(self).unwrap()
+    }
+}
+
+impl ToHumanString for PackageExtension {
+    fn to_print_string(&self) -> String {
+        sonic_rs::to_string(self).unwrap()
+    }
+}
+
+impl FromFileString for PackageExtension {
+    type Error = sonic_rs::Error;
+
+    fn from_file_string(s: &str) -> Result<Self, Self::Error> {
+        sonic_rs::from_str(s)
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -105,4 +147,7 @@ pub struct ProjectConfig {
 
     #[default("#!/usr/bin/env node".to_string())]
     pub pnp_shebang: StringField,
+
+    #[default(BTreeMap::new())]
+    pub package_extensions: DictField<SemverDescriptor, PackageExtension>,
 }

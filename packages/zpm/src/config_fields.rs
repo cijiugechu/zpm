@@ -2,6 +2,7 @@ use zpm_utils::Path;
 use colored::Colorize;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use zpm_utils::{FromFileString, ToFileString, ToHumanString};
+use std::collections::BTreeMap;
 
 use crate::{config::{SettingSource, CONFIG_PATH}, error::Error};
 
@@ -435,6 +436,87 @@ impl Serialize for Glob {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct DictField<K, V> {
+    pub value: BTreeMap<K, V>,
+    pub source: SettingSource,
+}
+
+impl<K, V> DictField<K, V> {
+    pub fn new(value: BTreeMap<K, V>) -> Self {
+        Self {value, source: Default::default()}
+    }
+}
+
+impl<K, V> Field<BTreeMap<K, V>> for DictField<K, V> {
+    fn value(&self) -> &BTreeMap<K, V> {
+        &self.value
+    }
+}
+
+impl<K: Serialize + Ord, V: Serialize> ToFileString for DictField<K, V> {
+    fn to_file_string(&self) -> String {
+        sonic_rs::to_string(&self.value).unwrap()
+    }
+}
+
+impl<K: ToString + Ord, V: ToHumanString> ToHumanString for DictField<K, V> {
+    fn to_print_string(&self) -> String {
+        let entries: Vec<String> = self.value.iter()
+            .map(|(k, v)| format!("{}: {}", k.to_string(), v.to_print_string()))
+            .collect();
+        format!("{{{}}}", entries.join(", "))
+    }
+}
+
+impl<K: FromFileString + Ord, V: FromFileString + for<'a> Deserialize<'a>> FromFileString for DictField<K, V> 
+where 
+    K: for<'a> Deserialize<'a>,
+    Error: From<<K as FromFileString>::Error> + From<<V as FromFileString>::Error>,
+{
+    type Error = sonic_rs::Error;
+
+    fn from_file_string(raw: &str) -> Result<Self, Self::Error> {
+        // If the string starts with '{', it's a JSON object
+        if raw.starts_with('{') {
+            let value = sonic_rs::from_str::<BTreeMap<K, V>>(raw)?;
+            Ok(Self {value, source: Default::default()})
+        } else {
+            // Otherwise, treat it as a single key:value pair
+            // This allows for simpler syntax in config files
+            let parts: Vec<&str> = raw.splitn(2, ':').collect();
+            if parts.len() != 2 {
+                return Err(serde::de::Error::custom("Expected key:value format"));
+            }
+            
+            let key = K::from_file_string(parts[0])
+                .map_err(|_| serde::de::Error::custom("Failed to parse key"))?;
+            let val = V::from_file_string(parts[1].trim())
+                .map_err(|_| serde::de::Error::custom("Failed to parse value"))?;
+            
+            let mut map = BTreeMap::new();
+            map.insert(key, val);
+            Ok(Self {value: map, source: Default::default()})
+        }
+    }
+}
+
+impl<'de, K, V> Deserialize<'de> for DictField<K, V> 
+where 
+    K: Deserialize<'de> + Ord,
+    V: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        Ok(Self {value: BTreeMap::<K, V>::deserialize(deserializer)?, source: Default::default()})
+    }
+}
+
+impl<K: Serialize, V: Serialize> Serialize for DictField<K, V> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+        self.value.serialize(serializer)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::config::ConfigPaths;
@@ -672,5 +754,54 @@ mod tests {
         let json_str = "\"relative/path/to/file.txt\"";
         let deserialized: PathField = serde_json::from_str(json_str).unwrap();
         assert_eq!(deserialized.value.to_string(), "/tmp/relative/path/to/file.txt");
+    }
+
+    #[test]
+    fn test_dict_field() {
+        // Test FromFileString (single key:value)
+        let dict_field = DictField::<String, String>::from_file_string("key1:value1").unwrap();
+        assert_eq!(dict_field.value.len(), 1);
+        assert_eq!(dict_field.value.get("key1"), Some(&"value1".to_string()));
+
+        // Test FromFileString (JSON object)
+        let dict_field = DictField::<String, String>::from_file_string("{\"key1\":\"value1\",\"key2\":\"value2\"}").unwrap();
+        assert_eq!(dict_field.value.len(), 2);
+        assert_eq!(dict_field.value.get("key1"), Some(&"value1".to_string()));
+        assert_eq!(dict_field.value.get("key2"), Some(&"value2".to_string()));
+
+        // Test ToFileString
+        let mut map = BTreeMap::new();
+        map.insert("a".to_string(), "1".to_string());
+        map.insert("b".to_string(), "2".to_string());
+        let dict_field = DictField::new(map);
+        let file_string = dict_field.to_file_string();
+        assert_eq!(file_string, "{\"a\":\"1\",\"b\":\"2\"}");
+
+        // Test ToHumanString - Note: StringField adds color codes to the output
+        let human_string = dict_field.to_print_string();
+        // The exact format will include ANSI color codes from StringField's to_print_string
+        assert!(human_string.contains("a:"));
+        assert!(human_string.contains("b:"));
+        assert!(human_string.contains("1"));
+        assert!(human_string.contains("2"));
+        assert!(human_string.starts_with("{"));
+        assert!(human_string.ends_with("}"));
+
+        // Test Serialize
+        let serialized = serde_json::to_string(&dict_field).unwrap();
+        assert_eq!(serialized, "{\"a\":\"1\",\"b\":\"2\"}");
+
+        // Test Deserialize
+        let deserialized: DictField<String, String> = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized.value, dict_field.value);
+
+        // Test with different value types
+        let mut int_map = BTreeMap::new();
+        int_map.insert("count".to_string(), 42u64);
+        int_map.insert("total".to_string(), 100u64);
+        let int_dict_field = DictField::new(int_map);
+        
+        let serialized = serde_json::to_string(&int_dict_field).unwrap();
+        assert_eq!(serialized, "{\"count\":42,\"total\":100}");
     }
 }

@@ -625,11 +625,26 @@ fn normalize_resolution(context: &InstallContext<'_>, descriptor: &mut Descripto
 }
 
 pub fn normalize_resolutions(context: &InstallContext<'_>, resolution: &Resolution) -> (BTreeMap<Ident, Descriptor>, BTreeMap<Ident, PeerRange>) {
+    let project
+        = context.project.expect("The project is required to normalize resolutions");
+
     let mut dependencies
         = resolution.dependencies.clone();
 
     let mut peer_dependencies
         = resolution.peer_dependencies.clone();
+
+    for (descriptor, extension) in project.config.project.package_extensions.value.iter() {
+        if descriptor.ident == resolution.locator.ident && descriptor.range.check(&resolution.version) {
+            for (dependency, range) in extension.dependencies.iter() {
+                dependencies.insert(dependency.clone(), range.clone());
+            }
+
+            for (peer_dependency, range) in extension.peer_dependencies.iter() {
+                peer_dependencies.insert(peer_dependency.clone(), range.clone());
+            }
+        }
+    }
 
     // Some protocols need to know about the package that declares the
     // dependency (for example the `portal:` protocol, which always points
