@@ -272,9 +272,7 @@ impl Project {
                 .with_join_str(".yarn")
                 .with_join_str(&self.config.project.local_cache_folder_name.value);
 
-        if !self.config.project.enable_global_cache.value {
-            global_cache_path.fs_create_dir_all()?;
-        }
+        global_cache_path.fs_create_dir_all()?;
 
         if !self.config.project.enable_global_cache.value {
             if !self.config.project.enable_immutable_cache.value {
