@@ -37,6 +37,8 @@ jobs:
           cargo build --verbose --release
           strip target/release/{yarn,yarn-switch}
 
+          cp LICENSE.md target/release/
+
           echo "INFRA_PLATFORM=$(./target/release/yarn debug print-platform)" >> $GITHUB_ENV
 
       - name: Upload artifacts
@@ -46,6 +48,7 @@ jobs:
           path: |
             target/release/yarn-bin
             target/release/yarn
+            target/release/LICENSE.md
           retention-days: 7
 
   test-report:
