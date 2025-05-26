@@ -35,7 +35,7 @@ jobs:
           export INFRA_GIT_DATE=$(git show -s --format=%ct --date=format:'%Y%m%d' $GITHUB_SHA)
 
           cargo build --verbose --release
-          strip target/release/{yarn,yarn-switch}
+          strip target/release/{yarn-bin,yarn}
 
           cp LICENSE.md target/release/
 
