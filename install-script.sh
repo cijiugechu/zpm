@@ -45,6 +45,10 @@ tag=$1
 
 yarn_uri=https://repo.yarnpkg.com/tags/$tag/$target
 
+echo "This script will install or update Yarn Switch, an utility that lets you lock Yarn versions in your projects."
+echo "For more information, please visit https://yarnpkg.com"
+echo
+
 curl --fail --location --progress-bar --output "$archive" $yarn_uri ||
     error "Failed to download Yarn from \"$yarn_uri\""
 
@@ -54,5 +58,7 @@ rm "$archive"
 
 rm -rf "$install_dir"
 mv "$tmp_dir" "$install_dir"
+
+echo
 
 "$install_dir"/yarn switch postinstall

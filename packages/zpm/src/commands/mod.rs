@@ -2,6 +2,7 @@ use std::{process::ExitCode, str::FromStr};
 
 use clipanion::{prelude::*, program, Environment};
 use zpm_macros::track_time;
+use zpm_switch::{extract_bin_meta, BinMeta};
 use zpm_utils::ExplicitPath;
 
 mod debug;
@@ -55,47 +56,22 @@ program!(YarnCli, [
 
 #[track_time]
 pub fn run_default() -> ExitCode {
-    let mut args = std::env::args()
-        .skip(1)
-        .collect::<Vec<_>>();
+    let BinMeta {
+        cwd,
+        args,
+        version,
+    } = extract_bin_meta();
 
-    if let Some(first_arg) = args.first() {
-        let explicit_path
-            = ExplicitPath::from_str(first_arg);
-
-        if let Ok(explicit_path) = explicit_path {
-            explicit_path.raw_path.path.sys_set_current_dir().unwrap();
-            args.remove(0);
-        }
-    }
-
-    let mut version_str
-        = env!("CARGO_PKG_VERSION").to_string();
-
-    let git_date
-        = option_env!("INFRA_GIT_DATE");
-    let git_sha
-        = option_env!("INFRA_GIT_SHA");
-
-    if let (Some(date), Some(sha)) = (git_date, git_sha) {
-        let mut version
-            = zpm_semver::Version::from_str(&version_str).unwrap();
-
-        version.rc = Some(vec![
-            zpm_semver::VersionRc::String("git".to_string()),
-            zpm_semver::VersionRc::Number(date.parse::<u32>().unwrap()),
-            zpm_semver::VersionRc::String(format!("hash-{}", sha.to_string())),
-        ]);
-
-        version_str
-            = version.to_string();
+    if let Some(cwd) = cwd {
+        cwd.sys_set_current_dir()
+            .expect("Failed to set current directory");
     }
 
     let env
         = Environment::default()
             .with_program_name("Yarn Package Manager".to_string())
             .with_binary_name("yarn".to_string())
-            .with_version(version_str)
+            .with_version(version)
             .with_argv(args);
 
     YarnCli::run(env)

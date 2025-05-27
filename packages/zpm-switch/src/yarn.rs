@@ -1,8 +1,8 @@
 use serde::{de, Deserialize};
 use serde_with::serde_as;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 use zpm_semver::{Range, Version};
-use zpm_utils::{FromFileString, RawPath};
+use zpm_utils::{ExplicitPath, FromFileString, Path, RawPath};
 
 use crate::{errors::Error, http::fetch, manifest::{PackageManagerReference, VersionPackageManagerReference}};
 
@@ -83,4 +83,38 @@ pub async fn get_latest_stable_version(release_line: Option<&str>) -> Result<Pac
         .ok_or(Error::FailedToRetrieveLatestYarnTag)?;
 
     Ok(VersionPackageManagerReference {version: release_line.stable.clone()}.into())
+}
+
+pub struct BinMeta {
+    pub cwd: Option<Path>,
+    pub args: Vec<String>,
+    pub version: String,
+}
+
+pub fn extract_bin_meta() -> BinMeta {
+    let mut cwd = None;
+
+    let mut args = std::env::args()
+        .skip(1)
+        .collect::<Vec<_>>();
+
+    if let Some(first_arg) = args.first() {
+        let explicit_path
+            = ExplicitPath::from_str(first_arg);
+
+        if let Ok(explicit_path) = explicit_path {
+            cwd = Some(explicit_path.raw_path.path);
+            args.remove(0);
+        }
+    }
+
+    let version = option_env!("INFRA_VERSION")
+        .unwrap_or(env!("CARGO_PKG_VERSION"))
+        .to_string();
+
+    BinMeta {
+        cwd,
+        args,
+        version,
+    }
 }

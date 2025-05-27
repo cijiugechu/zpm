@@ -1,0 +1,44 @@
+use std::process::{Command, ExitStatus, Stdio};
+
+use clipanion::cli;
+
+use crate::{cwd::get_final_cwd, errors::Error, install::install_package_manager, manifest::{find_closest_package_manager, PackageManagerField, PackageManagerReference}};
+
+#[cli::command(proxy)]
+#[cli::path("switch")]
+#[derive(Debug)]
+pub struct ExplicitCommand {
+    package_manager: PackageManagerField,
+    args: Vec<String>,
+}
+
+impl ExplicitCommand {
+    pub async fn run(reference: &PackageManagerReference, args: &[String]) -> Result<ExitStatus, Error> {
+        let mut binary = match reference {
+            PackageManagerReference::Version(params)
+                => install_package_manager(params).await?,
+    
+            PackageManagerReference::Local(params)
+                => Command::new(params.path.to_path_buf()),
+        };
+
+        binary.stdout(Stdio::inherit());
+        binary.args(args);
+    
+        Ok(binary.status()?)
+    }
+
+    pub async fn execute(&self) -> Result<ExitStatus, Error> {
+        let lookup_path
+            = get_final_cwd()?;
+
+        let find_result
+            = find_closest_package_manager(&lookup_path)?;
+
+        if let Some(detected_root_path) = find_result.detected_root_path {
+            std::env::set_var("YARNSW_DETECTED_ROOT", detected_root_path.to_string());
+        }
+
+        ExplicitCommand::run(&self.package_manager.reference, &self.args).await
+    }
+}
