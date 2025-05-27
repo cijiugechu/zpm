@@ -1,10 +1,10 @@
-use std::process::{Command, ExitCode, ExitStatus, Stdio};
+use std::{fs::Permissions, os::unix::fs::PermissionsExt, process::{Command, ExitCode, ExitStatus, Stdio}, str::FromStr};
 
 use clipanion::{cli, prelude::*};
 use install::install_package_manager;
 use manifest::{find_closest_package_manager, validate_package_manager, PackageManagerField, PackageManagerReference};
 use yarn::get_default_yarn_version;
-use zpm_utils::{ExplicitPath, Path};
+use zpm_utils::{ExplicitPath, Path, PathError};
 
 mod errors;
 mod http;
@@ -82,15 +82,146 @@ impl InitCommand {
     }
 }
 
+fn insert_rc_line(rc_path: Path, line: String) {
+    let rc_content = rc_path
+        .fs_read_text_prealloc();
+
+    let initial_rc_content = match rc_content {
+        Ok(content) => {
+            content
+        },
+
+        Err(e) if e.io_kind() == Some(std::io::ErrorKind::NotFound) => {
+            String::new()
+        },
+
+        Err(_) => {
+            println!("Failed to read rc file");
+            return;
+        },
+    };
+
+    if initial_rc_content.contains(&line) {
+        println!("Line already exists");
+        return;
+    }
+
+    let mut rc_content
+        = initial_rc_content.clone();
+
+    let header
+        = "# BEGIN YARN SWITCH MANAGED BLOCK\n";
+    let footer
+        = "# END YARN SWITCH MANAGED BLOCK\n";
+
+    let header_position = rc_content
+        .find(header);
+    let footer_position = rc_content
+        .find(footer);
+
+    let final_string
+        = header.to_string() + &line + &footer;
+
+    match (header_position, footer_position) {
+        (Some(header_position), Some(footer_position)) => {
+            rc_content.replace_range(header_position..footer_position + footer.len(), &final_string);
+        },
+
+        (Some(header_position), None) => {
+            rc_content.replace_range(header_position..header_position + header.len(), &final_string);
+        },
+
+        (None, Some(footer_position)) => {
+            rc_content.replace_range(footer_position..footer_position + footer.len(), &final_string);
+        },
+
+        (None, None) => {
+            if rc_content.is_empty() || rc_content.ends_with("\n\n") {
+                // All good, we can insert the line right away!
+            } else if rc_content.ends_with("\n") {
+                rc_content.push('\n');
+            } else {
+                rc_content.push_str("\n\n");
+            }
+
+            rc_content.push_str(&final_string);
+        },
+    }
+
+    let _ = rc_path
+        .fs_change(rc_content, Permissions::from_mode(0o644));
+
+    println!("Inserted line");
+}
+
 #[cli::command(default)]
 #[cli::path("switch", "postinstall")]
 #[derive(Debug)]
 pub struct PostinstallCommand {
+    #[cli::option("-H,--home-dir")]
+    home_dir: Option<Path>,
 }
 
 impl PostinstallCommand {
     async fn execute(&self) -> Result<ExitCode, Error> {
-        Ok(ExitCode::SUCCESS)
+        let bin_dir = Path::current_exe()
+            .ok()
+            .and_then(|p| p.dirname());
+
+        let Some(bin_dir) = bin_dir else {
+            println!("No bin dir found");
+            return Ok(ExitCode::SUCCESS);
+        };
+
+        let Ok(shell) = std::env::var("SHELL") else {
+            println!("No shell found");
+            return Ok(ExitCode::SUCCESS);
+        };
+
+        let Ok(shell_path) = Path::from_str(&shell) else {
+            println!("No shell path found");
+            return Ok(ExitCode::SUCCESS);
+        };
+
+        let Some(shell_name) = shell_path.basename() else {
+            println!("No shell name found");
+            return Ok(ExitCode::SUCCESS);
+        };
+
+        let Some(home) = self.home_dir.clone().or_else(|| Path::home_dir().unwrap_or_default()) else {
+            println!("No home dir found");
+            return Ok(ExitCode::SUCCESS);
+        };
+
+        match shell_name {
+            "bash" => {
+                let insert_line
+                    = format!("export PATH=\"{}:$PATH\"\n", bin_dir.to_string());
+
+                let bashrc_path = home
+                    .with_join_str(".bashrc");
+
+                insert_rc_line(bashrc_path, insert_line);
+
+                Ok(ExitCode::SUCCESS)
+            },
+
+            "zsh" => {
+                let insert_line
+                    = format!("export PATH=\"{}:$PATH\"\n", bin_dir.to_string());
+
+                let zshrc_path = home
+                    .with_join_str(".zshrc");
+
+                insert_rc_line(zshrc_path, insert_line);
+
+                Ok(ExitCode::SUCCESS)
+            },
+
+            _ => {
+                Ok(ExitCode::SUCCESS)
+            },
+        }
     }
 }
 

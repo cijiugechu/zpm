@@ -74,12 +74,28 @@ impl Path {
             format!("{}{:032x}{}", before, nonce, after)
         });
 
-        let mut dir = Path::try_from(std::env::temp_dir())?;
+        let mut iteration: usize = 0;
 
-        dir.join_str(name);
-        dir.fs_create_dir_all()?;
+        loop {
+            let mut dir
+                = Path::try_from(std::env::temp_dir())?;
 
-        Ok(dir)
+            dir.join_str(format!("{}-{}", name, iteration));
+
+            match dir.fs_create_dir() {
+                Ok(_) => {
+                    return Ok(dir);
+                },
+
+                Err(e) if e.io_kind() == Some(std::io::ErrorKind::AlreadyExists) => {
+                    iteration += 1;
+                },
+
+                Err(e) => {
+                    return Err(e);
+                },
+            }
+        }
     }
 
     pub fn temp_dir() -> Result<Path, PathError> {

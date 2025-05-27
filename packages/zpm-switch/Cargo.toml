@@ -23,3 +23,5 @@ zpm-formats = { path = "../zpm-formats" }
 zpm-macros = { version = "0.1.0", path = "../zpm-macros" }
 zpm-semver = { version = "0.1.0", path = "../zpm-semver" }
 zpm-utils = { version = "0.1.0", path = "../zpm-utils" }
+assert_cmd = "2.0.17"
+predicates = "3.1.3"
