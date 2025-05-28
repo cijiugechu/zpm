@@ -8,13 +8,9 @@
     "@yarnpkg/types": "^4.0.1",
     "esbuild": "^0.25.4",
     "lodash": "^4.17.21",
-    "typescript": "^5.8.3",
-    "\u001b[38;2;215;135;95m@types/underscore\u001b[0m": "^1"
+    "typescript": "^5.8.3"
   },
   "scripts": {
     "berry": "cd ${BERRY_DIR:-~/berry} && yarn"
-  },
-  "dependencies": {
-    "\u001b[38;2;215;135;95munderscore\u001b[0m": "^1.13.7"
   }
 }

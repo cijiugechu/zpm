@@ -1,7 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fs::Permissions, os::unix::fs::PermissionsExt};
 
 use clipanion::cli;
 use wax::{Glob, Program};
+use zpm_parsers::JsonFormatter;
+use zpm_utils::ToFileString;
 
 use crate::{config::Config, error::Error, primitives::Ident, project::{Project, RunInstallOptions, Workspace}};
 
@@ -19,7 +21,7 @@ pub struct Remove {
 impl Remove {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<(), Error> {
-        let mut project
+        let project
             = Project::new(None).await?;
 
         let ident_globs = self.identifiers.iter()
@@ -27,7 +29,7 @@ impl Remove {
             .collect::<Vec<_>>();
 
         if self.all {
-            for workspace in project.workspaces.iter_mut() {
+            for workspace in &project.workspaces {
                 self.remove_dependencies_from_manifest(&project.config, workspace, &ident_globs)?;
             }
         } else {
@@ -35,10 +37,13 @@ impl Remove {
                 = project.active_workspace_idx()?;
 
             let active_workspace
-                = &mut project.workspaces[active_workspace_idx];
+                = &project.workspaces[active_workspace_idx];
 
             self.remove_dependencies_from_manifest(&project.config, active_workspace, &ident_globs)?;
         }
+
+        let mut project
+            = Project::new(None).await?;
 
         project.run_install(RunInstallOptions {
             check_resolutions: false,
@@ -48,7 +53,7 @@ impl Remove {
         Ok(())
     }
 
-    fn remove_dependencies_from_manifest(&self, config: &Config, workspace: &mut Workspace, ident_globs: &[Glob]) -> Result<(), Error> {
+    fn remove_dependencies_from_manifest(&self, config: &Config, workspace: &Workspace, ident_globs: &[Glob]) -> Result<(), Error> {
         let all_dependencies = workspace.manifest.remote.dependencies.keys()
             .chain(workspace.manifest.remote.optional_dependencies.keys())
             .chain(workspace.manifest.remote.peer_dependencies.keys())
@@ -66,14 +71,38 @@ impl Remove {
                 .collect::<Vec<_>>();
         }
 
+        let manifest_path = workspace.path
+            .with_join_str("package.json");
+
+        let manifest_content = manifest_path
+            .fs_read_text_prealloc()?;
+
+        let mut formatter
+            = JsonFormatter::from(&manifest_content).unwrap();
+
         for ident in removed_dependencies.iter() {
-            workspace.manifest.remote.dependencies.remove(ident);
-            workspace.manifest.remote.optional_dependencies.remove(ident);
-            workspace.manifest.remote.peer_dependencies.remove(ident);
-            workspace.manifest.dev_dependencies.remove(ident);
+            formatter.remove(
+                &vec!["dependencies".to_string(), ident.to_file_string()].into(), 
+            ).unwrap();
+
+            formatter.remove(
+                &vec!["optionalDependencies".to_string(), ident.to_file_string()].into(), 
+            ).unwrap();
+
+            formatter.remove(
+                &vec!["peerDependencies".to_string(), ident.to_file_string()].into(), 
+            ).unwrap();
+
+            formatter.remove(
+                &vec!["devDependencies".to_string(), ident.to_file_string()].into(), 
+            ).unwrap();
         }
 
-        workspace.write_manifest()?;
+        let updated_content
+            = formatter.to_string();
+
+        manifest_path
+            .fs_change(&updated_content, Permissions::from_mode(0o644))?;
 
         Ok(())
     }

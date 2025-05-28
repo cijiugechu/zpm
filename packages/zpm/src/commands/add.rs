@@ -234,28 +234,28 @@ impl Add {
 
             if request.dev {
                 formatter.set(
-                    &vec!["devDependencies".to_string(), descriptor.ident.to_string()].into(), 
+                    &vec!["devDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
                     JsonValue::String(descriptor.range.to_file_string()),
                 ).unwrap();
             }
 
             if request.optional {
                 formatter.set(
-                    &vec!["optionalDependencies".to_string(), descriptor.ident.to_string()].into(), 
+                    &vec!["optionalDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
                     JsonValue::String(descriptor.range.to_file_string()),
                 ).unwrap();
             }
 
             if request.peer {
                 formatter.set(
-                    &vec!["peerDependencies".to_string(), descriptor.ident.to_string()].into(), 
+                    &vec!["peerDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
                     JsonValue::String(descriptor.range.to_file_string()),
                 ).unwrap();
             }
 
             if request.prod {
                 formatter.set(
-                    &vec!["dependencies".to_string(), descriptor.ident.to_string()].into(), 
+                    &vec!["dependencies".to_string(), descriptor.ident.to_file_string()].into(), 
                     JsonValue::String(descriptor.range.to_file_string()),
                 ).unwrap();
             }

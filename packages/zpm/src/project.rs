@@ -645,38 +645,4 @@ impl Workspace {
 
         Ok((workspaces, project_last_changed_at))
     }
-
-    pub fn write_manifest(&self) -> Result<(), Error> {
-        #[derive(Deserialize, Serialize)]
-        struct IndexDict {
-            #[serde(flatten)]
-            extra: IndexMap<String, sonic_rs::Value>,
-        }
-
-        let original_manifest_content = self.path
-            .with_join_str(MANIFEST_NAME)
-            .fs_read_text()?;
-
-        let patched_manifest_content
-            = sonic_rs::to_string(&self.manifest)?;
-
-        let mut original_manifest
-            = sonic_rs::from_str::<IndexDict>(&original_manifest_content)?;
-
-        let patched_manifest
-            = sonic_rs::from_str::<IndexDict>(&patched_manifest_content)?;
-
-        for (key, value) in patched_manifest.extra {
-            original_manifest.extra.insert(key, value);
-        }
-
-        let output_content
-            = sonic_rs::to_string_pretty(&original_manifest)?;
-
-        self.path
-            .with_join_str(MANIFEST_NAME)
-            .fs_change(output_content, Permissions::from_mode(0o644))?;
-
-        Ok(())
-    }
 }

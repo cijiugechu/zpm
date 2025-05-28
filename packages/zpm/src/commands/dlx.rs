@@ -1,6 +1,7 @@
-use std::process::ExitStatus;
+use std::{fs::Permissions, os::unix::fs::PermissionsExt, process::ExitStatus};
 
-use zpm_utils::Path;
+use zpm_parsers::{JsonFormatter, JsonValue};
+use zpm_utils::{Path, ToFileString};
 use clipanion::{prelude::*, cli};
 use zpm_semver::RangeKind;
 
@@ -39,7 +40,8 @@ impl DlxWithPackages {
         let descriptors
             = LooseDescriptor::resolve_all(&install_context, &resolve_options, &self.packages).await?;
 
-        install_dependencies(&mut project, descriptors).await?;
+        let project
+            = install_dependencies(&project.project_cwd, descriptors).await?;
 
         let bin
             = find_binary(&project, self.name.as_str(), false)?;
@@ -58,7 +60,7 @@ pub struct Dlx {
 impl Dlx {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<ExitStatus, Error> {
-        let (mut project, current_cwd)
+        let (project, current_cwd)
             = setup_project().await?;
 
         let package_cache
@@ -76,7 +78,8 @@ impl Dlx {
         let descriptor
             = self.package.resolve(&install_context, &resolve_options).await?;
 
-        install_dependencies(&mut project, vec![descriptor.clone()]).await?;
+        let project
+            = install_dependencies(&project.project_cwd, vec![descriptor.clone()]).await?;
 
         let bin
             = find_binary(&project, descriptor.ident.name(), true)?;
@@ -105,15 +108,31 @@ async fn setup_project() -> Result<(Project, Path), Error> {
     Ok((project, current_cwd))
 }
 
-async fn install_dependencies(project: &mut Project, descriptors: Vec<Descriptor>) -> Result<(), Error> {
-    let root_workspace
-        = project.root_workspace_mut();
+async fn install_dependencies(workspace_path: &Path, descriptors: Vec<Descriptor>) -> Result<Project, Error> {
+    let manifest_path = workspace_path
+        .with_join_str("package.json");
+
+    let manifest_content = manifest_path
+        .fs_read_text_prealloc()?;
+
+    let mut formatter
+        = JsonFormatter::from(&manifest_content).unwrap();
 
     for descriptor in descriptors.into_iter() {
-        root_workspace.manifest.remote.dependencies.insert(descriptor.ident.clone(), descriptor);
+        formatter.update(
+            &vec!["dependencies".to_string(), descriptor.ident.to_file_string()].into(), 
+            JsonValue::String(descriptor.range.to_file_string()),
+        ).unwrap();
     }
 
-    root_workspace.write_manifest()?;
+    let updated_content
+        = formatter.to_string();
+
+    manifest_path
+        .fs_change(&updated_content, Permissions::from_mode(0o644))?;
+
+    let mut project
+        = project::Project::new(None).await?;
 
     project
         .run_install(project::RunInstallOptions {
@@ -121,7 +140,7 @@ async fn install_dependencies(project: &mut Project, descriptors: Vec<Descriptor
             refresh_lockfile: false,
         }).await?;
 
-    Ok(())
+    Ok(project)
 }
 
 fn find_binary(project: &Project, preferred_name: &str, fallback: bool) -> Result<Binary, Error> {

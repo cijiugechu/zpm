@@ -726,14 +726,19 @@ fn detect_format_preferences(tokens: &[TokenWithSpan], original: &str) -> Format
 
 impl JsonFormatter {
     pub fn from(input: &str) -> Result<Self, String> {
-        let tokenizer = Tokenizer::new(input);
-        let tokens = tokenizer.tokenize()?;
-        
-        let format_prefs = detect_format_preferences(&tokens, input);
-        
-        let mut parser = Parser::new(tokens);
-        let root = parser.parse()?;
-        
+        let tokenizer
+            = Tokenizer::new(input);
+        let tokens
+            = tokenizer.tokenize()?;
+
+        let format_prefs
+            = detect_format_preferences(&tokens, input);
+
+        let mut parser
+            = Parser::new(tokens);
+        let root
+            = parser.parse()?;
+
         Ok(Self {
             original: input.to_string(),
             root: Some(root),
@@ -744,14 +749,25 @@ impl JsonFormatter {
     pub fn set(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), String> {
         if let Some(root) = &mut self.root {
             if path.is_empty() {
-                // Replace the entire root
                 root.value = value;
             } else {
-                // Navigate to the target and update it
-                set_at_path(&mut root.value, path.segments(), value)?;
+                set_at_path(&mut root.value, path.segments(), value, true)?;
             }
         }
         
+        Ok(())
+    }
+
+    pub fn update(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), String> {
+        if let Some(root) = &mut self.root {
+            if path.is_empty() {
+                // Replace the entire root
+                root.value = value;
+            } else {
+                set_at_path(&mut root.value, path.segments(), value, false)?;
+            }
+        }
+
         Ok(())
     }
 
@@ -922,10 +938,10 @@ pub fn escape_string(s: &str) -> String {
 }
 
 // Move set_at_path outside of impl block as a standalone function
-fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue) -> Result<(), String> {
+fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue, create_if_missing: bool) -> Result<bool, String> {
     if path.is_empty() {
         *current = value;
-        return Ok(());
+        return Ok(false);
     }
     
     let key = &path[0];
@@ -936,71 +952,87 @@ fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue) -> Re
             // Try to find existing key
             for i in 0..entries.len() {
                 if entries[i].0 == *key {
-                    if remaining_path.is_empty() && matches!(value, JsonValue::Undefined) {
-                        // Remove the entry
-                        entries.remove(i);
-                        return Ok(());
-                    } else {
-                        return set_at_path(&mut entries[i].1, remaining_path, value);
+                    if remaining_path.len() > 0 || value != JsonValue::Undefined {
+                        if !set_at_path(&mut entries[i].1, remaining_path, value, create_if_missing)? {
+                            return Ok(false);
+                        }
                     }
+
+                    // Remove the entry
+                    entries.remove(i);
+                    return Ok(entries.is_empty());
                 }
             }
-            
+
             // Key not found
-            if matches!(value, JsonValue::Undefined) {
-                // Nothing to remove
-                return Ok(());
+            if value == JsonValue::Undefined || !create_if_missing {
+                return Ok(false);
             }
-            
+
             // Add new entry
             if remaining_path.is_empty() {
                 entries.push((key.clone(), value));
             } else {
-                // Need to create intermediate values
-                let intermediate = if remaining_path[0].parse::<usize>().is_ok() {
+                entries.push((key.clone(), if remaining_path[0].parse::<usize>().is_ok() {
                     JsonValue::Array(vec![])
                 } else {
                     JsonValue::Object(vec![])
-                };
-                entries.push((key.clone(), intermediate));
-                let last_idx = entries.len() - 1;
-                set_at_path(&mut entries[last_idx].1, remaining_path, value)?;
+                }));
+
+                let last_idx
+                    = entries.len() - 1;
+
+                set_at_path(&mut entries[last_idx].1, remaining_path, value, create_if_missing)?;
             }
-        }
+
+            Ok(false)
+        },
+
         JsonValue::Array(elements) => {
             if let Ok(index) = key.parse::<usize>() {
-                if remaining_path.is_empty() && matches!(value, JsonValue::Undefined) {
+                if remaining_path.is_empty() && value == JsonValue::Undefined {
                     // Remove the element if it exists
                     if index < elements.len() {
                         elements.remove(index);
                     }
-                    return Ok(());
+
+                    return Ok(elements.is_empty());
+                }
+
+                if !create_if_missing && index >= elements.len() {
+                    return Ok(false);
                 }
                 
                 // Extend array if needed
                 while elements.len() <= index {
                     elements.push(JsonValue::Null);
                 }
-                
+
                 if remaining_path.is_empty() {
                     elements[index] = value;
                 } else {
-                    set_at_path(&mut elements[index], remaining_path, value)?;
+                    if set_at_path(&mut elements[index], remaining_path, value, create_if_missing)? {
+                        elements.remove(index);
+                        return Ok(elements.is_empty());
+                    }
                 }
+
+                Ok(false)
             } else {
                 return Err(format!("Invalid array index: {}", key));
             }
-        }
+        },
+
         _ => {
             if remaining_path.is_empty() {
                 *current = value;
             } else {
                 return Err("Cannot navigate through primitive value".to_string());
             }
+
+            Ok(false)
         }
     }
-    
-    Ok(())
 }
 
 #[cfg(test)]

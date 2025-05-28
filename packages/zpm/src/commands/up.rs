@@ -1,7 +1,9 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fs::Permissions, os::unix::fs::PermissionsExt};
 
 use clipanion::cli;
+use zpm_parsers::{JsonFormatter, JsonValue};
 use zpm_semver::RangeKind;
+use zpm_utils::ToFileString;
 
 use crate::{error::Error, install::InstallContext, primitives::{loose_descriptor, Ident, LooseDescriptor}, project::{self, RunInstallOptions, Workspace}};
 
@@ -30,7 +32,7 @@ pub struct Up {
 impl Up {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<(), Error> {
-        let mut project
+        let project
             = project::Project::new(None).await?;
 
         let all_idents = project.workspaces.iter()
@@ -68,23 +70,42 @@ impl Up {
         let descriptors
             = LooseDescriptor::resolve_all(&install_context, &resolve_options, &expanded_descriptors).await?;
 
-        for workspace in project.workspaces.iter_mut() {
+        for workspace in &project.workspaces {
+            let manifest_path = workspace.path
+                .with_join_str("package.json");
+
+            let manifest_content = manifest_path
+                .fs_read_text_prealloc()?;
+
+            let mut formatter
+                = JsonFormatter::from(&manifest_content).unwrap();
+
             for descriptor in descriptors.iter() {
-                if workspace.manifest.remote.dependencies.contains_key(&descriptor.ident) {
-                    workspace.manifest.remote.dependencies.insert(descriptor.ident.clone(), descriptor.clone());
-                }
+                formatter.update(
+                    &vec!["dependencies".to_string(), descriptor.ident.to_file_string()].into(), 
+                    JsonValue::String(descriptor.range.to_file_string()),
+                ).unwrap();
 
-                if workspace.manifest.remote.optional_dependencies.contains_key(&descriptor.ident) {
-                    workspace.manifest.remote.optional_dependencies.insert(descriptor.ident.clone(), descriptor.clone());
-                }
+                formatter.update(
+                    &vec!["devDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
+                    JsonValue::String(descriptor.range.to_file_string()),
+                ).unwrap();
 
-                if workspace.manifest.dev_dependencies.contains_key(&descriptor.ident) {
-                    workspace.manifest.dev_dependencies.insert(descriptor.ident.clone(), descriptor.clone());
-                }
+                formatter.update(
+                    &vec!["optionalDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
+                    JsonValue::String(descriptor.range.to_file_string()),
+                ).unwrap();
             }
 
-            workspace.write_manifest()?;
+            let updated_content
+                = formatter.to_string();
+
+            manifest_path
+                .fs_change(&updated_content, Permissions::from_mode(0o644))?;
         }
+
+        let mut project
+            = project::Project::new(None).await?;
 
         project.run_install(RunInstallOptions {
             check_resolutions: false,
