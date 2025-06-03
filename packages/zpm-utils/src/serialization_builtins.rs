@@ -57,9 +57,9 @@ impl ToHumanString for serde_json::Value {
             },
 
             serde_json::Value::Array(a) => {
-                let left = DataType::Code.colorize("[");
+                let left = DataType::Code.colorize("[ ");
                 let join = DataType::Code.colorize(", ");
-                let right = DataType::Code.colorize("]");
+                let right = DataType::Code.colorize(" ]");
 
                 let mut result = String::new();
 
@@ -71,10 +71,10 @@ impl ToHumanString for serde_json::Value {
             },
 
             serde_json::Value::Object(o) => {
-                let left = DataType::Code.colorize("{");
+                let left = DataType::Code.colorize("{ ");
                 let join = DataType::Code.colorize(", ");
                 let colon = DataType::Code.colorize(": ");
-                let right = DataType::Code.colorize("}");
+                let right = DataType::Code.colorize(" }");
 
                 let mapped = o.iter().map(|(k, v)| {
                     let serialized_key

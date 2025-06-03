@@ -130,6 +130,10 @@ impl Path {
         Path {path: "/".to_string()}
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.path.is_empty()
+    }
+
     pub fn iter_path(&self) -> PathIterator {
         PathIterator::new(self)
     }

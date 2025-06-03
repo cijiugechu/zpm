@@ -43,7 +43,7 @@ impl TreeResolver {
             self.resolution_tree.locator_resolutions.insert(locator.clone(), resolution.clone());
             self.resolution_tree.optional_builds.insert(locator.clone());
 
-            if let Reference::Workspace(_) = locator.reference {
+            if let Reference::WorkspaceIdent(_) = locator.reference {
                 self.original_workspace_definitions.insert(locator.clone(), resolution.clone());
             }
         }

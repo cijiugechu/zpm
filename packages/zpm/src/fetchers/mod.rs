@@ -130,8 +130,11 @@ pub fn try_fetch_locator_sync(context: InstallContext, locator: &Locator, is_moc
         Reference::Portal(params)
             => Ok(SyncFetchAttempt::Success(portal::fetch_locator(&context, locator, params, dependencies)?)),
 
-        Reference::Workspace(params)
-            => Ok(SyncFetchAttempt::Success(workspace::fetch_locator(&context, locator, params)?)),
+        Reference::WorkspaceIdent(params)
+            => Ok(SyncFetchAttempt::Success(workspace::fetch_locator_ident(&context, locator, params)?)),
+
+        Reference::WorkspacePath(params)
+            => Ok(SyncFetchAttempt::Success(workspace::fetch_locator_path(&context, locator, params)?)),
 
         _ => Ok(SyncFetchAttempt::Failure(dependencies)),
     }
@@ -166,8 +169,11 @@ pub async fn fetch_locator<'a>(context: InstallContext<'a>, locator: &Locator, i
         Reference::Registry(params)
             => npm::fetch_locator(&context, locator, params, is_mock_request).await,
 
-        Reference::Workspace(params)
-            => workspace::fetch_locator(&context, locator, params),
+        Reference::WorkspaceIdent(params)
+            => workspace::fetch_locator_ident(&context, locator, params),
+
+        Reference::WorkspacePath(params)
+            => workspace::fetch_locator_path(&context, locator, params),
 
         _ => Err(Error::Unsupported),
     }

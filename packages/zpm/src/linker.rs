@@ -481,7 +481,7 @@ pub async fn link_project<'a>(project: &'a mut Project, install: &'a mut Install
 
     if project.config.project.pnp_fallback_mode.value == settings::PnpFallbackMode::DependenciesOnly {
         for locator in tree.locator_resolutions.keys() {
-            if let Reference::Workspace(_) = locator.physical_locator().reference {
+            if let Reference::WorkspaceIdent(_) = locator.physical_locator().reference {
                 fallback_exclusion_list.entry(locator.ident.clone())
                     .or_default()
                     .insert(PnpReference(locator.clone()));

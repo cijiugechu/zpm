@@ -3,7 +3,7 @@ use std::hash::Hash;
 use bincode::{Decode, Encode};
 use colored::Colorize;
 use zpm_macros::parse_enum;
-use zpm_utils::{impl_serialization_traits, ToFileString, ToHumanString};
+use zpm_utils::{impl_serialization_traits, DataType, Path, ToFileString, ToHumanString};
 
 use crate::{error::Error, git, hash::Sha256, serialize::UrlEncoded};
 
@@ -57,8 +57,13 @@ pub enum Reference {
     },
 
     #[pattern(spec = r"workspace:(?<ident>.*)")]
-    Workspace {
+    WorkspaceIdent {
         ident: Ident,
+    },
+
+    #[pattern(spec = r"workspace:(?<path>.*)")]
+    WorkspacePath {
+        path: Path,
     },
 
     #[pattern(spec = r"git:(?<git>.*)")]
@@ -129,7 +134,11 @@ impl Reference {
                 "virtual".to_string()
             },
 
-            Reference::Workspace(_) => {
+            Reference::WorkspaceIdent(_) => {
+                "workspace".to_string()
+            },
+
+            Reference::WorkspacePath(_) => {
                 "workspace".to_string()
             },
         }
@@ -179,8 +188,15 @@ impl ToFileString for Reference {
                 format!("virtual:{}#{}", params.inner.to_file_string(), params.hash.to_file_string())
             },
 
-            Reference::Workspace(params) => {
+            Reference::WorkspaceIdent(params) => {
                 format!("workspace:{}", params.ident.to_file_string())
+            },
+
+            Reference::WorkspacePath(params) => {
+                format!("workspace:{}", match params.path.is_empty() {
+                    true => ".".to_string(),
+                    false => params.path.to_file_string(),
+                })
             },
         }
     }
@@ -188,7 +204,7 @@ impl ToFileString for Reference {
 
 impl ToHumanString for Reference {
     fn to_print_string(&self) -> String {
-        self.to_file_string().truecolor(135, 175, 255).to_string()
+        DataType::Reference.colorize(&self.to_file_string())
     }
 }
 

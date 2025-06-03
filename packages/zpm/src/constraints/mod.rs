@@ -71,7 +71,7 @@ pub fn to_constraints_package<'a>(project: &'a Project, install_state: &'a Insta
             (ident, install_state.resolution_tree.descriptor_to_locator.get(descriptor).unwrap())
         }).collect::<Vec<_>>();
 
-    let workspace = if let Reference::Workspace(params) = &resolution.locator.reference {
+    let workspace = if let Reference::WorkspaceIdent(params) = &resolution.locator.reference {
         Some(project.workspace_by_ident(&params.ident).unwrap().rel_path.clone())
     } else {
         None

@@ -198,8 +198,11 @@ pub async fn resolve_locator(context: InstallContext<'_>, locator: Locator, depe
         Reference::Virtual(_)
             => Err(Error::Unsupported)?,
 
-        Reference::Workspace(params)
-            => workspace::resolve_locator(&context, &locator, params),
+        Reference::WorkspaceIdent(params)
+            => workspace::resolve_locator_ident(&context, &locator, params),
+
+        Reference::WorkspacePath(params)
+            => workspace::resolve_locator_path(&context, &locator, params),
     }
 }
 

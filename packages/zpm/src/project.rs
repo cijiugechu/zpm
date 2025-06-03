@@ -320,7 +320,7 @@ impl Project {
                 .locator()
         };
 
-        let Reference::Workspace(_) = &active_package.reference else {
+        let Reference::WorkspaceIdent(_) = &active_package.reference else {
             return Err(Error::ActivePackageNotWorkspace);
         };
 
@@ -330,7 +330,7 @@ impl Project {
     pub fn active_workspace_idx(&self) -> Result<usize, Error> {
         let active_package = self.active_workspace_locator()?;
 
-        let Reference::Workspace(params) = &active_package.reference else {
+        let Reference::WorkspaceIdent(params) = &active_package.reference else {
             return Err(Error::ActivePackageNotWorkspace);
         };
 
@@ -593,8 +593,14 @@ impl Workspace {
     }
 
     pub fn locator(&self) -> Locator {
-        Locator::new(self.name.clone(), reference::WorkspaceReference {
+        Locator::new(self.name.clone(), reference::WorkspaceIdentReference {
             ident: self.name.clone(),
+        }.into())
+    }
+
+    pub fn locator_path(&self) -> Locator {
+        Locator::new(self.name.clone(), reference::WorkspacePathReference {
+            path: self.rel_path.clone(),
         }.into())
     }
 
@@ -626,7 +632,6 @@ impl Workspace {
             let workspace_paths = lookup_state.cache.into_iter()
                 .filter(|(_, entry)| matches!(entry, SaveEntry::File(_, _)))
                 .filter(|(p, _)| {
-                    println!("{p}");
                     let candidate_workspace_rel_dir = p.dirname()
                         .expect("Expected this path to have a parent directory, since it's supposed to be the relative path to a package.json file");
 

@@ -24,6 +24,9 @@ const PATH_COLOR: Color
 const URL_COLOR: Color
     = Color::TrueColor { r: 215, g: 95, b: 215 };
 
+const REFERENCE_COLOR: Color
+    = Color::TrueColor { r: 135, g: 175, b: 255 };
+
 pub enum DataType {
     String,
     Number,
@@ -32,6 +35,7 @@ pub enum DataType {
     Code,
     Path,
     Url,
+    Reference,
 }
 
 impl DataType {
@@ -44,6 +48,7 @@ impl DataType {
             DataType::Code => CODE_COLOR,
             DataType::Path => PATH_COLOR,
             DataType::Url => URL_COLOR,
+            DataType::Reference => REFERENCE_COLOR,
         }
     }
 

@@ -84,7 +84,7 @@ pub enum Range {
         range: zpm_semver::Range,
     },
 
-    #[pattern(spec = r"workspace:\((?<ident>.*)\)")]
+    #[pattern(spec = r"workspace:(?<ident>.*)")]
     WorkspaceIdent {
         ident: Ident,
     },

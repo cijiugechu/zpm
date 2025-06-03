@@ -156,10 +156,10 @@ fn display_report(project: &Project, output: &ConstraintsOutput) -> Result<(), E
     }));
 
     if are_all_errors_fixable {
-        println!("Those errors can all be fixed by running {}", DataType::Code.colorize("yarn constraints --fix"));
+        println!("➤ Those errors can all be fixed by running {}", DataType::Code.colorize("yarn constraints --fix"));
         println!();
     } else if are_some_errors_fixable {
-        println!("Errors prefixed by '⚙' can be fixed by running {}", DataType::Code.colorize("yarn constraints --fix"));
+        println!("➤ Errors prefixed by '⚙' can be fixed by running {}", DataType::Code.colorize("yarn constraints --fix"));
         println!();
     }
 
@@ -176,7 +176,7 @@ fn display_report(project: &Project, output: &ConstraintsOutput) -> Result<(), E
             = project.workspace_by_rel_path(&workspace_rel_path)?;
 
         let mut workspace_node = tree::Node {
-            label: workspace.locator().to_print_string(),
+            label: workspace.locator_path().to_print_string(),
             children: vec![],
         };
 
@@ -241,7 +241,7 @@ fn display_report(project: &Project, output: &ConstraintsOutput) -> Result<(), E
         root.children.push(workspace_node);
     }
 
-    println!("{}", root.to_string());
+    print!("{}", root.to_string());
 
     Ok(())
 }

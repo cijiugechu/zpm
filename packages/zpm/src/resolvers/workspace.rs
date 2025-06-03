@@ -8,7 +8,7 @@ pub fn resolve_name_descriptor(context: &InstallContext<'_>, descriptor: &Descri
         .manifest
         .clone();
 
-    let reference = reference::WorkspaceReference {
+    let reference = reference::WorkspaceIdentReference {
         ident: params.ident.clone(),
     };
 
@@ -29,12 +29,28 @@ pub fn resolve_path_descriptor(context: &InstallContext<'_>, descriptor: &Descri
     resolve_name_descriptor(context, descriptor, &range::WorkspaceIdentRange {ident: workspace.name.clone()})
 }
 
-pub fn resolve_locator(context: &InstallContext<'_>, locator: &Locator, params: &reference::WorkspaceReference) -> Result<ResolutionResult, Error> {
+pub fn resolve_locator_ident(context: &InstallContext<'_>, locator: &Locator, params: &reference::WorkspaceIdentReference) -> Result<ResolutionResult, Error> {
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
     let manifest = project
         .workspace_by_ident(&params.ident)?
+        .manifest
+        .clone();
+
+    let mut resolution = Resolution::from_remote_manifest(locator.clone(), manifest.remote);
+
+    resolution.dependencies.extend(manifest.dev_dependencies);
+
+    Ok(resolution.into_resolution_result(context))
+}
+
+pub fn resolve_locator_path(context: &InstallContext<'_>, locator: &Locator, params: &reference::WorkspacePathReference) -> Result<ResolutionResult, Error> {
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
+    let manifest = project
+        .workspace_by_rel_path(&params.path)?
         .manifest
         .clone();
 
