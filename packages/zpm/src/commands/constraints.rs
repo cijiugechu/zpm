@@ -43,7 +43,7 @@ impl Constraints {
                     .collect::<Result<Vec<_>, _>>()?;
 
             let constraints_packages
-                = install_state.normalized_resolutions.iter()
+                = install_state.resolution_tree.locator_resolutions.iter()
                     .map(|(_, resolution)| to_constraints_package(&project, install_state, resolution))
                     .collect::<Vec<_>>();
 
@@ -131,7 +131,7 @@ fn generate_constraints_adapter(config_path: &Path, context: &ConstraintsContext
         "const CONFIG_PATH =\n",
         &sonic_rs::to_string(&config_path).unwrap(), ";\n",
         "const SERIALIZED_CONTEXT =\n",
-        &sonic_rs::to_string(&sonic_rs::to_string_pretty(&context).unwrap()).unwrap(), ";\n",
+        &sonic_rs::to_string(&sonic_rs::to_string(&context).unwrap()).unwrap(), ";\n",
         &format!("const FIX = {};\n", fix),
         "\n",
         std::include_str!("constraints.tpl.js"),

@@ -5,7 +5,7 @@ use serde_with::serde_as;
 use zpm_parsers::JsonPath;
 use zpm_utils::{ColoredJsonValue, DataType, Path, ToFileString, ToHumanString};
 
-use crate::primitives::{Ident, Locator};
+use crate::primitives::{Ident, Locator, Range};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,9 +153,9 @@ pub struct ConstraintsContext<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct ConstraintsDependency {
     pub ident: Ident,
-    pub range: String,
+    pub range: Range,
     pub dependency_type: String,
-    pub resolution: Option<String>,
+    pub resolution: Option<Locator>,
 }
 
 #[derive(Serialize)]

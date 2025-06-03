@@ -210,10 +210,6 @@ impl ScriptResult {
         match self {
             Self::Success(_) => Ok(self),
             Self::Failure(output, program, shell_line) => {
-                if output.stdout.is_empty() {
-                    return Err(Error::ChildProcessFailed(program));
-                }
-
                 if let Ok(temp_dir) = Path::temp_dir() {
                     let log_path = temp_dir
                         .with_join_str("error.log");

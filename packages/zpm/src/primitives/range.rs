@@ -258,6 +258,17 @@ pub enum PeerRange {
     }
 }
 
+impl PeerRange {
+    pub fn to_range(&self) -> Range {
+        match self {
+            PeerRange::Semver(params) => Range::AnonymousSemver(AnonymousSemverRange { range: params.range.clone() }),
+            PeerRange::WorkspaceSemver(params) => Range::WorkspaceSemver(WorkspaceSemverRange { range: params.range.clone() }),
+            PeerRange::WorkspaceMagic(params) => Range::WorkspaceMagic(WorkspaceMagicRange { magic: params.magic }),
+            PeerRange::WorkspacePath(params) => Range::WorkspacePath(WorkspacePathRange { path: params.path.clone() }),
+        }
+    }
+}
+
 impl ToFileString for PeerRange {
     fn to_file_string(&self) -> String {
         match self {

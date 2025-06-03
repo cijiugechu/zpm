@@ -151,7 +151,7 @@ for (const workspace of input.workspaces) {
       : null;
 
     if (typeof resolution === 'undefined')
-      throw new Error(`Dependency ${dependency.ident} not found`);
+      throw new Error(`Dependency ${dependency.ident}@${dependency.range} (resolution: ${dependency.resolution}) not found`);
 
     const hydratedDependency: Yarn.Constraints.Dependency = {
       workspace: hydratedWorkspace,

@@ -1,4 +1,5 @@
 use structs::{ConstraintsDependency, ConstraintsPackage, ConstraintsWorkspace};
+use zpm_utils::ToFileString;
 
 use crate::{error::Error, install::InstallState, primitives::Reference, project::{Project, Workspace}, resolvers::Resolution};
 
@@ -21,12 +22,12 @@ pub fn to_constraints_workspace<'a>(workspace: &'a Workspace, install_state: &'a
                 let locator = install_state.resolution_tree.descriptor_to_locator.get(descriptor)
                     .expect("Dependency not found in resolution tree");
 
-                Some(locator.to_string())
+                Some(locator.clone())
             };
 
             ConstraintsDependency {
                 ident: ident.clone(),
-                range: raw_descriptor.range.to_string(),
+                range: raw_descriptor.range.clone(),
                 dependency_type: "dependencies".to_string(),
                 resolution,
             }
@@ -35,7 +36,7 @@ pub fn to_constraints_workspace<'a>(workspace: &'a Workspace, install_state: &'a
     let peer_dependencies = workspace.manifest.remote.peer_dependencies.iter()
         .map(|(ident, range)| ConstraintsDependency {
             ident: ident.clone(),
-            range: range.to_string(),
+            range: range.to_range(),
             dependency_type: "peerDependencies".to_string(),
             resolution: None,
         }).collect::<Vec<_>>();
@@ -50,9 +51,9 @@ pub fn to_constraints_workspace<'a>(workspace: &'a Workspace, install_state: &'a
 
             ConstraintsDependency {
                 ident: ident.clone(),
-                range: raw_descriptor.range.to_string(),
+                range: raw_descriptor.range.clone(),
                 dependency_type: "devDependencies".to_string(),
-                resolution: Some(locator.to_string()),
+                resolution: Some(locator.clone()),
             }
         }).collect::<Vec<_>>();
 
