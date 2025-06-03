@@ -6483,10 +6483,8 @@ for (const workspace of input.workspaces) {
     throw new Error(`Workspace ${workspace.cwd} not found`);
   for (const dependency of workspace.dependencies) {
     const resolution = dependency.resolution !== null ? packageByLocator.get(dependency.resolution) : null;
-    if (typeof resolution === "undefined") {
-      console.log(JSON.stringify([...packageByLocator.keys()], null, 2));
+    if (typeof resolution === "undefined")
       throw new Error(`Dependency ${dependency.ident}@${dependency.range} (resolution: ${dependency.resolution}) not found`);
-    }
     const hydratedDependency = {
       workspace: hydratedWorkspace,
       ident: dependency.ident,
