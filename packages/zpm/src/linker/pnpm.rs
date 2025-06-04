@@ -48,6 +48,12 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
         install.install_state.packages_by_location.insert(package_location_rel.clone(), locator.clone());
         install.install_state.locations_by_package.insert(locator.clone(), package_location_rel.clone());
 
+        // We don't create node_modules directories and we don't build
+        // local packages that are not fully contained within the project
+        if matches!(physical_package_data, PackageData::Local {package_directory, ..} if !project.project_cwd.contains(package_directory)) {
+            continue;
+        }
+
         // Handle build requirements (similar to PnP logic)
         let package_build_info = linker::helpers::get_package_internal_info(
             project,
@@ -86,9 +92,16 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
         let package_abs_path = project.project_cwd
             .with_join(package_location);
 
+        let physical_package_data = install.package_data.get(&locator.physical_locator())
+            .unwrap_or_else(|| panic!("Failed to find physical package data for {}", locator.physical_locator()));
+
         // /path/to/project/node_modules
-        let package_abs_nm_path = package_abs_path
-            .with_join_str("node_modules");
+        // /path/to/project/node_modules/.store/@types-no-deps-npm-1.0.0-xyz/node_modules
+        let package_abs_nm_path = if matches!(physical_package_data, PackageData::Local {..}) {
+            package_abs_path.with_join_str("node_modules")
+        } else {
+            package_abs_path.dirname().unwrap().with_join_str("node_modules")
+        };
 
         for (dep_name, descriptor) in &resolution.dependencies {
             let dep_locator = tree.descriptor_to_locator.get(descriptor)
@@ -125,22 +138,26 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
         }
 
         if !resolution.dependencies.contains_key(&locator.ident) {
-            let self_link_abs_path = package_abs_nm_path
-                .with_join_str(locator.ident.as_str());
+            // We don't install self-dependencies in pnpm mode because it could lead
+            // to filesystem loops for tools that traverse node_modules.
+            if !matches!(physical_package_data, PackageData::Local {..}) {
+                let self_link_abs_path = package_abs_nm_path
+                    .with_join_str(locator.ident.as_str());
 
-            let self_link_abs_dirname = self_link_abs_path
-                .dirname()
-                .expect("Failed to get directory name");
+                let self_link_abs_dirname = self_link_abs_path
+                    .dirname()
+                    .expect("Failed to get directory name");
 
-            let symlink_target = package_abs_path
-                .relative_to(&self_link_abs_dirname);
+                let symlink_target = package_abs_path
+                    .relative_to(&self_link_abs_dirname);
 
-            self_link_abs_path
-                .fs_rm_file()
-                .ok_missing()?
-                .unwrap_or(&self_link_abs_path)
-                .fs_create_parent()?
-                .fs_symlink(&symlink_target)?;
+                self_link_abs_path
+                    .fs_rm_file()
+                    .ok_missing()?
+                    .unwrap_or(&self_link_abs_path)
+                    .fs_create_parent()?
+                    .fs_symlink(&symlink_target)?;
+            }
         }
     }
 
