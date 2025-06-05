@@ -35,7 +35,9 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn find_closest_project(mut p: Path) -> Result<(Path, Path), Error> {
+    pub fn find_closest_project(start: Path) -> Result<(Path, Path), Error> {
+        let mut p = start.clone();
+
         let mut closest_pkg = None;
         let mut farthest_pkg = None;
 
@@ -62,7 +64,7 @@ impl Project {
         }
     
         let farthest_pkg = farthest_pkg
-            .ok_or(Error::ProjectNotFound(p))?;
+            .ok_or(Error::ProjectNotFound(start))?;
 
         Ok((farthest_pkg, closest_pkg.unwrap()))
     }

@@ -85,6 +85,7 @@ pub async fn get_latest_stable_version(release_line: Option<&str>) -> Result<Pac
     Ok(VersionPackageManagerReference {version: release_line.stable.clone()}.into())
 }
 
+#[derive(Debug)]
 pub struct BinMeta {
     pub cwd: Option<Path>,
     pub args: Vec<String>,

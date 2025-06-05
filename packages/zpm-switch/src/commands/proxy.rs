@@ -2,7 +2,7 @@ use std::process::ExitStatus;
 
 use clipanion::cli;
 
-use crate::{cwd::get_final_cwd, errors::Error, manifest::{find_closest_package_manager, validate_package_manager}, yarn::get_default_yarn_version};
+use crate::{cwd::{get_fake_cwd, get_final_cwd}, errors::Error, manifest::{find_closest_package_manager, validate_package_manager}, yarn::get_default_yarn_version};
 
 use super::switch::explicit::ExplicitCommand;
 
@@ -29,6 +29,14 @@ impl ProxyCommand {
             None => get_default_yarn_version(Some("classic")).await,
         }?;
 
-        ExplicitCommand::run(&reference, &self.args).await
+        let mut args
+            = self.args.clone();
+
+        // Don't forget to add back the cwd parameter that was removed earlier on!
+        if let Some(cwd) = get_fake_cwd() {
+            args.insert(0, cwd.to_string());
+        }
+
+        ExplicitCommand::run(&reference, &args).await
     }
 }

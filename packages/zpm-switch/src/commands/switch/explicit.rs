@@ -2,7 +2,7 @@ use std::process::{Command, ExitStatus, Stdio};
 
 use clipanion::cli;
 
-use crate::{cwd::get_final_cwd, errors::Error, install::install_package_manager, manifest::{find_closest_package_manager, PackageManagerField, PackageManagerReference}};
+use crate::{cwd::{get_fake_cwd, get_final_cwd}, errors::Error, install::install_package_manager, manifest::{find_closest_package_manager, PackageManagerField, PackageManagerReference}};
 
 #[cli::command(proxy)]
 #[cli::path("switch")]
@@ -39,6 +39,14 @@ impl ExplicitCommand {
             std::env::set_var("YARNSW_DETECTED_ROOT", detected_root_path.to_string());
         }
 
-        ExplicitCommand::run(&self.package_manager.reference, &self.args).await
+        let mut args
+            = self.args.clone();
+
+        // Don't forget to add back the cwd parameter that was removed earlier on!
+        if let Some(cwd) = get_fake_cwd() {
+            args.insert(0, cwd.to_string());
+        }
+
+        ExplicitCommand::run(&self.package_manager.reference, &args).await
     }
 }
