@@ -56,6 +56,7 @@ impl Up {
         };
 
         let resolve_options = loose_descriptor::ResolveOptions {
+            active_workspace_ident: project.active_workspace()?.name.clone(),
             range_kind,
             resolve_tags: !self.fixed,
         };

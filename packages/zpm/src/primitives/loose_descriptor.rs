@@ -21,6 +21,7 @@ use super::{Ident, Range, Descriptor};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ResolveOptions {
+    pub active_workspace_ident: Ident,
     pub range_kind: RangeKind,
     pub resolve_tags: bool,
 }
@@ -290,7 +291,7 @@ impl LooseDescriptor {
                 let project = context.project.as_ref()
                     .expect("Project is required for resolving loose identifiers");
 
-                if project.workspace_by_ident(&ident).is_ok() {
+                if ident != &options.active_workspace_ident && project.workspace_by_ident(&ident).is_ok() {
                     let range = Range::WorkspaceMagic(WorkspaceMagicRange {
                         magic: options.range_kind,
                     });
@@ -310,7 +311,7 @@ impl LooseDescriptor {
                 );
 
                 let Range::RegistryTag(range_params) = &descriptor.range else {
-                    panic!("Invalid range");
+                    unreachable!("Invalid range");
                 };
 
                 let resolution_result

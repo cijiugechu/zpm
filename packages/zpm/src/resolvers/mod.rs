@@ -151,7 +151,7 @@ pub async fn resolve_descriptor(context: InstallContext<'_>, descriptor: Descrip
             => portal::resolve_descriptor(&context, &descriptor, params, dependencies),
 
         Range::RegistryTag(params)
-            => npm::resolve_tag_descriptor(&context, &descriptor, params).await,
+            => npm::resolve_tag_or_workspace_descriptor(&context, &descriptor, params).await,
 
         Range::WorkspaceMagic(_)
             => workspace::resolve_name_descriptor(&context, &descriptor, &range::WorkspaceIdentRange {ident: descriptor.ident.clone()}),

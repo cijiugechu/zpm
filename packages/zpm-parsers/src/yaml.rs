@@ -370,6 +370,47 @@ impl<'a> Iterator for Parser<'a> {
     }
 }
 
+pub fn escape_string(input: &str) -> String {
+    let needs_escaping = input.is_empty() ||
+        input.starts_with(' ') ||
+        input.ends_with(' ') ||
+        input.starts_with('-') ||
+        input.starts_with('?') ||
+        input.parse::<f64>().is_ok() ||
+        input.parse::<bool>().is_ok() ||
+        input.eq_ignore_ascii_case("null") ||
+        input.eq_ignore_ascii_case("~") ||
+        input.contains([
+            '\n', '\r', '\t', '"', '\'', '\\', ':',
+            '#', '|', '>', '[', ']', '{', '}', '&',
+            '*', '!', '%', '@', '`'
+        ]);
+
+    if !needs_escaping {
+        return input.to_string();
+    }
+
+    // Escape the string using double quotes
+    let mut escaped
+        = String::with_capacity(input.len() + 2);
+
+    escaped.push('"');
+
+    for ch in input.chars() {
+        match ch {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            c => escaped.push(c),
+        }
+    }
+
+    escaped.push('"');
+    escaped
+}
+
 /// Updates a field in a YAML document, or adds it if it doesn't exist.
 /// 
 /// # Arguments

@@ -59,7 +59,9 @@ impl Config {
             package_cwd: package_cwd.clone(),
         });
 
-        let mut user_config = Config::import_config::<UserConfig>(user_yarnrc_path.clone());
+        let mut user_config
+            = Config::import_config::<UserConfig>(user_yarnrc_path.clone());
+
         user_config.path = user_yarnrc_path;
 
         *CONFIG_PATH.lock().unwrap() = Some(ConfigPaths {
@@ -68,7 +70,9 @@ impl Config {
             package_cwd: package_cwd.clone(),
         });
 
-        let mut project_config = Config::import_config::<ProjectConfig>(project_yarnrc_path.clone());
+        let mut project_config
+            = Config::import_config::<ProjectConfig>(project_yarnrc_path.clone());
+
         project_config.path = project_yarnrc_path;
 
         *CONFIG_PATH.lock().unwrap() = None;

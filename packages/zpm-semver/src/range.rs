@@ -35,7 +35,7 @@ impl ToFileString for RangeKind {
         match self {
             RangeKind::Caret => "^".to_string(),
             RangeKind::Tilde => "~".to_string(),
-            RangeKind::Exact => "=".to_string(),
+            RangeKind::Exact => "*".to_string(),
         }
     }
 }

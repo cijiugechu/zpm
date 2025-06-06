@@ -1,11 +1,11 @@
 use std::{collections::{HashMap, HashSet}, fs::Permissions, os::unix::fs::PermissionsExt};
 
 use clipanion::cli;
-use zpm_parsers::{JsonFormatter, JsonPath, JsonValue};
+use zpm_parsers::{JsonFormatter, JsonValue};
 use zpm_semver::RangeKind;
 use zpm_utils::{FromFileString, ToFileString};
 
-use crate::{algolia::query_algolia, error::Error, install::InstallContext, primitives::{loose_descriptor, range::{AnonymousSemverRange, SemverPeerRange}, Descriptor, LooseDescriptor, PeerRange, Range}, project};
+use crate::{algolia::query_algolia, error::Error, install::InstallContext, primitives::{loose_descriptor, range::AnonymousSemverRange, Descriptor, LooseDescriptor, PeerRange, Range}, project};
 
 #[derive(Clone, Debug)]
 struct AddRequest {
@@ -156,6 +156,7 @@ impl Add {
         };
 
         let resolve_options = loose_descriptor::ResolveOptions {
+            active_workspace_ident: project.active_workspace()?.name.clone(),
             range_kind,
             resolve_tags: !self.fixed,
         };
@@ -249,7 +250,7 @@ impl Add {
             if request.peer {
                 formatter.set(
                     &vec!["peerDependencies".to_string(), descriptor.ident.to_file_string()].into(), 
-                    JsonValue::String(descriptor.range.to_file_string()),
+                    JsonValue::String("*".to_string()),
                 ).unwrap();
             }
 

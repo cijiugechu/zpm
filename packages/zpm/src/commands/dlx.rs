@@ -22,7 +22,7 @@ pub struct DlxWithPackages {
 impl DlxWithPackages {
     #[tokio::main()]
     pub async fn execute(&self) -> Result<ExitStatus, Error> {
-        let (mut project, current_cwd)
+        let (project, current_cwd)
             = setup_project().await?;
 
         let package_cache
@@ -33,6 +33,7 @@ impl DlxWithPackages {
             .with_project(Some(&project));
 
         let resolve_options = loose_descriptor::ResolveOptions {
+            active_workspace_ident: project.active_workspace()?.name.clone(),
             range_kind: RangeKind::Exact,
             resolve_tags: true,
         };
@@ -71,6 +72,7 @@ impl Dlx {
             .with_project(Some(&project));
 
         let resolve_options = loose_descriptor::ResolveOptions {
+            active_workspace_ident: project.active_workspace()?.name.clone(),
             range_kind: RangeKind::Exact,
             resolve_tags: true,
         };

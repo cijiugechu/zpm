@@ -302,7 +302,7 @@ pub fn yarn_config(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream
                     = zpm_parsers::yaml::update_document_field(
                         &config_text,
                         &name.to_case(Case::Camel),
-                        &value.to_file_string()
+                        &zpm_parsers::yaml::escape_string(&value.to_file_string())
                     )?;
 
                 config_path
