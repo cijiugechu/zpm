@@ -13,7 +13,7 @@ blake2 = { version = "0.10.6" }
 clipanion = { git = "https://github.com/arcanis/clipanion-rs.git" }
 hex = "0.4.3"
 regex = "1.11.1"
-reqwest = { version = "0.12.5", features = ["gzip", "rustls-tls", "trust-dns"] }
+reqwest = { version = "0.12.5", default-features = false, features = ["hickory-dns", "rustls-tls"] }
 serde_with = "3.9.0"
 serde = "1.0.219"
 sonic-rs = "0.5.1"
