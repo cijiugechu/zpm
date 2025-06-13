@@ -44,9 +44,9 @@ jobs:
           INFRA_VERSION=$zpm_version-git.${git_date}.hash-${git_sha}
 
           echo -e "INFRA_VERSION=$INFRA_VERSION" >> $GITHUB_ENV
-          echo -e '```\nINFRA_VERSION='"$INFRA_VERSION"'\n```' >> $GITHUB_STEP_SUMMARY
+          echo -e "INFRA_VERSION=$INFRA_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Build the binaries
+      - name: Build ${{steps.version.outputs.INFRA_VERSION}}
         run: |
           rustup target add ${{matrix.platform[0]}}
 
