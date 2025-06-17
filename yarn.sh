@@ -2,6 +2,6 @@
 
 set -e
 
-REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && realpath ..)
+REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && realpath .)
 
-node ./scripts/run-yarn.mjs "$@"
+node $REPO_DIR/scripts/run-yarn.mjs "$@"

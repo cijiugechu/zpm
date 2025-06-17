@@ -1,9 +1,8 @@
-use std::{process::ExitCode, str::FromStr};
+use std::process::ExitCode;
 
 use clipanion::{prelude::*, program, Environment};
 use zpm_macros::track_time;
 use zpm_switch::{extract_bin_meta, BinMeta};
-use zpm_utils::ExplicitPath;
 
 mod debug;
 
@@ -15,6 +14,7 @@ mod config_set;
 mod constraints;
 mod dlx;
 mod exec;
+mod init;
 mod install;
 mod node;
 mod pack;
@@ -43,6 +43,7 @@ program!(YarnCli, [
     dlx::DlxWithPackages,
     dlx::Dlx,
     exec::Exec,
+    init::Init,
     install::Install,
     set_version::SetVersion,
     node::Node,

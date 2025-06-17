@@ -1,6 +1,6 @@
 use std::{future::Future, sync::Arc};
 
-use zpm_utils::Path;
+use zpm_utils::{Path, ToHumanString};
 use tokio::task::JoinError;
 
 use crate::primitives::{Descriptor, Ident, Locator, Range};
@@ -85,7 +85,7 @@ pub enum Error {
     #[error("Invalid reference ({0})")]
     InvalidReference(String),
 
-    #[error("Project not found ({0:?})")]
+    #[error("Project not found ({p})", p = .0.to_print_string())]
     ProjectNotFound(Path),
 
     #[error("Invalid value; expected an ident or a locator ({0})")]
