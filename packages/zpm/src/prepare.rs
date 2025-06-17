@@ -209,8 +209,7 @@ async fn prepare_yarn_modern_project(folder_path: &Path, params: &PrepareParams)
 
     let default_yarn
         = zpm_switch::get_latest_stable_version(Some("berry"))
-            .await
-            .map_err(|_| Error::FailedToRetrieveLatestClassicVersion)?
+            .await?
             .to_file_string();
 
     let pack_path = folder_path

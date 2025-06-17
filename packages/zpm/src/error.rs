@@ -28,6 +28,9 @@ pub enum Error {
     #[error("Unsupported code path")]
     Unsupported,
 
+    #[error(transparent)]
+    SwitchError(#[from] zpm_switch::Error),
+
     #[error("Network error: {0}")]
     HttpError(#[from] Arc<reqwest::Error>),
 

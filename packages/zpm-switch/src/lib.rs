@@ -3,6 +3,10 @@ mod http;
 mod manifest;
 mod yarn;
 
+pub use errors::{
+  Error,
+};
+
 pub use manifest::{
     PackageManagerField,
     PackageManagerReference,
