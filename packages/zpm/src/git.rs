@@ -12,7 +12,7 @@ use crate::{error::Error, github, prepare::PrepareParams, script::ScriptEnvironm
 
 static NEW_STYLE_GIT_SELECTOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z]+=").unwrap());
 
-static GH_URL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?:github:|(?:https):\/\/github\.com\/|git(?:\+ssh)?:\/\/(?:git@)?github\.com\/)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
+static GH_URL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?:github:|(?:https):\/\/github\.com\/|git(?:\+ssh)?:\/\/(?:git@)?github\.com\/|git@github\.com:)?(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)(?:\.git)?(#.*)?$").unwrap());
 static GH_TARBALL_URL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^https?:\/\/github\.com\/(?!\.{1,2}\/)([a-zA-Z0-9._-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z0-9._-]+?)\/tarball\/(.+)?$").unwrap());
 
 static GH_URL_SET: LazyLock<Vec<Regex>> = LazyLock::new(|| vec![
@@ -23,6 +23,8 @@ static GH_URL_SET: LazyLock<Vec<Regex>> = LazyLock::new(|| vec![
     Regex::new(r"^(?:git\+)?https?:[^#]+\/[^#]+(?:\.git)(?:#.*)?$").unwrap(),
   
     Regex::new(r"^git@[^#]+\/[^#]+\.git(?:#.*)?$").unwrap(),
+    // Also match git@github.com:user/repo format (with colon)
+    Regex::new(r"^git@github\.com:[^/]+/[^/]+(?:\.git)?(?:#.*)?$").unwrap(),
   
     Regex::new(r"^(?:github:|https:\/\/github\.com\/)?(?!\.{1,2}\/)([a-zA-Z._0-9-]+)\/(?!\.{1,2}(?:#|$))([a-zA-Z._0-9-]+?)(?:\.git)?(?:#.*)?$").unwrap(),
     // GitHub `/tarball/` URLs
@@ -44,6 +46,59 @@ pub fn normalize_git_url<P: AsRef<str>>(url: P) -> String {
     normalized = GH_TARBALL_URL.replace(&normalized, "https://github.com/$1/$2.git#$3").to_string();
 
     normalized
+}
+
+#[derive(Clone, Debug, Decode, Deserialize, Encode, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
+pub enum GitSource {
+    GitHub { owner: String, repository: String },
+    Url(String),
+}
+
+impl GitSource {
+    /// Parse a git URL into a GitSource
+    pub fn from_url(url: &str) -> Self {
+        // Normalize the URL first to handle various GitHub URL formats
+        let normalized = normalize_git_url(url);
+        
+        // Check if it's a GitHub URL
+        if let Ok(Some(captures)) = GH_URL.captures(&normalized) {
+            if let (Some(owner), Some(repo)) = (captures.get(1), captures.get(2)) {
+                return GitSource::GitHub {
+                    owner: owner.as_str().to_string(),
+                    repository: repo.as_str().to_string(),
+                };
+            }
+        }
+        
+        // Check GitHub tarball URLs (on the original URL, not normalized)
+        if let Ok(Some(captures)) = GH_TARBALL_URL.captures(url) {
+            if let (Some(owner), Some(repo)) = (captures.get(1), captures.get(2)) {
+                return GitSource::GitHub {
+                    owner: owner.as_str().to_string(),
+                    repository: repo.as_str().to_string(),
+                };
+            }
+        }
+        
+        // Otherwise, treat it as a generic URL
+        GitSource::Url(url.to_string())
+    }
+    
+    /// Convert GitSource back to a URL string
+    pub fn to_url(&self) -> String {
+        match self {
+            GitSource::GitHub { owner, repository } => {
+                format!("https://github.com/{}/{}.git", owner, repository)
+            }
+            GitSource::Url(url) => url.clone(),
+        }
+    }
+}
+
+impl Display for GitSource {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_url())
+    }
 }
 
 #[derive(Clone, Debug, Decode, Deserialize, Encode, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
@@ -69,7 +124,7 @@ impl Display for GitTreeish {
 
 #[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GitRange {
-    pub repo: String,
+    pub repo: GitSource,
     pub treeish: GitTreeish,
     pub prepare_params: PrepareParams,
 }
@@ -110,7 +165,7 @@ impl ToFileString for GitRange {
             params.push(format!("workspace={}", urlencoding::encode(workspace)));
         }
 
-        format!("{}#{}", self.repo, params.join("&"))
+        format!("{}#{}", self.repo.to_url(), params.join("&"))
     }
 }
 
@@ -124,7 +179,7 @@ impl_serialization_traits!(GitRange);
 
 #[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GitReference {
-    pub repo: String,
+    pub repo: GitSource,
     pub commit: String,
     pub prepare_params: PrepareParams,
 }
@@ -165,7 +220,7 @@ impl FromFileString for GitReference {
             .expect("Expected a commit to always be present in a git reference");
 
         Ok(GitReference {
-            repo,
+            repo: GitSource::from_url(&repo),
             commit,
             prepare_params,
         })
@@ -186,7 +241,7 @@ impl ToFileString for GitReference {
             params.push(format!("workspace={}", urlencoding::encode(workspace)));
         }
 
-        format!("{}#{}", self.repo, params.join("&"))
+        format!("{}#{}", self.repo.to_url(), params.join("&"))
     }
 }
 
@@ -204,7 +259,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
     let hash_index = url.find('#');
     if hash_index.is_none() {
         return Ok(GitRange {
-            repo: url.to_string(),
+            repo: GitSource::from_url(url),
             treeish: GitTreeish::Head("HEAD".to_string()),
             prepare_params: PrepareParams::default(),
         });
@@ -248,7 +303,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
         }
 
         return Ok(GitRange {
-            repo: repo.to_string(),
+            repo: GitSource::from_url(repo),
             treeish,
             prepare_params,
         });
@@ -271,7 +326,7 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
     };
 
     Ok(GitRange {
-        repo: repo.to_string(),
+        repo: GitSource::from_url(repo),
         treeish,
         prepare_params: PrepareParams::default(),
     })
@@ -314,18 +369,18 @@ fn tolerate_non_git_errors<T>(result: Result<T, Error>) -> Result<Result<T, Erro
 pub async fn resolve_git_treeish(git_range: &GitRange) -> Result<String, Error> {
     match &git_range.treeish {
         GitTreeish::AnythingGoes(treeish) => {
-            if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Commit(treeish.clone())).await)? {
+            if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Commit(treeish.clone())).await)? {
                 Ok(result)
-            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Tag(treeish.clone())).await)? {
+            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Tag(treeish.clone())).await)? {
                 Ok(result)
-            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Head(treeish.clone())).await)? {
+            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Head(treeish.clone())).await)? {
                 Ok(result)
             } else {
                 Err(Error::InvalidGitSpecifier)
             }
         }
 
-        _ => resolve_git_treeish_stricter(&git_range.repo, git_range.treeish.clone()).await
+        _ => resolve_git_treeish_stricter(&git_range.repo.to_url(), git_range.treeish.clone()).await
     }
 }
 
@@ -400,36 +455,46 @@ fn make_git_env() -> BTreeMap<String, String> {
     env
 }
 
-pub async fn clone_repository(url: &str, commit: &str) -> Result<Path, Error> {
-    let git_range
-        = extract_git_range(url)?;
-
-    let normalized_repo_url
-        = normalize_git_url(git_range.repo);
-
+pub async fn clone_repository(source: &GitSource, commit: &str) -> Result<Path, Error> {
     let clone_dir
         = Path::temp_dir()?;
 
-    if download_into(&normalized_repo_url, commit, &clone_dir).await?.is_some() {
+    if download_into(&source, commit, &clone_dir).await?.is_some() {
         return Ok(clone_dir);
     }
 
-    git_clone_into(&normalized_repo_url, commit, &clone_dir).await?;
+    git_clone_into(source, commit, &clone_dir).await?;
     Ok(clone_dir)
 }
 
-async fn download_into(normalized_repo_url: &str, commit: &str, download_dir: &Path) -> Result<Option<()>, Error> {
-    if github::download_into(normalized_repo_url, commit, download_dir).await?.is_some() {
+async fn download_into(source: &GitSource, commit: &str, download_dir: &Path) -> Result<Option<()>, Error> {
+    if github::download_into(source, commit, download_dir).await?.is_some() {
         return Ok(Some(()));
     }
 
     Ok(None)
 }
 
-async fn git_clone_into(normalized_repo_url: &str, commit: &str, clone_dir: &Path) -> Result<(), Error> {
+async fn git_clone_into(source: &GitSource, commit: &str, clone_dir: &Path) -> Result<(), Error> {
+    let clone_url = match source {
+        GitSource::GitHub {owner, repository} => {
+            let is_auth_ok = false;
+
+            if is_auth_ok {
+                format!("git@github.com:{owner}/{repository}.git")
+            } else {
+                format!("https://github.com/{owner}/{repository}.git")
+            }
+        },
+
+        GitSource::Url(url) => {
+            url.clone()
+        },
+    };
+
     ScriptEnvironment::new()?
         .with_env(make_git_env())
-        .run_exec("git", &["clone", "-c", "core.autocrlf=false", normalized_repo_url, clone_dir.as_str()]).await
+        .run_exec("git", &["clone", "-c", "core.autocrlf=false", &clone_url, clone_dir.as_str()]).await
         .ok()?;
 
     ScriptEnvironment::new()?
@@ -439,4 +504,63 @@ async fn git_clone_into(normalized_repo_url: &str, commit: &str, clone_dir: &Pat
         .ok()?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_git_source_from_github_urls() {
+        // Test various GitHub URL formats
+        let test_cases = vec![
+            ("https://github.com/rust-lang/cargo.git", "rust-lang", "cargo"),
+            ("git@github.com:rust-lang/cargo.git", "rust-lang", "cargo"),
+            ("github:rust-lang/cargo", "rust-lang", "cargo"),
+            ("https://github.com/rust-lang/cargo", "rust-lang", "cargo"),
+        ];
+
+        for (url, expected_owner, expected_repo) in test_cases {
+            match GitSource::from_url(url) {
+                GitSource::GitHub { owner, repository } => {
+                    assert_eq!(owner, expected_owner, "Owner mismatch for URL: {}", url);
+                    assert_eq!(repository, expected_repo, "Repository mismatch for URL: {}", url);
+                }
+                _ => panic!("Expected GitHub variant for URL: {}", url),
+            }
+        }
+    }
+
+    #[test]
+    fn test_git_source_from_non_github_urls() {
+        // Test non-GitHub URLs
+        let test_cases = vec![
+            "https://gitlab.com/user/repo.git",
+            "git@bitbucket.org:user/repo.git",
+            "https://example.com/git/repo.git",
+        ];
+
+        for url in test_cases {
+            match GitSource::from_url(url) {
+                GitSource::Url(parsed_url) => {
+                    assert_eq!(parsed_url, url, "URL mismatch");
+                }
+                _ => panic!("Expected Url variant for URL: {}", url),
+            }
+        }
+    }
+
+    #[test]
+    fn test_git_source_to_url() {
+        // Test GitHub variant
+        let github_source = GitSource::GitHub {
+            owner: "rust-lang".to_string(),
+            repository: "cargo".to_string(),
+        };
+        assert_eq!(github_source.to_url(), "https://github.com/rust-lang/cargo.git");
+
+        // Test Url variant
+        let url_source = GitSource::Url("https://example.com/repo.git".to_string());
+        assert_eq!(url_source.to_url(), "https://example.com/repo.git");
+    }
 }
