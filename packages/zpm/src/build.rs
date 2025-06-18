@@ -59,7 +59,8 @@ impl BuildRequest {
             .with_project(project)
             .with_package(project, &self.locator)?
             .with_env_variable("INIT_CWD", cwd_abs.as_str())
-            .with_cwd(cwd_abs.clone());
+            .with_cwd(cwd_abs.clone())
+            .enable_shell_forwarding();
 
         with_context_result(ReportContext::Locator(self.locator.clone()), async {
             let build_cache_folder = project.project_cwd

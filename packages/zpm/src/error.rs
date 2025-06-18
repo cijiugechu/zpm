@@ -184,9 +184,6 @@ pub enum Error {
     #[error("Repository checkout failed")]
     RepositoryCheckoutFailed(String, String),
 
-    #[error("Git error")]
-    GitError,
-
     #[error("Invalid Git commit ({0})")]
     InvalidGitCommit(String),
 

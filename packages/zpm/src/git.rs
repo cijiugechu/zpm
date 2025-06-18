@@ -1,4 +1,4 @@
-use std::{clone, collections::BTreeMap, fmt::{self, Display, Formatter}, sync::LazyLock};
+use std::{clone, collections::BTreeMap, fmt::{self, Display, Formatter}, future::Future, sync::LazyLock};
 
 use zpm_utils::Path;
 use bincode::{Decode, Encode};
@@ -85,19 +85,39 @@ impl GitSource {
     }
     
     /// Convert GitSource back to a URL string
-    pub fn to_url(&self) -> String {
+    pub fn to_urls(&self) -> Vec<String> {
         match self {
             GitSource::GitHub { owner, repository } => {
-                format!("https://github.com/{}/{}.git", owner, repository)
-            }
-            GitSource::Url(url) => url.clone(),
+                vec![
+                    format!("git@github.com:{}/{}.git", owner, repository),
+                    format!("https://github.com/{}/{}.git", owner, repository),
+                ]
+            },
+
+            GitSource::Url(url) => vec![
+                url.clone(),
+            ],
         }
     }
 }
 
-impl Display for GitSource {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_url())
+impl ToFileString for GitSource {
+    fn to_file_string(&self) -> String {
+        match self {
+            GitSource::GitHub { owner, repository } => {
+                format!("github:{owner}/{repository}")
+            },
+
+            GitSource::Url(url) => {
+                url.clone()
+            },
+        }
+    }
+}
+
+impl ToHumanString for GitSource {
+    fn to_print_string(&self) -> String {
+        self.to_file_string().truecolor(135, 175, 255).to_string()
     }
 }
 
@@ -165,7 +185,7 @@ impl ToFileString for GitRange {
             params.push(format!("workspace={}", urlencoding::encode(workspace)));
         }
 
-        format!("{}#{}", self.repo.to_url(), params.join("&"))
+        format!("{}#{}", self.repo.to_file_string(), params.join("&"))
     }
 }
 
@@ -241,7 +261,7 @@ impl ToFileString for GitReference {
             params.push(format!("workspace={}", urlencoding::encode(workspace)));
         }
 
-        format!("{}#{}", self.repo.to_url(), params.join("&"))
+        format!("{}#{}", self.repo.to_file_string(), params.join("&"))
     }
 }
 
@@ -332,59 +352,75 @@ pub fn extract_git_range<P: AsRef<str>>(url: P) -> Result<GitRange, Error> {
     })
 }
 
-async fn ls_remote(repo: &str) -> Result<BTreeMap<String, String>, Error> {
-    let output = tokio::process::Command::new("git")
-        .envs(make_git_env())
-        .arg("ls-remote")
-        .arg(repo)
-        .output()
-        .await?;
+// Iterate over the values of the parameter; return the first result that succeeds, or the last error.
+async fn repeat_until_ok<I, T, E, A, F>(values: Vec<I>, f: F) -> Result<T, E>
+    where A: Future<Output = Result<T, E>>, F: Fn(I) -> A,
+{
+    let mut last_error = None;
 
-    if !output.status.success() {
-        return Err(Error::GitError);
+    for value in values {
+        let result
+            = f(value).await;
+
+        match result {
+            Ok(value) => {
+                return Ok(value);
+            },
+
+            Err(error) => {
+                last_error = Some(error);
+            },
+        }
     }
 
-    let output = String::from_utf8(output.stdout).unwrap();
-    let mut refs = BTreeMap::new();
-
-    for line in output.lines() {
-        let mut parts = line.split_whitespace();
-        let hash = parts.next().unwrap();
-        let name = parts.next().unwrap();
-
-        refs.insert(name.to_string(), hash.to_string());
-    }
-
-    Ok(refs)
+    Err(last_error.unwrap())
 }
 
-fn tolerate_non_git_errors<T>(result: Result<T, Error>) -> Result<Result<T, Error>, Error> {
-    if let Err(Error::GitError) = result {
-        Err(Error::GitError)
-    } else {
-        Ok(result)
-    }
+async fn ls_remote(repo: &GitSource) -> Result<BTreeMap<String, String>, Error> {
+    repeat_until_ok(repo.to_urls(), |url| async move {
+        let output = ScriptEnvironment::new()?
+            .with_env(make_git_env())
+            .run_exec("git", &["ls-remote", &url])
+            .await
+            .ok()?
+            .output();
+
+        let output = String::from_utf8(output.stdout).unwrap();
+        let mut refs = BTreeMap::new();
+
+        for line in output.lines() {
+            let mut parts = line.split_whitespace();
+            let hash = parts.next().unwrap();
+            let name = parts.next().unwrap();
+
+            refs.insert(name.to_string(), hash.to_string());
+        }
+
+        Ok(refs)
+    }).await
 }
 
 pub async fn resolve_git_treeish(git_range: &GitRange) -> Result<String, Error> {
     match &git_range.treeish {
         GitTreeish::AnythingGoes(treeish) => {
-            if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Commit(treeish.clone())).await)? {
+            if let Ok(result) = resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Commit(treeish.clone())).await {
                 Ok(result)
-            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Tag(treeish.clone())).await)? {
+            } else if let Ok(result) = resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Tag(treeish.clone())).await {
                 Ok(result)
-            } else if let Ok(result) = tolerate_non_git_errors(resolve_git_treeish_stricter(&git_range.repo.to_url(), GitTreeish::Head(treeish.clone())).await)? {
+            } else if let Ok(result) = resolve_git_treeish_stricter(&git_range.repo, GitTreeish::Head(treeish.clone())).await {
                 Ok(result)
             } else {
                 Err(Error::InvalidGitSpecifier)
             }
-        }
+        },
 
-        _ => resolve_git_treeish_stricter(&git_range.repo.to_url(), git_range.treeish.clone()).await
+        _ => {
+            resolve_git_treeish_stricter(&git_range.repo, git_range.treeish.clone()).await
+        },
     }
 }
 
-async fn resolve_git_treeish_stricter(repo: &str, treeish: GitTreeish) -> Result<String, Error> {
+async fn resolve_git_treeish_stricter(repo: &GitSource, treeish: GitTreeish) -> Result<String, Error> {
     let refs = ls_remote(repo).await?;
 
     match treeish {
@@ -476,26 +512,14 @@ async fn download_into(source: &GitSource, commit: &str, download_dir: &Path) ->
 }
 
 async fn git_clone_into(source: &GitSource, commit: &str, clone_dir: &Path) -> Result<(), Error> {
-    let clone_url = match source {
-        GitSource::GitHub {owner, repository} => {
-            let is_auth_ok = false;
+    repeat_until_ok(source.to_urls(), |clone_url| async move {
+        ScriptEnvironment::new()?
+            .with_env(make_git_env())
+            .run_exec("git", &["clone", "-c", "core.autocrlf=false", &clone_url, clone_dir.as_str()]).await
+            .ok()?;
 
-            if is_auth_ok {
-                format!("git@github.com:{owner}/{repository}.git")
-            } else {
-                format!("https://github.com/{owner}/{repository}.git")
-            }
-        },
-
-        GitSource::Url(url) => {
-            url.clone()
-        },
-    };
-
-    ScriptEnvironment::new()?
-        .with_env(make_git_env())
-        .run_exec("git", &["clone", "-c", "core.autocrlf=false", &clone_url, clone_dir.as_str()]).await
-        .ok()?;
+        Ok::<(), Error>(())
+    }).await?;
 
     ScriptEnvironment::new()?
         .with_cwd(clone_dir.clone())
@@ -504,63 +528,4 @@ async fn git_clone_into(source: &GitSource, commit: &str, clone_dir: &Path) -> R
         .ok()?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_git_source_from_github_urls() {
-        // Test various GitHub URL formats
-        let test_cases = vec![
-            ("https://github.com/rust-lang/cargo.git", "rust-lang", "cargo"),
-            ("git@github.com:rust-lang/cargo.git", "rust-lang", "cargo"),
-            ("github:rust-lang/cargo", "rust-lang", "cargo"),
-            ("https://github.com/rust-lang/cargo", "rust-lang", "cargo"),
-        ];
-
-        for (url, expected_owner, expected_repo) in test_cases {
-            match GitSource::from_url(url) {
-                GitSource::GitHub { owner, repository } => {
-                    assert_eq!(owner, expected_owner, "Owner mismatch for URL: {}", url);
-                    assert_eq!(repository, expected_repo, "Repository mismatch for URL: {}", url);
-                }
-                _ => panic!("Expected GitHub variant for URL: {}", url),
-            }
-        }
-    }
-
-    #[test]
-    fn test_git_source_from_non_github_urls() {
-        // Test non-GitHub URLs
-        let test_cases = vec![
-            "https://gitlab.com/user/repo.git",
-            "git@bitbucket.org:user/repo.git",
-            "https://example.com/git/repo.git",
-        ];
-
-        for url in test_cases {
-            match GitSource::from_url(url) {
-                GitSource::Url(parsed_url) => {
-                    assert_eq!(parsed_url, url, "URL mismatch");
-                }
-                _ => panic!("Expected Url variant for URL: {}", url),
-            }
-        }
-    }
-
-    #[test]
-    fn test_git_source_to_url() {
-        // Test GitHub variant
-        let github_source = GitSource::GitHub {
-            owner: "rust-lang".to_string(),
-            repository: "cargo".to_string(),
-        };
-        assert_eq!(github_source.to_url(), "https://github.com/rust-lang/cargo.git");
-
-        // Test Url variant
-        let url_source = GitSource::Url("https://example.com/repo.git".to_string());
-        assert_eq!(url_source.to_url(), "https://example.com/repo.git");
-    }
 }

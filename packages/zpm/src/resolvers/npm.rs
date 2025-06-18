@@ -187,8 +187,6 @@ pub async fn resolve_semver_or_workspace_descriptor(context: &InstallContext<'_>
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    println!("project.config.project.enable_transparent_workspaces.value: {}", project.config.project.enable_transparent_workspaces.value);
-
     if project.config.project.enable_transparent_workspaces.value {
         if let Some(resolved) = workspace::resolve_ident(context, &descriptor.ident) {
             if params.range.check(&resolved.resolution.version) {

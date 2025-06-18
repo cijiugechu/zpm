@@ -1,16 +1,20 @@
-use std::{sync::{Arc, LazyLock}, time::Duration};
+use std::{net::ToSocketAddrs, sync::{Arc, LazyLock}, time::Duration};
 
 use reqwest::{Client, Response};
 
 use crate::error::Error;
 
 static HTTP_CLIENT: LazyLock<Result<Client, Error>> = LazyLock::new(|| {
-    // let sock_addrs = format!("registry.npmjs.org:443").to_socket_addrs()
-    //     .map_err(|err| Error::DnsResolutionError(Arc::new(err)))?
-    //     .collect::<Vec<_>>();
+    let sock_addrs = format!("registry.npmjs.org:443").to_socket_addrs()
+        .map_err(|err| Error::DnsResolutionError(Arc::new(err)))?
+        .collect::<Vec<_>>();
 
     let client = reqwest::Client::builder()
-        // .resolve_to_addrs("registry.npmjs.org", &sock_addrs)
+        // TODO: Can we avoid hardcoding the DNS resolution? If we don't I get
+        // errors due to exhausting the amount of open files when running an
+        // install with a lockfile but without cache. I suspect something is
+        // not configured properly in the DNS resolver pool.
+        .resolve_to_addrs("registry.npmjs.org", &sock_addrs)
 
         // Connection pooling settings
         .pool_max_idle_per_host(50)
