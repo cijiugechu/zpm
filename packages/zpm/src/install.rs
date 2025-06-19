@@ -596,6 +596,7 @@ impl<'a> InstallManager<'a> {
                                     .fs_read_prealloc()?;
 
                                 quarantine_path
+                                    .fs_create_parent()?
                                     .fs_write(&data)?;
                             }
 
