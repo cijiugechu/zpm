@@ -6,10 +6,10 @@ use crate::{error::Error, install::{FetchResult, InstallContext, InstallOpResult
 
 use super::PackageData;
 
-const TYPESCRIPT_PATCH: &[u8] = std::include_bytes!("../../patches/typescript.brotli.dat");
-
 const BUILTIN_PATCHES: &[(&str, &[u8])] = &[
-    ("typescript", TYPESCRIPT_PATCH),
+    ("fsevents", std::include_bytes!("../../patches/fsevents.brotli.dat")),
+    ("resolve", std::include_bytes!("../../patches/resolve.brotli.dat")),
+    ("typescript", std::include_bytes!("../../patches/typescript.brotli.dat")),
 ];
 
 pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, params: &reference::PatchReference, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {

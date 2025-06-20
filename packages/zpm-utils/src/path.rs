@@ -236,6 +236,10 @@ impl Path {
         Ok(())
     }
 
+    pub fn fn_canonicalize(&self) -> Result<Path, PathError> {
+        Ok(Path::try_from(std::fs::canonicalize(&self.path)?)?)
+    }
+
     pub fn fs_create_parent(&self) -> Result<&Self, PathError> {
         if let Some(parent) = self.dirname() {
             parent.fs_create_dir_all()?;
