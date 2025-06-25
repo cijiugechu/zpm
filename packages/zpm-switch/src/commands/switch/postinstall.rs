@@ -1,3 +1,6 @@
+use std::str::FromStr;
+use std::process::Command;
+
 use clipanion::cli;
 use zpm_utils::{DataType, OkMissing, Path, ToFileString};
 
@@ -29,9 +32,22 @@ impl PostinstallCommand {
             return;
         };
 
-        let profile_path = home
-            .with_join_str(".profile");
+        let env_path = home
+            .with_join_str(".yarn/switch/env");
 
+        self.write_env(&env_path, &bin_dir);
+
+        if let Some(profile_file) = self.get_profile_file() {
+            let profile_path = home
+                .with_join(&profile_file);
+
+            self.write_profile(&profile_path, &env_path);
+        }
+
+        self.check_volta_interference();
+    }
+
+    fn write_profile(&self, profile_path: &Path, env_path: &Path) {
         let profile_content = profile_path
             .fs_read_text_prealloc()
             .ok_missing();
@@ -39,26 +55,6 @@ impl PostinstallCommand {
         let Ok(profile_content) = profile_content else {
             return;
         };
-
-        let path_line
-            = format!("export PATH=\"{}:$PATH\"\n", bin_dir.to_file_string());
-
-        let env_path = home
-            .with_join_str(".yarn/switch/env");
-
-        let env_write_result = env_path
-            .fs_create_parent()
-            .and_then(|_| env_path.fs_write_text(&path_line));
-
-        if env_write_result.is_err() {
-            println!(
-                "Failed to write {}; manually append the following line to your shell configuration file:\n{}",
-                env_path,
-                DataType::Code.colorize(&path_line)
-            );
-
-            return;
-        }
 
         let mut profile_content
             = profile_content.unwrap_or_default();
@@ -92,6 +88,75 @@ impl PostinstallCommand {
                 "Failed to write {}; manually append the following line:\n{}",
                 profile_path,
                 DataType::Code.colorize(&profile_line)
+            );
+        }
+    }
+
+    fn write_env(&self, env_path: &Path, bin_dir: &Path) {
+        let env_path_line
+            = format!("export PATH=\"{}:$PATH\"\n", bin_dir.to_file_string());
+
+        let env_write_result = env_path
+            .fs_create_parent()
+            .and_then(|_| env_path.fs_write_text(&env_path_line));
+
+        if env_write_result.is_err() {
+            println!(
+                "Failed to write {}; manually append the following line to your shell configuration file:\n{}",
+                env_path,
+                DataType::Code.colorize(&env_path_line)
+            );
+
+            return;
+        }
+    }
+
+    fn get_profile_file(&self) -> Option<Path> {
+        let Ok(shell) = std::env::var("SHELL") else {
+            return None;
+        };
+
+        let shell_name = shell
+            .split('/')
+            .last();
+
+        let Some(shell_name) = shell_name else {
+            return None;
+        };
+
+        match shell_name {
+            "bash" => Some(Path::from_str(".profile").unwrap()),
+            "zsh" => Some(Path::from_str(".zprofile").unwrap()),
+            "fish" => Some(Path::from_str(".config/fish/config.fish").unwrap()),
+            _ => None,
+        }
+    }
+
+    fn check_volta_interference(&self) {
+        let output = Command::new("node")
+            .arg("-p")
+            .arg("process.env.PATH")
+            .output();
+
+        let Ok(output) = output else {
+            return;
+        };
+
+        if !output.status.success() {
+            return;
+        }
+
+        let Ok(path_output) = String::from_utf8(output.stdout) else {
+            return;
+        };
+
+        if path_output.contains("/.volta/tools/image/yarn/") {
+            println!();
+            println!(
+                "[Warning] Volta appears to be injecting paths that will shadow Yarn Switch shims in Node.js subprocesses."
+            );
+            println!(
+                "See https://github.com/volta-cli/volta/issues/2053 for more information."
             );
         }
     }
