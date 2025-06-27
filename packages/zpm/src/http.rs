@@ -55,14 +55,20 @@ impl HttpClient {
 
         loop {
             let response
-                = self.client.get(url).send().await?;
+                = self.client.get(url).send().await;
 
-            if response.status().is_success() || retry_count >= self.http_retry {
-                return Ok(response.error_for_status()?);
+            let is_failure = match &response {
+                Ok(response) => !response.status().is_success(),
+                Err(_) => true,
+            };
+
+            if is_failure && retry_count < self.http_retry {
+                retry_count += 1;
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                continue;
             }
 
-            retry_count += 1;
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            return Ok(response?.error_for_status()?);
         }
     }
 
