@@ -23,7 +23,7 @@ impl HttpClient {
             .resolve_to_addrs("registry.npmjs.org", &sock_addrs)
 
             // Connection pooling settings
-            .pool_max_idle_per_host(config.user.http_retry.value as usize)
+            .pool_max_idle_per_host(config.user.network_concurrency.value as usize)
             .pool_idle_timeout(Duration::from_secs(60))
 
             // Timeout settings
