@@ -24,11 +24,12 @@ impl HttpClient {
 
             // Connection pooling settings
             .pool_max_idle_per_host(config.user.network_concurrency.value as usize)
-            .pool_idle_timeout(Duration::from_secs(60))
+            .pool_idle_timeout(Duration::from_secs(30))
 
             // Timeout settings
-            .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(30))
+            .connect_timeout(Duration::from_secs(30))
+            .read_timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(300))
 
             // HTTP/2 settings (helps with connection reuse)
             .http2_keep_alive_interval(Duration::from_secs(30))
