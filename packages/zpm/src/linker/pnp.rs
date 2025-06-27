@@ -29,7 +29,7 @@ fn make_virtual_path(base: &Path, component: &str, to: &Path) -> Path {
 
     let final_components = &components[depth..];
     let full_virtual_path = base
-        .with_join_str(component)
+        .with_join_str(format!("hash-{component}"))
         .with_join_str(&(depth - 1).to_string())
         .with_join_str(final_components.join("/"));
 
@@ -217,7 +217,7 @@ pub async fn link_project_pnp<'a>(project: &'a mut Project, install: &'a mut Ins
         if let Reference::Virtual(params) = &locator.reference {
             package_location_abs = make_virtual_path(
                 &virtual_folder,
-                &params.hash.to_file_string(),
+                &params.hash.to_file_string()[..16],
                 &package_location_abs,
             );
         }
