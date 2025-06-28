@@ -1,6 +1,6 @@
 use zpm_utils::{impl_serialization_traits, FromFileString, ToFileString, ToHumanString};
 
-use crate::JsonPath;
+use crate::{error::Error, JsonPath};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum JsonValue {
@@ -11,6 +11,36 @@ pub enum JsonValue {
     Array(Vec<JsonValue>),
     Object(Vec<(String, JsonValue)>), // Preserves insertion order
     Undefined, // Used to remove values
+}
+
+impl From<&sonic_rs::Value> for JsonValue {
+    fn from(value: &sonic_rs::Value) -> Self {
+        match value.as_ref() {
+            sonic_rs::ValueRef::Null => {
+                JsonValue::Null
+            },
+
+            sonic_rs::ValueRef::Bool(b) => {
+                JsonValue::Bool(b)
+            },
+
+            sonic_rs::ValueRef::Number(n) => {
+                JsonValue::Number(n.to_string())
+            },
+
+            sonic_rs::ValueRef::String(s) => {
+                JsonValue::String(s.to_string())
+            },
+
+            sonic_rs::ValueRef::Array(arr) => {
+                JsonValue::Array(arr.iter().map(From::from).collect())
+            },
+
+            sonic_rs::ValueRef::Object(obj) => {
+                JsonValue::Object(obj.iter().map(|(k, v)| (k.to_string(), From::from(v))).collect())
+            },
+        }
+    }
 }
 
 impl From<serde_json::Value> for JsonValue {
@@ -153,7 +183,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn read_string(&mut self) -> Result<String, String> {
+    fn read_string(&mut self) -> Result<String, Error> {
         // Assumes we're at the opening quote
         self.advance(); // Skip opening quote
         
@@ -178,7 +208,7 @@ impl<'a> Tokenizer<'a> {
                                 code_point.push(hex_char);
                                 self.advance();
                             } else {
-                                return Err("Incomplete Unicode escape".to_string());
+                                return Err(Error::InvalidSyntax("Incomplete Unicode escape".to_string()));
                             }
                         }
                         
@@ -186,15 +216,15 @@ impl<'a> Tokenizer<'a> {
                             if let Some(unicode_char) = char::from_u32(code) {
                                 result.push(unicode_char);
                             } else {
-                                return Err("Invalid Unicode code point".to_string());
+                                return Err(Error::InvalidSyntax("Invalid Unicode code point".to_string()));
                             }
                         } else {
-                            return Err("Invalid Unicode escape".to_string());
+                            return Err(Error::InvalidSyntax("Invalid Unicode escape".to_string()));
                         }
                         escaped = false;
                         continue;
                     }
-                    _ => return Err(format!("Invalid escape sequence: \\{}", ch)),
+                    _ => return Err(Error::InvalidSyntax(format!("Invalid escape sequence: \\{}", ch))),
                 }
                 escaped = false;
                 self.advance();
@@ -210,7 +240,7 @@ impl<'a> Tokenizer<'a> {
             }
         }
         
-        Err("Unterminated string".to_string())
+        Err(Error::InvalidSyntax("Unterminated string".to_string()))
     }
 
     fn read_number(&mut self) -> String {
@@ -286,7 +316,7 @@ impl<'a> Tokenizer<'a> {
         true
     }
 
-    fn next_token(&mut self) -> Result<Option<TokenWithSpan>, String> {
+    fn next_token(&mut self) -> Result<Option<TokenWithSpan>, Error> {
         let start = self.position;
         
         match self.current_char() {
@@ -296,64 +326,66 @@ impl<'a> Tokenizer<'a> {
                     '{' => {
                         self.advance();
                         Token::LeftBrace
-                    }
+                    },
+
                     '}' => {
                         self.advance();
                         Token::RightBrace
-                    }
+                    },
+
                     '[' => {
                         self.advance();
                         Token::LeftBracket
-                    }
+                    },
+
                     ']' => {
                         self.advance();
                         Token::RightBracket
-                    }
+                    },
+
                     ':' => {
                         self.advance();
                         Token::Colon
-                    }
+                    },
+
                     ',' => {
                         self.advance();
                         Token::Comma
-                    }
+                    },
+
                     '"' => {
                         let string_val = self.read_string()?;
                         Token::String(string_val)
-                    }
-                    't' => {
-                        if self.read_literal("true") {
-                            Token::Bool(true)
-                        } else {
-                            return Err("Invalid token starting with 't'".to_string());
-                        }
-                    }
-                    'f' => {
-                        if self.read_literal("false") {
-                            Token::Bool(false)
-                        } else {
-                            return Err("Invalid token starting with 'f'".to_string());
-                        }
-                    }
-                    'n' => {
-                        if self.read_literal("null") {
-                            Token::Null
-                        } else {
-                            return Err("Invalid token starting with 'n'".to_string());
-                        }
-                    }
+                    },
+
+                    't' if self.read_literal("true") => {
+                        Token::Bool(true)
+                    },
+
+                    'f' if self.read_literal("false") => {
+                        Token::Bool(false)
+                    },
+
+                    'n' if self.read_literal("null") => {
+                        Token::Null
+                    },
+
                     ch if ch.is_whitespace() => {
                         if let Some(ws) = self.skip_whitespace() {
                             Token::Whitespace(ws)
                         } else {
-                            return Err("Failed to read whitespace".to_string());
+                            return Err(Error::InvalidSyntax("Failed to read whitespace".to_string()));
                         }
-                    }
+                    },
+
                     '-' | '0'..='9' => {
                         let number_str = self.read_number();
                         Token::Number(number_str)
-                    }
-                    _ => return Err(format!("Unexpected character: {}", ch)),
+                    },
+
+                    _ => {
+                        return Err(Error::InvalidSyntax(format!("Unexpected character: {}", ch)))
+                    },
                 };
                 
                 Ok(Some(TokenWithSpan {
@@ -364,7 +396,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn tokenize(mut self) -> Result<Vec<TokenWithSpan>, String> {
+    fn tokenize(mut self) -> Result<Vec<TokenWithSpan>, Error> {
         let mut tokens = Vec::new();
         
         while let Some(token) = self.next_token()? {
@@ -414,7 +446,7 @@ impl Parser {
         ws
     }
 
-    fn expect_token(&mut self, expected: &Token) -> Result<TokenWithSpan, String> {
+    fn expect_token(&mut self, expected: &Token) -> Result<TokenWithSpan, Error> {
         self.consume_whitespace();
         
         if let Some(token) = self.current_token() {
@@ -423,14 +455,14 @@ impl Parser {
                 self.advance();
                 Ok(token)
             } else {
-                Err(format!("Expected {:?}, found {:?}", expected, token.token))
+                Err(Error::InvalidSyntax(format!("Expected {:?}, found {:?}", expected, token.token)))
             }
         } else {
-            Err("Unexpected end of input".to_string())
+            Err(Error::InvalidSyntax("Unexpected end of input".to_string()))
         }
     }
 
-    fn parse_value(&mut self) -> Result<FormattedNode, String> {
+    fn parse_value(&mut self) -> Result<FormattedNode, Error> {
         let leading_ws = self.consume_whitespace();
         
         if let Some(token) = self.current_token() {
@@ -478,7 +510,7 @@ impl Parser {
                 },
 
                 _ => {
-                    return Err(format!("Unexpected token: {:?}", token.token))
+                    return Err(Error::InvalidSyntax(format!("Unexpected token: {:?}", token.token)))
                 },
             };
             
@@ -503,11 +535,11 @@ impl Parser {
                 separator_ws: None,
             })
         } else {
-            Err("Expected value".to_string())
+            Err(Error::InvalidSyntax("Expected value".to_string()))
         }
     }
 
-    fn parse_object(&mut self) -> Result<(JsonValue, Span), String> {
+    fn parse_object(&mut self) -> Result<(JsonValue, Span), Error> {
         let mut entries = Vec::new();
         
         self.consume_whitespace();
@@ -559,22 +591,22 @@ impl Parser {
                             },
 
                             _ => {
-                                return Err("Expected ',' or '}'".to_string())
+                                return Err(Error::InvalidSyntax("Expected ',' or '}'".to_string()))
                             },
                         }
                     } else {
-                        return Err("Unexpected end of input".to_string());
+                        return Err(Error::InvalidSyntax("Unexpected end of input".to_string()));
                     }
                 } else {
-                    return Err("Expected string key".to_string());
+                    return Err(Error::InvalidSyntax("Expected string key".to_string()));
                 }
             } else {
-                return Err("Unexpected end of input in object".to_string());
+                return Err(Error::InvalidSyntax("Unexpected end of input in object".to_string()));
             }
         }
     }
 
-    fn parse_array(&mut self) -> Result<(JsonValue, Span), String> {
+    fn parse_array(&mut self) -> Result<(JsonValue, Span), Error> {
         let mut elements = Vec::new();
         
         self.consume_whitespace();
@@ -609,17 +641,17 @@ impl Parser {
                         return Ok((JsonValue::Array(elements), end_span));
                     },
 
-                    _ => {
-                        return Err("Expected ',' or ']'".to_string())
-                    },
-                }
-            } else {
-                return Err("Unexpected end of input".to_string());
-            }
+                                                _ => {
+                                return Err(Error::InvalidSyntax("Expected ',' or ']'".to_string()))
+                            },
+                        }
+                    } else {
+                        return Err(Error::InvalidSyntax("Unexpected end of input".to_string()));
+                    }
         }
     }
 
-    fn parse(&mut self) -> Result<FormattedNode, String> {
+    fn parse(&mut self) -> Result<FormattedNode, Error> {
         self.parse_value()
     }
 }
@@ -725,7 +757,7 @@ fn detect_format_preferences(tokens: &[TokenWithSpan], original: &str) -> Format
 }
 
 impl JsonFormatter {
-    pub fn from(input: &str) -> Result<Self, String> {
+    pub fn from(input: &str) -> Result<Self, Error> {
         let tokenizer
             = Tokenizer::new(input);
         let tokens
@@ -746,7 +778,11 @@ impl JsonFormatter {
         })
     }
 
-    pub fn set(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), String> {
+    pub fn set<P: Into<JsonPath>>(&mut self, path: P, value: JsonValue) -> Result<(), Error> {
+        self.set_path(&path.into(), value)
+    }
+
+    pub fn set_path(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), Error> {
         if let Some(root) = &mut self.root {
             if path.is_empty() {
                 root.value = value;
@@ -758,7 +794,11 @@ impl JsonFormatter {
         Ok(())
     }
 
-    pub fn update(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), String> {
+    pub fn update<P: Into<JsonPath>>(&mut self, path: P, value: JsonValue) -> Result<(), Error> {
+        self.update_path(&path.into(), value)
+    }
+
+    pub fn update_path(&mut self, path: &JsonPath, value: JsonValue) -> Result<(), Error> {
         if let Some(root) = &mut self.root {
             if path.is_empty() {
                 // Replace the entire root
@@ -771,8 +811,12 @@ impl JsonFormatter {
         Ok(())
     }
 
-    pub fn remove(&mut self, path: &JsonPath) -> Result<(), String> {
-        self.set(path, JsonValue::Undefined)
+    pub fn remove<P: Into<JsonPath>>(&mut self, path: P) -> Result<(), Error> {
+        self.remove_path(&path.into())
+    }
+
+    pub fn remove_path(&mut self, path: &JsonPath) -> Result<(), Error> {
+        self.set_path(path, JsonValue::Undefined)
     }
 
     pub fn to_string(&self) -> String {
@@ -938,7 +982,7 @@ pub fn escape_string(s: &str) -> String {
 }
 
 // Move set_at_path outside of impl block as a standalone function
-fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue, create_if_missing: bool) -> Result<bool, String> {
+fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue, create_if_missing: bool) -> Result<bool, Error> {
     if path.is_empty() {
         *current = value;
         return Ok(false);
@@ -1019,7 +1063,7 @@ fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue, creat
 
                 Ok(false)
             } else {
-                return Err(format!("Invalid array index: {}", key));
+                return Err(Error::InvalidArrayAccess(key.clone()));
             }
         },
 
@@ -1027,7 +1071,7 @@ fn set_at_path(current: &mut JsonValue, path: &[String], value: JsonValue, creat
             if remaining_path.is_empty() {
                 *current = value;
             } else {
-                return Err("Cannot navigate through primitive value".to_string());
+                return Err(Error::InvalidPrimitiveNavigation);
             }
 
             Ok(false)
@@ -1183,7 +1227,7 @@ mod tests {
         
         // Test setting a value
         formatter.set(
-            &vec!["name"].into(),
+            ["name"],
             JsonValue::String("updated".to_string())
         ).unwrap();
         
@@ -1209,7 +1253,7 @@ mod tests {
         
         // Test setting a nested value
         formatter.set(
-            &vec!["user", "name"].into(),
+            ["user", "name"],
             JsonValue::String("Jane".to_string())
         ).unwrap();
         
@@ -1230,7 +1274,7 @@ mod tests {
         
         // Test setting an array element
         formatter.set(
-            &vec!["items", "1"].into(),
+            ["items", "1"],
             JsonValue::Number("42".to_string())
         ).unwrap();
         
@@ -1267,7 +1311,7 @@ mod tests {
         
         // Add a new field
         formatter.set(
-            &vec!["new_field"].into(),
+            ["new_field"],
             JsonValue::String("new value".to_string())
         ).unwrap();
         
@@ -1286,7 +1330,7 @@ mod tests {
         
         // Add a new object at root level
         formatter.set(
-            &vec!["address"].into(),
+            ["address"],
             JsonValue::Object(vec![
                 ("street".to_string(), JsonValue::String("123 Main St".to_string())),
                 ("city".to_string(), JsonValue::String("New York".to_string())),
@@ -1313,7 +1357,7 @@ mod tests {
         
         // Add a new array at root level
         formatter.set(
-            &vec!["tags"].into(),
+            ["tags"],
             JsonValue::Array(vec![
                 JsonValue::String("rust".to_string()),
                 JsonValue::String("json".to_string()),
@@ -1340,7 +1384,7 @@ mod tests {
         
         // Add a nested object
         formatter.set(
-            &vec!["user", "preferences"].into(),
+            ["user", "preferences"],
             JsonValue::Object(vec![
                 ("theme".to_string(), JsonValue::String("dark".to_string())),
                 ("notifications".to_string(), JsonValue::Bool(true)),
@@ -1367,7 +1411,7 @@ mod tests {
         
         // Add a nested array
         formatter.set(
-            &vec!["data", "labels"].into(),
+            ["data", "labels"],
             JsonValue::Array(vec![
                 JsonValue::String("first".to_string()),
                 JsonValue::String("second".to_string()),
@@ -1397,27 +1441,27 @@ mod tests {
         
         // Add multiple fields of different types using both approaches
         formatter.set(
-            &vec!["string_field"].into(),
+            ["string_field"],
             JsonValue::String("hello".to_string())
         ).unwrap();
         
         formatter.set(
-            &vec!["number_field"].into(),
+            ["number_field"],
             JsonValue::Number("42".to_string())
         ).unwrap();
         
         formatter.set(
-            &vec!["bool_field"].into(),
+            ["bool_field"],
             JsonValue::Bool(true)
         ).unwrap();
         
         formatter.set(
-            &vec!["null_field"].into(),
+            ["null_field"],
             JsonValue::Null
         ).unwrap();
         
         formatter.set(
-            &vec!["array_field"].into(),
+            ["array_field"],
             JsonValue::Array(vec![
                 JsonValue::Number("1".to_string()),
                 JsonValue::Number("2".to_string()),
@@ -1426,7 +1470,7 @@ mod tests {
         ).unwrap();
         
         formatter.set(
-            &vec!["object_field"].into(),
+            ["object_field"],
             JsonValue::Object(vec![
                 ("nested".to_string(), JsonValue::String("value".to_string())),
             ])
@@ -1458,7 +1502,7 @@ mod tests {
         
         // Create a deeply nested structure using vector
         formatter.set(
-            &vec!["level1", "level2", "level3", "level4"].into(),
+            ["level1", "level2", "level3", "level4"],
             JsonValue::String("deep value".to_string())
         ).unwrap();
         
@@ -1482,7 +1526,7 @@ mod tests {
         
         // Create mixed structure with arrays and objects
         formatter.set(
-            &vec!["root", "users"].into(),
+            ["root", "users"],
             JsonValue::Array(vec![
                 JsonValue::Object(vec![
                     ("name".to_string(), JsonValue::String("Alice".to_string())),
@@ -1496,7 +1540,7 @@ mod tests {
         ).unwrap();
         
         formatter.set(
-            &vec!["root", "config"].into(),
+            ["root", "config"],
             JsonValue::Object(vec![
                 ("enabled".to_string(), JsonValue::Bool(true)),
                 ("options".to_string(), JsonValue::Array(vec![
@@ -1537,8 +1581,8 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Add empty object and array
-        formatter.set(&vec!["empty_object"].into(), JsonValue::Object(vec![])).unwrap();
-        formatter.set(&vec!["empty_array"].into(), JsonValue::Array(vec![])).unwrap();
+        formatter.set(["empty_object"], JsonValue::Object(vec![])).unwrap();
+        formatter.set(["empty_array"], JsonValue::Array(vec![])).unwrap();
         
         let output = formatter.to_string();
 
@@ -1555,9 +1599,9 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Add items at specific array indices
-        formatter.set(&vec!["data", "0"].into(), JsonValue::String("first".to_string())).unwrap();
-        formatter.set(&vec!["data", "2"].into(), JsonValue::String("third".to_string())).unwrap();
-        formatter.set(&vec!["data", "1"].into(), JsonValue::String("second".to_string())).unwrap();
+        formatter.set(["data", "0"], JsonValue::String("first".to_string())).unwrap();
+        formatter.set(["data", "2"], JsonValue::String("third".to_string())).unwrap();
+        formatter.set(["data", "1"], JsonValue::String("second".to_string())).unwrap();
         
         let output = formatter.to_string();
 
@@ -1665,17 +1709,17 @@ mod tests {
         
         // Test array access with bracket notation - keeping from_file_string to test parsing
         let path = JsonPath::from_file_string("users[0].name").unwrap();
-        formatter.set(&path, JsonValue::String("Bob".to_string())).unwrap();
+        formatter.set_path(&path, JsonValue::String("Bob".to_string())).unwrap();
         let path = JsonPath::from_file_string("users[1].age").unwrap();
-        formatter.set(&path, JsonValue::Number("25".to_string())).unwrap();
+        formatter.set_path(&path, JsonValue::Number("25".to_string())).unwrap();
         
         // Test nested object access using simpler vector approach  
         formatter.set(
-            &vec!["config", "debug"].into(),
+            ["config", "debug"],
             JsonValue::Bool(true)
         ).unwrap();
         formatter.set(
-            &vec!["config", "timeout"].into(),
+            ["config", "timeout"],
             JsonValue::Number("30".to_string())
         ).unwrap();
         
@@ -1693,17 +1737,17 @@ mod tests {
         
         // Test keys that require bracket notation in from_file_string
         let path = JsonPath::from_file_string(r#"["key with spaces"]"#).unwrap();
-        formatter.set(&path, JsonValue::String("value1".to_string())).unwrap();
+        formatter.set_path(&path, JsonValue::String("value1".to_string())).unwrap();
         
         // But can also be created directly with vector
         formatter.set(
-            &vec!["key-with-dash"].into(),
+            ["key-with-dash"],
             JsonValue::String("value2".to_string())
         ).unwrap();
         
         // Numeric string key
         formatter.set(
-            &vec!["123"].into(),
+            ["123"],
             JsonValue::String("value3".to_string())
         ).unwrap();
         
@@ -1742,7 +1786,7 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Remove a property
-        formatter.set(&vec!["value"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["value"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, indoc! {r#"{
@@ -1763,7 +1807,7 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Remove nested property
-        formatter.set(&vec!["user", "email"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["user", "email"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, indoc! {r#"{
@@ -1780,7 +1824,7 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Remove element at index 2 (value 3)
-        formatter.set(&vec!["items", "2"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["items", "2"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, indoc! {r#"{
@@ -1799,8 +1843,8 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Remove multiple properties
-        formatter.set(&vec!["b"].into(), JsonValue::Undefined).unwrap();
-        formatter.set(&vec!["d"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["b"], JsonValue::Undefined).unwrap();
+        formatter.set(["d"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, indoc! {r#"{
@@ -1815,7 +1859,7 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Remove the only property
-        formatter.set(&vec!["only"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["only"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, "{}");
@@ -1828,7 +1872,7 @@ mod tests {
         
         // Try to remove non-existent property (should not error)
         formatter.set(
-            &vec!["non_existent"].into(),
+            ["non_existent"],
             JsonValue::Undefined
         ).unwrap();
         
@@ -1856,9 +1900,9 @@ mod tests {
         
         // Remove middle user - keeping from_file_string to test bracket notation
         let path = JsonPath::from_file_string("users[1]").unwrap();
-        formatter.set(&path, JsonValue::Undefined).unwrap();
+        formatter.set_path(&path, JsonValue::Undefined).unwrap();
         // Remove a setting
-        formatter.set(&vec!["settings", "timeout"].into(), JsonValue::Undefined).unwrap();
+        formatter.set(["settings", "timeout"], JsonValue::Undefined).unwrap();
         
         let output = formatter.to_string();
         // After removing users[1], Charlie becomes users[1]
@@ -1878,7 +1922,7 @@ mod tests {
         
         // Create an array with some undefined values
         formatter.set(
-            &vec!["items"].into(),
+            ["items"],
             JsonValue::Array(vec![
                 JsonValue::Number("1".to_string()),
                 JsonValue::Undefined,
@@ -1906,7 +1950,7 @@ mod tests {
         
         // Create an object with some undefined values
         formatter.set(
-            &vec!["data"].into(),
+            ["data"],
             JsonValue::Object(vec![
                 ("a".to_string(), JsonValue::Number("1".to_string())),
                 ("b".to_string(), JsonValue::Undefined),
@@ -1937,8 +1981,8 @@ mod tests {
         let mut formatter = JsonFormatter::from(input).unwrap();
         
         // Use the convenience remove method
-        formatter.remove(&vec!["remove"].into()).unwrap();
-        formatter.remove(&vec!["nested", "remove"].into()).unwrap();
+        formatter.remove(["remove"]).unwrap();
+        formatter.remove(["nested", "remove"]).unwrap();
         
         let output = formatter.to_string();
         assert_eq!(output, indoc! {r#"{
@@ -1952,11 +1996,11 @@ mod tests {
     #[test]
     fn test_json_path_from_vec() {
         // Test From<Vec<String>>
-        let path: JsonPath = vec!["foo".to_string(), "bar".to_string(), "baz".to_string()].into();
+        let path: JsonPath = ["foo", "bar", "baz"].into();
         assert_eq!(path.segments(), &["foo", "bar", "baz"]);
         
         // Test From<Vec<&str>>
-        let path: JsonPath = vec!["users", "0", "name"].into();
+        let path: JsonPath = ["users", "0", "name"].into();
         assert_eq!(path.segments(), &["users", "0", "name"]);
         
         // Test empty vec
@@ -1964,7 +2008,7 @@ mod tests {
         assert!(path.is_empty());
         
         // Test mixed usage
-        let segments = vec!["api", "v1", "endpoints"];
+        let segments = ["api", "v1", "endpoints"];
         let path: JsonPath = segments.into();
         assert_eq!(path.to_file_string(), "api.v1.endpoints");
     }
@@ -1998,7 +2042,7 @@ mod tests {
         
         // Make a modification
         formatter.set(
-            &vec!["version"].into(),
+            ["version"],
             JsonValue::String("1.0.0".to_string())
         ).unwrap();
         
@@ -2019,7 +2063,7 @@ mod tests {
         
         // Make a modification
         formatter.set(
-            &vec!["version"].into(),
+            ["version"],
             JsonValue::String("1.0.0".to_string())
         ).unwrap();
         
