@@ -21,6 +21,7 @@ pub mod workspace;
  * Contains the information we keep in the lockfile for a given package.
  */
 #[derive(Clone, Debug, Deserialize, Decode, Encode, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct Resolution {
     #[serde(rename = "resolution")]
     pub locator: Locator,
@@ -37,12 +38,10 @@ pub struct Resolution {
     pub dependencies: BTreeMap<Ident, Descriptor>,
 
     #[serde(default)]
-    #[serde(rename = "peerDependencies")]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub peer_dependencies: BTreeMap<Ident, PeerRange>,
 
     #[serde(default)]
-    #[serde(rename = "optionalDependencies")]
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
     pub optional_dependencies: BTreeSet<Ident>,
 
