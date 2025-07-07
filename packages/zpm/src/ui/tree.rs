@@ -12,8 +12,20 @@ impl Node {
         let mut result = String::new();
 
         if prefix.len() > 0 || self.label.len() > 0 {
-            result.push_str(&self.label);
+            let mut lines
+                = self.label.lines();
+
+            let first_line
+                = lines.next().unwrap_or("");
+
+            result.push_str(&first_line);
             result.push('\n');
+
+            for line in lines {
+                result.push_str(&prefix);
+                result.push_str(line);
+                result.push('\n');
+            }
         }
 
         let children_count = self.children.len();
@@ -215,6 +227,70 @@ Root
 │     └─ Great-grandchild 1
 │
 └─ Child 2
+";
+
+        assert_eq!(node.to_string(), expected);
+    }
+
+    #[test]
+    fn test_multiline_at_start() {
+        let node = Node {
+            label: "Root".to_string(),
+            children: vec![
+                Node {
+                    label: "Multi-line child\nSecond line\nThird line".to_string(),
+                    children: vec![],
+                },
+                Node {
+                    label: "Child 2".to_string(),
+                    children: vec![],
+                },
+                Node {
+                    label: "Child 3".to_string(),
+                    children: vec![],
+                },
+            ],
+        };
+
+        let expected = "\
+Root
+├─ Multi-line child
+│  Second line
+│  Third line
+├─ Child 2
+└─ Child 3
+";
+
+        assert_eq!(node.to_string(), expected);
+    }
+
+    #[test]
+    fn test_multiline_at_end() {
+        let node = Node {
+            label: "Root".to_string(),
+            children: vec![
+                Node {
+                    label: "Child 1".to_string(),
+                    children: vec![],
+                },
+                Node {
+                    label: "Child 2".to_string(),
+                    children: vec![],
+                },
+                Node {
+                    label: "Last child with\nmultiple lines\nof text".to_string(),
+                    children: vec![],
+                },
+            ],
+        };
+
+        let expected = "\
+Root
+├─ Child 1
+├─ Child 2
+└─ Last child with
+   multiple lines
+   of text
 ";
 
         assert_eq!(node.to_string(), expected);
