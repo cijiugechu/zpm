@@ -13,7 +13,7 @@ use zpm_semver::Version;
 #[derive(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq)]
 #[derive_variants(Clone, Copy, Debug, Decode, Encode, PartialEq, Eq)]
 enum BinaryName {
-    #[pattern(spec = r"yarn")] 
+    #[pattern(spec = r"yarn")]
     Yarn,
 }
 
@@ -140,7 +140,7 @@ pub fn find_closest_package_manager(path: &Path) -> Result<FindResult, Error> {
             .fs_read_text()
             .ok_missing()?;
 
-        if let Some(manifest) = manifest {
+        if let Some(manifest) = &manifest {
             let parsed_manifest: Manifest = sonic_rs::from_str(&manifest)
                 .map_err(|err| Error::FailedToParseManifest(Arc::new(err)))?;
 
@@ -168,7 +168,9 @@ pub fn find_closest_package_manager(path: &Path) -> Result<FindResult, Error> {
             }
         }
 
-        last_package_folder = Some(take(&mut parent));
+        if manifest.is_some() {
+            last_package_folder = Some(take(&mut parent));
+        }
     }
 
     Ok(FindResult {
