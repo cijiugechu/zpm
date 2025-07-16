@@ -77,7 +77,6 @@ jobs:
             target/${{matrix.target}}/release/yarn-bin
             target/${{matrix.target}}/release/yarn
             target/${{matrix.target}}/release/LICENSE.md
-          retention-days: 7
 
   # test-report:
   #   needs: build
