@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, HashSet}, io::ErrorKind, time::UNIX_EPOCH};
 
-use globset::GlobBuilder;
+use globset::{GlobBuilder, GlobSetBuilder};
 use zpm_utils::{impl_serialization_traits, Path, ToFileString};
 use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
@@ -648,38 +648,61 @@ impl Workspace {
                 = HashSet::new();
 
             while let Some((base_path, current_patterns)) = workspace_queue.pop() {
-                let normalized_patterns = current_patterns.iter()
-                    .map(|p| Path::try_from(p.as_str()))
-                    .collect::<Result<Vec<_>, _>>()?;
+                let glob_patterns
+                    = current_patterns.into_iter()
+                        .map(|pattern| {
+                            let (pattern, is_positive)
+                                = if pattern.starts_with('!') {
+                                    (&pattern[1..], false)
+                                } else {
+                                    (pattern.as_ref(), true)
+                                };
 
-                let glob_patterns = normalized_patterns.into_iter()
-                    .map(|p| {
-                        let pattern_path = base_path
-                            .with_join(&p);
+                            let pattern_path
+                                = base_path.with_join_str(pattern);
 
-                        GlobBuilder::new(pattern_path.as_str())
-                            .literal_separator(true)
-                            .build()
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-
-                let pattern_matchers = glob_patterns.into_iter()
-                    .map(|g| g.compile_matcher())
-                    .collect::<Vec<_>>();
-
-                let workspace_paths = lookup_state.cache.iter()
-                    .filter(|(_, entry)| {
-                        matches!(entry, SaveEntry::File(_, _))
-                    })
-                    .filter(|(p, _)| {
-                        let candidate_workspace_rel_dir = p.dirname()
-                            .expect("Expected this path to have a parent directory, since it's supposed to be the relative path to a package.json file");
-
-                        pattern_matchers.iter().any(|m| {
-                            m.is_match(candidate_workspace_rel_dir.as_str())
+                            GlobBuilder::new(pattern_path.as_str())
+                                    .literal_separator(true)
+                                    .build()
+                                    .map(|glob| (glob, is_positive))
                         })
-                    })
-                    .collect::<Vec<_>>();
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                let (positive_patterns, negative_patterns): (Vec<_>, Vec<_>)
+                    = glob_patterns.into_iter()
+                        .partition(|(_, is_positive)| *is_positive);
+
+                let mut positive_builder
+                    = GlobSetBuilder::new();
+                for (glob, _) in positive_patterns {
+                    positive_builder.add(glob);
+                }
+                let positive_glob_set
+                    = positive_builder.build()?;
+
+                let mut negative_builder
+                    = GlobSetBuilder::new();
+                for (glob, _) in negative_patterns {
+                    negative_builder.add(glob);
+                }
+                let negative_glob_set
+                    = negative_builder.build()?;
+
+                let workspace_paths
+                    = lookup_state.cache.iter()
+                        .filter(|(_, entry)| {
+                            matches!(entry, SaveEntry::File(_, _))
+                        })
+                        .filter(|(p, _)| {
+                            let candidate_workspace_rel_dir = p.dirname()
+                                .expect("Expected this path to have a parent directory, since it's supposed to be the relative path to a package.json file");
+
+                            let dir_str = candidate_workspace_rel_dir.as_str();
+
+                            // Important: If there are no positive patterns, nothing matches.
+                            positive_glob_set.is_match(dir_str) && !negative_glob_set.is_match(dir_str)
+                        })
+                        .collect::<Vec<_>>();
 
                 for (manifest_rel_path, save_entry) in workspace_paths {
                     if let SaveEntry::File(last_changed_at, manifest) = save_entry {
