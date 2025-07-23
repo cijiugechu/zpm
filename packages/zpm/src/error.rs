@@ -55,6 +55,9 @@ pub enum Error {
     #[error("[YN0091] Cache path does not exist ({}).", .0.to_print_string())]
     MissingCacheFolder(Path),
 
+    #[error("[YN0081] Unsafe http requests must be explicitly whitelisted in your configuration ({}).", .0.host_str().expect("\"http:\" URL should have a host"))]
+    UnsafeHttpError(reqwest::Url),
+
     #[error("Algolia registry error")]
     AlgoliaRegistryError(Arc<reqwest::Error>),
 
@@ -114,6 +117,9 @@ pub enum Error {
 
     #[error("Time error: {0}")]
     TimeError(#[from] std::time::SystemTimeError),
+
+    #[error("Invalid glob pattern ({0})")]
+    InvalidGlob(String),
 
     #[error("Glob error")]
     GlobError(#[from] globset::Error),
@@ -261,6 +267,9 @@ pub enum Error {
 
     #[error("Invalid pack pattern ({0})")]
     InvalidPackPattern(String),
+
+    #[error("Invalid url ({0})")]
+    InvalidUrl(String),
 
     #[error("Invalid git url ({0})")]
     InvalidGitUrl(String),

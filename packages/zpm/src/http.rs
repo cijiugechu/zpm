@@ -1,12 +1,84 @@
 use std::{net::ToSocketAddrs, sync::Arc, time::Duration};
 
-use reqwest::{Client, Response};
+use reqwest::{header::{HeaderName, HeaderValue}, Body, Client, Method, RequestBuilder, Response, Url};
+use wax::Program;
 
-use crate::{config::Config, error::Error};
+use crate::{config::Config, config_fields::GlobField, error::Error};
 
+#[derive(Debug)]
 pub struct HttpClient {
     http_retry: usize,
+    unsafe_http_whitelist: Vec<GlobField>,
     client: Client,
+}
+
+#[derive(Debug)]
+pub struct HttpRequest<'a> {
+    client: &'a HttpClient,
+    builder: RequestBuilder,
+
+    retry: bool,
+}
+
+impl<'a> HttpRequest<'a> {
+    pub fn new(client: &'a HttpClient, url: Url, method: Method, retry: bool) -> Self {
+        let builder = client.client.request(method, url);
+
+        Self { builder, client, retry }
+    }
+
+    pub async fn send(self) -> Result<Response, reqwest::Error> {
+        let mut retry_count = 0;
+
+        // If the request is not retriable, we should avoid cloning the builder.
+        if !self.retry {
+            return self.builder.send()
+                .await?
+                .error_for_status();
+        }
+
+        loop {
+            let response
+                = self.builder.try_clone().expect("builder should be clonable").send().await;
+
+            if retry_count < self.client.http_retry {
+                let is_failure = match &response {
+                    Ok(response) => response.status().is_server_error() || matches!(response.status().as_u16(), 408 | 413 | 429),
+                    Err(_) => true,
+                };
+
+                if is_failure {
+                    retry_count += 1;
+
+                    let sleep_duration
+                        = 2_u64.saturating_pow(retry_count as u32);
+                    let bounded_sleep_duration
+                        = std::cmp::min(sleep_duration, 10);
+
+                    tokio::time::sleep(Duration::from_secs(bounded_sleep_duration)).await;
+                    continue;
+                }
+            }
+
+            return response?.error_for_status();
+        }
+    }
+
+    pub fn header<K, V>(mut self, key: K, value: V) -> Self
+    where
+        HeaderName: TryFrom<K>,
+        <HeaderName as TryFrom<K>>::Error: Into<http::Error>,
+        HeaderValue: TryFrom<V>,
+        <HeaderValue as TryFrom<V>>::Error: Into<http::Error>,
+    {
+        self.builder = self.builder.header(key, value);
+        self
+    }
+
+    pub fn body(mut self, body: impl Into<Body>) -> Self {
+        self.builder = self.builder.body(body);
+        self
+    }
 }
 
 impl HttpClient {
@@ -46,39 +118,33 @@ impl HttpClient {
 
         Ok(Arc::new(Self {
             http_retry: config.user.http_retry.value as usize,
+            unsafe_http_whitelist: config.project.unsafe_http_whitelist.value.clone(),
             client,
         }))
     }
 
-    pub async fn get(&self, url: &str) -> Result<Response, Error> {
-        let mut retry_count = 0;
+    fn request(&self, url: impl AsRef<str>, method: Method, retry: bool) -> Result<HttpRequest, Error> {
+        let url = url.as_ref();
 
-        loop {
-            let response
-                = self.client.get(url).send().await;
+        let url = Url::parse(url)
+            .map_err(|_| Error::InvalidUrl(url.to_owned()))?;
 
-            let is_failure = match &response {
-                Ok(response) => response.status().is_server_error() || matches!(response.status().as_u16(), 408 | 413 | 429),
-                Err(_) => true,
-            };
-
-            if is_failure && retry_count < self.http_retry {
-                retry_count += 1;
-
-                let sleep_duration
-                    = 2_u64.saturating_pow(retry_count as u32);
-                let bounded_sleep_duration
-                    = std::cmp::min(sleep_duration, 10);
-
-                tokio::time::sleep(Duration::from_secs(bounded_sleep_duration)).await;
-                continue;
-            }
-
-            return Ok(response?.error_for_status()?);
+        if url.scheme() == "http"
+            && !self.unsafe_http_whitelist
+                .iter()
+                .any(|glob| glob.value.matcher().is_match(url.host_str().expect("\"http:\" URL should have a host")))
+        {
+            return Err(Error::UnsafeHttpError(url));
         }
+
+        Ok(HttpRequest::new(self, url, method, retry))
     }
 
-    pub fn client(&self) -> &Client {
-        &self.client
+    pub fn get(&self, url: impl AsRef<str>) -> Result<HttpRequest, Error> {
+        self.request(url, Method::GET, true)
+    }
+
+    pub fn post(&self, url: impl AsRef<str>) -> Result<HttpRequest, Error> {
+        self.request(url, Method::POST, false)
     }
 }
