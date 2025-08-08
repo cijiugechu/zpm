@@ -18,6 +18,7 @@ mod init;
 mod install;
 mod node;
 mod pack;
+mod rebuild;
 mod remove;
 mod run;
 mod set_version;
@@ -50,6 +51,7 @@ program!(YarnCli, [
     set_version::SetVersion,
     node::Node,
     pack::Pack,
+    rebuild::Rebuild,
     remove::Remove,
     run::Run,
     up::Up,
