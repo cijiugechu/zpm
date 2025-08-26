@@ -19,7 +19,7 @@ jobs:
 
     environment:
       name: test-reports
-      url: "https://iteratum.ai/examples/jest-ui/?url=https%3A%2F%2Frepo.yarnpkg.com%2Fbuilds%2Fzpm%2Fcommits%${{github.sha}}%2Ftests"
+      url: "https://iteratum.ai/examples/jest-ui/?url=https%3A%2F%2Frepo.yarnpkg.com%2Fbuilds%2Fzpm%2Fcommits%2F${{github.sha}}%2Ftests"
 
     steps:
       - name: Checkout the repo
