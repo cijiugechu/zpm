@@ -40,11 +40,13 @@ impl PostinstallCommand {
 
         self.write_env(&env_path, &bin_dir);
 
-        if let Some(profile_file) = self.get_profile_file() {
-            let profile_path = home
-                .with_join(&profile_file);
+        if !self.check_github_path(&bin_dir) {
+            if let Some(profile_file) = self.get_profile_file() {
+                let profile_path = home
+                    .with_join(&profile_file);
 
-            self.write_profile(&profile_path, &env_path);
+                self.write_profile(&profile_path, &env_path);
+            }
         }
 
         self.check_volta_interference();
@@ -81,17 +83,16 @@ impl PostinstallCommand {
             .and_then(|_| profile_path.fs_write_text(&profile_content));
 
         if profile_write_result.is_ok() {
-            println!(
-                "We updated {} for you; please restart your shell or run {} to apply the changes.",
-                profile_path.to_print_string(),
-                DataType::Code.colorize("source ~/.profile")
-            );
+            Note::Info(format!("
+                We updated your shell configuration file for you.
+                Please restart your shell or run {} to apply the changes.
+            ", DataType::Code.colorize(&format!("source {}", profile_path.to_home_string())))).print();
         } else {
-            println!(
-                "Failed to write {}; manually append the following line:\n{}",
-                profile_path.to_print_string(),
-                DataType::Code.colorize(&profile_line)
-            );
+            Note::Warning(format!("
+                We failed to update your shell configuration file.
+                You will need to manually append the following line to your shell configuration file (perhaps {}?):
+                {}
+            ", profile_path.to_home_string(), DataType::Code.colorize(&profile_line))).print();
         }
     }
 
@@ -104,11 +105,11 @@ impl PostinstallCommand {
             .and_then(|_| env_path.fs_write_text(&env_path_line));
 
         if env_write_result.is_err() {
-            println!(
-                "Failed to write {}; manually append the following line to your shell configuration file:\n{}",
-                env_path.to_print_string(),
-                DataType::Code.colorize(&env_path_line)
-            );
+            Note::Warning(format!("
+                We failed to update the Yarn Switch environment file.
+                You will need to manually append the following line to your shell configuration file:
+                {}
+            ", DataType::Code.colorize(&env_path_line))).print();
 
             return;
         }
@@ -135,6 +136,39 @@ impl PostinstallCommand {
         }
     }
 
+    fn check_github_path(&self, bin_dir: &Path) -> bool {
+        let Ok(github_path) = std::env::var("GITHUB_PATH") else {
+            return false;
+        };
+
+        let github_path_file
+            = Path::from_str(&github_path).unwrap();
+
+        let github_path_file_write_result = github_path_file
+            .fs_append_text(format!("{}\n", bin_dir.to_file_string()));
+
+        if github_path_file_write_result.is_err() {
+            Note::Warning(format!("
+                We failed to add the bin directory into your GITHUB_PATH.
+                You will need to manually add a similar command to your workflow:
+                {}
+            ", DataType::Code.colorize(&format!("echo \"{}\" >> $GITHUB_PATH", bin_dir.to_home_string())))).print();
+
+            // Even if we failed to write the bin directory into the GITHUB_PATH file,
+            // we still return true since we detected that the user is running this
+            // command from within a GitHub Action and it wouldn't make sense to try
+            // and add the bin directory into the shell profiles.
+            return true;
+        }
+
+        Note::Info(format!("
+            You seem to be running this command from within a GitHub Action.
+            We automatically added the bin directory to your GITHUB_PATH file.
+        ")).print();
+
+        return true;
+    }
+
     fn check_volta_interference(&self) {
         let output = Command::new("node")
             .arg("-p")
@@ -158,8 +192,6 @@ impl PostinstallCommand {
             .find(|entry| entry.contains("/tools/image/yarn/"));
 
         if let Some(volta_yarn_path) = volta_yarn_path {
-            println!();
-
             Note::Warning(format!("
                 Volta appears to be injecting paths that shadow our own shims in Node.js subprocesses.
                 We're going to remove the yarn field from Volta's platform.json file to workaround this issue.
