@@ -1,9 +1,8 @@
 use std::{future::Future, sync::Arc};
 
+use zpm_primitives::{Descriptor, Ident, Locator, Range};
 use zpm_utils::{Path, ToHumanString};
 use tokio::task::JoinError;
-
-use crate::primitives::{Descriptor, Ident, Locator, Range};
 
 fn render_backtrace(backtrace: &std::backtrace::Backtrace) -> String {
     if backtrace.status() == std::backtrace::BacktraceStatus::Captured {
@@ -22,6 +21,12 @@ pub async fn set_timeout<F: Future>(timeout: std::time::Duration, f: F) -> Resul
 
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum Error {
+    #[error("Failed to read the requested setting: {0}")]
+    ConfigurationError(#[from] zpm_config::GetError),
+
+    #[error("Failed to hydrate the requested setting: {0}")]
+    ConfigurationHydrateError(#[from] zpm_config::HydrateError),
+
     #[error("Generic internal error: Please replace this error with a more specific one")]
     ReplaceMe,
 
@@ -175,7 +180,7 @@ pub enum Error {
     #[error("An error occured while reading the lockfile from disk")]
     LockfileReadError(Arc<std::io::Error>),
 
-    #[error("An error occured while parsing the lockfile ({0})")]
+    #[error("An error occured while parsing the lockfile: {0}")]
     LockfileParseError(Arc<sonic_rs::Error>),
 
     #[error("Can't perform this operation without a git root")]
