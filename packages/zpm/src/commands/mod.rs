@@ -14,6 +14,7 @@ mod config_set;
 mod constraints;
 mod dlx;
 mod exec;
+mod info;
 mod init;
 mod install;
 mod node;
@@ -49,6 +50,7 @@ program!(YarnCli, [
     dlx::DlxWithPackages,
     dlx::Dlx,
     exec::Exec,
+    info::Info,
     init::InitWithTemplate,
     init::Init,
     install::Install,
