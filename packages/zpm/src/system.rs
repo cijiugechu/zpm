@@ -67,10 +67,19 @@ impl System {
     }
 
     pub fn from_current() -> Self {
+        let arch = std::env::var("YARN_CPU_OVERRIDE").ok()
+            .map_or(Some(ARCH), |s| Some(zpm_config::Cpu::from_str(&s).unwrap()));
+
+        let os = std::env::var("YARN_OS_OVERRIDE").ok()
+            .map_or(Some(OS), |s| Some(zpm_config::Os::from_str(&s).unwrap()));
+
+        let libc = std::env::var("YARN_LIBC_OVERRIDE").ok()
+            .map_or(detect_libc(), |s| Some(zpm_config::Libc::from_str(&s).unwrap()));
+
         Self {
-            arch: Some(ARCH),
-            os: Some(OS),
-            libc: detect_libc().map(|s| s),
+            arch,
+            os,
+            libc,
         }
     }
 
@@ -78,13 +87,52 @@ impl System {
         let mut systems
             = Vec::new();
 
-        for cpu in supported_architectures.cpu.iter() {
-            for os in supported_architectures.os.iter() {
-                for libc in supported_architectures.libc.iter() {
+        let current
+            = Self::from_current();
+
+        let cpus = if supported_architectures.cpu.is_empty() {
+            vec![&zpm_config::Cpu::Current]
+        } else {
+            supported_architectures.cpu.iter().map(|c| &c.value).collect()
+        };
+
+        let os = if supported_architectures.os.is_empty() {
+            vec![&zpm_config::Os::Current]
+        } else {
+            supported_architectures.os.iter().map(|o| &o.value).collect()
+        };
+
+        let libc = if supported_architectures.libc.is_empty() {
+            vec![&zpm_config::Libc::Current]
+        } else {
+            supported_architectures.libc.iter().map(|l| &l.value).collect()
+        };
+
+        for &cpu in &cpus {
+            for &os in &os {
+                for &libc in &libc {
+                    let arch = if cpu == &zpm_config::Cpu::Current {
+                        current.arch.clone()
+                    } else {
+                        Some(cpu.clone())
+                    };
+
+                    let os = if os == &zpm_config::Os::Current {
+                        current.os.clone()
+                    } else {
+                        Some(os.clone())
+                    };
+
+                    let libc = if libc == &zpm_config::Libc::Current {
+                        current.libc.clone()
+                    } else {
+                        Some(libc.clone())
+                    };
+
                     systems.push(Self {
-                        arch: Some(if cpu.value == zpm_config::Cpu::Current {ARCH} else {cpu.value.clone()}),
-                        os: Some(if os.value == zpm_config::Os::Current {OS} else {os.value.clone()}),
-                        libc: if libc.value == zpm_config::Libc::Current {LIBC} else {Some(libc.value.clone())},
+                        arch,
+                        os,
+                        libc,
                     });
                 }
             }
@@ -108,6 +156,14 @@ pub struct Requirements {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     libc: Vec<zpm_config::Libc>,
+}
+
+impl FromStr for Requirements {
+    type Err = sonic_rs::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(sonic_rs::from_str(s)?)
+    }
 }
 
 impl Requirements {
