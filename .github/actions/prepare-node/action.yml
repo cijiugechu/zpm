@@ -9,3 +9,8 @@ runs:
       shell: bash
       run: |
         bash install-script.sh
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        yarn install
