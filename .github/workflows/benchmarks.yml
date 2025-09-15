@@ -29,7 +29,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build the repository
-      uses: ./.github/actions/prepare
+      uses: ./.github/actions/build
       with:
         target: x86_64-unknown-linux-musl
         profile: release-lto
@@ -87,6 +87,9 @@ jobs:
       run: |
         BENCH_DIR=$(mktemp -d)
         echo "BENCH_DIR=$BENCH_DIR" >> "$GITHUB_ENV"
+
+    - name: Prepare Node
+      uses: ./.github/actions/prepare-node
 
     - name: 'Run the performance test'
       run: |

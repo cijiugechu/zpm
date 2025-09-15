@@ -37,10 +37,17 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - uses: ./.github/actions/prepare
+      - uses: ./.github/actions/build
+        id: build
         with:
           target: ${{matrix.target}}
           profile: release-lto-nodebug
+
+      - name: "Build ${{steps.build.outputs.version}}"
+        run: |
+          # The binary was already built in the previous step but we must have a step
+          # named exactly "Build <version>" to allow the Cloudflare workers to detect
+          # the version of the commit.
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

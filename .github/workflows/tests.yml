@@ -26,7 +26,7 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - uses: ./.github/actions/prepare
+      - uses: ./.github/actions/build
         with:
           target: x86_64-unknown-linux-musl
           profile: release
@@ -40,6 +40,9 @@ jobs:
         with:
           repository: yarnpkg/berry
           path: berry
+
+      - name: Prepare Node
+        uses: ./.github/actions/prepare-node
 
       - name: Generate the test report
         run: |
