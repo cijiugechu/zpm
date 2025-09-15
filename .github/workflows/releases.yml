@@ -99,9 +99,16 @@ jobs:
 
       - name: Create GitHub Release
         run: |
+          PRERELEASE_OPTIONS=
+
+          if [[ '${{needs.check.outputs.version}}' =~ - ]]; then
+            PRERELEASE_OPTIONS=--prerelease
+          fi
+
           gh release create "v${{needs.check.outputs.version}}" \
             --title "v${{needs.check.outputs.version}}" \
             --target ${{github.ref}} \
-            --attach artifacts/*.zip
+            $PRERELEASE_OPTIONS \
+            artifacts/*.zip
         env:
           GH_TOKEN: ${{github.token}}
