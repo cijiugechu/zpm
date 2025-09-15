@@ -8,12 +8,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check-release:
+  check:
     name: Checking if a release exists
     runs-on: ubuntu-latest
 
     outputs:
-      needs-release: ${{steps.check-release.outputs.needs-release}}
+      needs-release: ${{steps.check.outputs.needs-release}}
       version: ${{steps.version.outputs.version}}
 
     steps:
@@ -27,7 +27,7 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Check if release exists
-        id: check-release
+        id: check
         run: |
           if gh release view "v${{steps.version.outputs.version}}" >/dev/null 2>&1; then
             echo "needs-release=false" >> $GITHUB_OUTPUT
@@ -39,9 +39,9 @@ jobs:
         env:
           GH_TOKEN: ${{github.token}}
 
-  build-release:
-    if: needs.check-release.outputs.needs-release == 'true'
-    needs: check-release
+  build:
+    if: needs.check.outputs.needs-release == 'true'
+    needs: check
 
     strategy:
       matrix:
@@ -65,7 +65,7 @@ jobs:
         with:
           target: ${{matrix.target}}
           profile: release-lto-nodebug
-          version: ${{needs.check-release.outputs.version}}
+          version: ${{needs.check.outputs.version}}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -77,13 +77,14 @@ jobs:
             target/${{matrix.target}}/release-lto-nodebug/LICENSE.md
 
   release:
-    if: needs.check-release.outputs.needs-release == 'true'
-    needs: check-release
+    if: needs.check.outputs.needs-release == 'true'
+    needs: [check, build]
 
     name: 'Creating a release'
     runs-on: ubuntu-latest
 
     permissions:
+      actions: read
       contents: write
 
     steps:
@@ -98,8 +99,8 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          gh release create "v${{needs.check-release.outputs.version}}" \
-            --title "v${{needs.check-release.outputs.version}}" \
+          gh release create "v${{needs.check.outputs.version}}" \
+            --title "v${{needs.check.outputs.version}}" \
             --target ${{github.ref}} \
             --attach artifacts/*.zip
         env:
