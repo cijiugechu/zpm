@@ -1,7 +1,7 @@
 use std::ops::{Index, Range, RangeFrom, RangeInclusive, RangeTo};
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use zpm_utils::{impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, ToFileString, ToHumanString};
+use zpm_utils::{impl_file_string_from_str, DataType, FromFileString, ToFileString, ToHumanString};
 
 use crate::{json::escape_string, Error};
 
@@ -54,6 +54,14 @@ impl Path {
 
     pub fn push(&mut self, segment: String) {
         self.segments.push(segment);
+    }
+
+    pub fn pop(&mut self) {
+        self.segments.pop();
+    }
+
+    pub fn starts_with(&self, other: &[String]) -> bool {
+        self.segments.starts_with(other)
     }
 
     fn to_parts<'a>(&'a self) -> Vec<PathSegment<'a>> {
