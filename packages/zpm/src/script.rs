@@ -383,6 +383,7 @@ impl ScriptEnvironment {
 
         self.env.insert("PROJECT_CWD".to_string(), Some(project.project_cwd.to_file_string()));
         self.env.insert("INIT_CWD".to_string(), Some(project.project_cwd.with_join(&project.shell_cwd).to_file_string()));
+        self.env.insert("CACHE_CWD".to_string(), Some(project.preferred_cache_path().to_file_string()));
 
         self
     }
