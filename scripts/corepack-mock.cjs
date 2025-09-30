@@ -7,7 +7,7 @@
 // forever the versions it installs, so updates to this file will only take effect for people
 // who don't have the file cached yet.
 
-const {execSync, spawnSync} = require(`node:child_process`);
+const {spawnSync} = require(`node:child_process`);
 const fs = require(`node:fs`);
 const path = require(`node:path`);
 const os = require(`node:os`);
@@ -34,7 +34,7 @@ function main() {
   }
 
   if (!fs.existsSync(yarnSwitchPath)) {
-    const switchResult = execSync(`curl -s https://repo.yarnpkg.com/install | bash`, {
+    const switchResult = spawnSync(`curl -s https://repo.yarnpkg.com/install | bash`, {
       stdio: `pipe`,
     });
 
