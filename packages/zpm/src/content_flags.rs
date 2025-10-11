@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::LazyLock};
+use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
 
 use bincode::{Decode, Encode};
 use regex::Regex;
@@ -168,7 +168,7 @@ impl ContentFlags {
 
         if build_commands.is_empty() {
             let binding_gyp_name
-                = format!("node_modules/{}/binding.gyp", locator.ident.as_str());
+                = Path::from_str(&format!("node_modules/{}/binding.gyp", locator.ident.as_str()))?;
 
             if entries.iter().any(|entry| entry.name == binding_gyp_name) {
                 build_commands.push(build::Command::Program {
@@ -181,7 +181,7 @@ impl ContentFlags {
         let prefer_extracted
             = meta_manifest.prefer_unplugged;
         let suggest_extracted
-            = entries.iter().any(|entry| UNPLUG_EXT_REGEX.is_match(&entry.name));
+            = entries.iter().any(|entry| UNPLUG_EXT_REGEX.is_match(&entry.name.as_str()));
 
         Ok(ContentFlags {
             binaries: extract_binaries(meta_manifest.name, meta_manifest.bin),

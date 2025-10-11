@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, BTreeSet, HashMap}, fs::Permissions, os::unix:
 use zpm_formats::iter_ext::IterExt;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Descriptor, FilterDescriptor, Ident, Locator};
-use zpm_utils::{Path, PathError, ToFileString};
+use zpm_utils::{Path, PathError};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -103,12 +103,12 @@ pub fn fs_extract_archive(destination: &Path, package_data: &PackageData) -> Res
         let entries
             = zpm_formats::zip::entries_from_zip(&package_bytes)?
                 .into_iter()
-                .strip_path_prefix(package_subpath.to_file_string())
+                .strip_path_prefix(&package_subpath)
                 .collect::<Vec<_>>();
 
         for entry in entries {
             let target_path = destination
-                .with_join_str(&entry.name);
+                .with_join(&entry.name);
 
             target_path
                 .fs_create_parent()?

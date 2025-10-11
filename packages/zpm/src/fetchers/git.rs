@@ -12,6 +12,9 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
     let package_cache = context.package_cache
         .expect("The package cache is required for fetching git packages");
 
+    let package_subdir
+        = locator.ident.nm_subdir();
+
     let pkg_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let repository_path
             = git::clone_repository(context, &params.git.repo, &params.git.commit).await?;
@@ -29,7 +32,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             = zpm_formats::tar::entries_from_tar(&pack_tar)?
                 .into_iter()
                 .strip_first_segment()
-                .prepare_npm_entries(&locator.ident)
+                .prepare_npm_entries(&package_subdir)
                 .collect::<Vec<_>>();
 
         Ok(package_cache.bundle_entries(entries)?)
@@ -45,7 +48,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         = Resolution::from_remote_manifest(locator.clone(), remote_manifest);
 
     let package_directory = pkg_blob.info.path
-        .with_join_str(locator.ident.nm_subdir());
+        .with_join(&package_subdir);
 
     Ok(FetchResult {
         resolution: Some(resolution),

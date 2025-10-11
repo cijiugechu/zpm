@@ -124,7 +124,7 @@ impl LooseDescriptor {
                     = tar_iter::TarIterator::new(&tar_content)
                         .filter_map(|entry| entry.ok())
                         .strip_first_segment()
-                        .find(|entry| entry.name == "package.json");
+                        .find(|entry| entry.name.basename() == Some("package.json"));
 
                 let Some(package_json_entry) = package_json_entry else {
                     return Err(Error::ManifestNotFound(path.with_join_str("package.json")));

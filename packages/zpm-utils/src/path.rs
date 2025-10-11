@@ -175,6 +175,38 @@ impl Path {
         PathIterator::new(self)
     }
 
+    pub fn strip_first_segment(&self) -> Option<Path> {
+        if !self.is_relative() {
+            return None;
+        }
+
+        let Some((_, rest)) = self.path.split_once('/') else {
+            return None;
+        };
+
+        Some(Path {
+            path: rest.to_string(),
+        })
+    }
+
+    pub fn strip_prefix(&self, prefix: &Path) -> Option<Path> {
+        if !self.path.starts_with(prefix.as_str()) {
+            return None;
+        }
+
+        if self.path.len() == prefix.as_str().len() {
+            return Some(Path::new());
+        }
+
+        if prefix.path.ends_with('/') {
+            return Some(Path {path: self.path[prefix.as_str().len()..].to_string()})
+        } else if self.path.chars().nth(prefix.as_str().len()) == Some('/') {
+            return Some(Path {path: self.path[prefix.as_str().len() + 1..].to_string()})
+        }
+
+        None
+    }
+
     pub fn dirname<'a>(&'a self) -> Option<Path> {
         let mut slice_len
             = self.path.len();

@@ -1,5 +1,5 @@
 use clipanion::cli;
-use zpm_utils::Path;
+use zpm_utils::{Path, ToFileString};
 
 use crate::{error::Error};
 
@@ -18,7 +18,7 @@ impl IterZip {
             = zpm_formats::zip::entries_from_zip(&buffer)?;
 
         for entry in entries {
-            println!("{}", entry.name);
+            println!("{}", entry.name.to_file_string());
         }
 
         Ok(())

@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, str::FromStr};
 
 use zpm_formats::{iter_ext::IterExt, tar::ToTar};
 use zpm_primitives::Locator;
@@ -147,7 +147,7 @@ impl Pack {
         }
 
         for entry in entries.iter_mut() {
-            if executable_files.contains(&Path::try_from(&entry.name)?) {
+            if executable_files.contains(&entry.name) {
                 entry.mode = 0o755;
             } else {
                 entry.mode = 0o644;
@@ -156,7 +156,7 @@ impl Pack {
 
         let manifest_entry = entries
             .iter_mut()
-            .find(|entry| entry.name == "package.json");
+            .find(|entry| entry.name.basename() == Some("package.json"));
 
         if let Some(manifest_entry) = manifest_entry {
             manifest_entry.data = pack_manifest_content.into_bytes().into();
@@ -164,7 +164,7 @@ impl Pack {
 
         let packed_file = entries
             .into_iter()
-            .prefix_path("package")
+            .prefix_path(&Path::from_str("package")?)
             .collect::<Vec<_>>()
             .to_tgz()?;
 

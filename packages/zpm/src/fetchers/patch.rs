@@ -1,7 +1,7 @@
 use zpm_formats::{iter_ext::IterExt, zip::ZipSupport};
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Ident, Locator, PatchReference};
-use zpm_utils::{Hash64, ToFileString};
+use zpm_utils::Hash64;
 
 use crate::{
     error::Error, install::{FetchResult, InstallContext, InstallOpResult}, manifest::Manifest, misc::unpack_brotli_data, npm::NpmEntryExt, patch::apply::apply_patch, resolvers::Resolution
@@ -78,6 +78,9 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
     let package_cache = context.package_cache
         .expect("The package cache is required to fetch a patch package");
 
+    let package_subdir
+        = locator.ident.nm_subdir();
+
     let cached_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let original_bytes = match &original_data.package_data {
             PackageData::Zip {archive_path, ..} => Some(archive_path.fs_read()?),
@@ -95,7 +98,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
 
                 zpm_formats::zip::entries_from_zip(original_bytes.as_ref().unwrap())?
                     .into_iter()
-                    .strip_path_prefix(package_subpath.to_file_string())
+                    .strip_path_prefix(&package_subpath)
                     .collect::<Vec<_>>()
             },
 
@@ -130,7 +133,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
 
         let patched_entries = patched_entries
             .into_iter()
-            .prepare_npm_entries(&locator.ident)
+            .prepare_npm_entries(&package_subdir)
             .collect::<Vec<_>>();
 
         Ok(package_cache.bundle_entries(patched_entries)?)
@@ -146,7 +149,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         = Resolution::from_remote_manifest(locator.clone(), manifest.remote);
 
     let package_directory = cached_blob.info.path
-        .with_join_str(locator.ident.nm_subdir());
+        .with_join(&package_subdir);
 
     Ok(FetchResult {
         resolution: Some(resolution),

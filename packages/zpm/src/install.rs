@@ -3,13 +3,25 @@ use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData, sy
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use zpm_config::PackageExtension;
 use zpm_primitives::{Descriptor, GitRange, Ident, Locator, PatchRange, PeerRange, Range, Reference, RegistrySemverRange, RegistryTagRange, SemverDescriptor, SemverPeerRange, WorkspaceIdentRange};
-use zpm_utils::{Hash64, Path, ToHumanString, UrlEncoded};
+use zpm_utils::{Hash64, IoResultExt, Path, ToHumanString, UrlEncoded};
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use zpm_utils::{FromFileString, ToFileString};
 
 use crate::{
-    build, cache::CompositeCache, constraints::check_constraints, content_flags::ContentFlags, error::Error, fetchers::{fetch_locator, patch::has_builtin_patch, try_fetch_locator_sync, PackageData, SyncFetchAttempt}, graph::{GraphCache, GraphIn, GraphOut, GraphTasks}, linker, lockfile::{Lockfile, LockfileEntry, LockfileMetadata}, primitives_exts::RangeExt, project::{InstallMode, Project}, report::{async_section, with_context_result, ReportContext}, resolvers::{resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution, Resolution, SyncResolutionAttempt}, system, tree_resolver::{ResolutionTree, TreeResolver}
+    build,
+    cache::CompositeCache,
+    constraints::check_constraints,
+    content_flags::ContentFlags,
+    error::Error,
+    fetchers::{fetch_locator, patch::has_builtin_patch, try_fetch_locator_sync, PackageData, SyncFetchAttempt},
+    graph::{GraphCache, GraphIn, GraphOut, GraphTasks},
+    linker,
+    lockfile::{Lockfile, LockfileEntry, LockfileMetadata},
+    primitives_exts::RangeExt,
+    project::{InstallMode, Project},
+    report::{async_section, with_context_result, ReportContext},
+    resolvers::{resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution, Resolution, SyncResolutionAttempt}, system, tree_resolver::{ResolutionTree, TreeResolver},
 };
 
 #[derive(Clone)]
@@ -478,15 +490,27 @@ pub struct Install {
     pub constraints_check: bool,
 }
 
+#[derive(Debug)]
+pub struct InstallResult {
+    pub package_data: BTreeMap<Locator, PackageData>,
+}
+
 impl Install {
-    pub async fn finalize(mut self, project: &mut Project) -> Result<(), Error> {
+    pub async fn link_and_build(mut self, project: &mut Project) -> Result<InstallResult, Error> {
         self.install_state.last_installed_at = project.last_changed_at;
 
         let link_future
             = linker::link_project(project, &mut self);
 
-        let build_requests
+        let link_result
             = async_section("Linking the project", link_future).await?;
+
+        for (location, locator) in &link_result.packages_by_location {
+            self.install_state.locations_by_package.insert(locator.clone(), location.clone());
+        }
+
+        self.install_state.packages_by_location
+            = link_result.packages_by_location;
 
         project.attach_install_state(self.install_state)?;
 
@@ -494,9 +518,9 @@ impl Install {
             project.write_lockfile(&self.lockfile)?;
         }
 
-        if !self.skip_build && !build_requests.entries.is_empty() {
+        if !self.skip_build && !link_result.build_requests.entries.is_empty() {
             let build_future
-                = build::BuildManager::new(build_requests).run(project);
+                = build::BuildManager::new(link_result.build_requests).run(project);
 
             let build_result
                 = async_section("Building the project", build_future).await?;
@@ -519,16 +543,14 @@ impl Install {
             }).await?;
         }
 
-        let ignore_path
-            = project.ignore_path();
+        project.ignore_path()
+            .with_join_str(".gitignore")
+            .fs_change("*", false)
+            .ok_missing()?;
 
-        if ignore_path.fs_exists() {
-            ignore_path
-                .with_join_str(".gitignore")
-                .fs_change("*", false)?;
-        }
-
-        Ok(())
+        Ok(InstallResult {
+            package_data: self.package_data,
+        })
     }
 }
 

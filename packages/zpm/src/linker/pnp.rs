@@ -12,11 +12,11 @@ use serde_with::serde_as;
 use zpm_utils::ToFileString;
 
 use crate::{
-    build::{self, BuildRequests},
+    build,
     error::Error,
     fetchers::{PackageData, PackageLinking},
     install::Install,
-    linker,
+    linker::{self, LinkResult},
     misc,
     project::Project,
 };
@@ -220,7 +220,7 @@ fn generate_split_setup(project: &Project, state: &PnpState) -> Result<(), Error
     Ok(())
 }
 
-pub async fn link_project_pnp<'a>(project: &'a mut Project, install: &'a mut Install) -> Result<BuildRequests, Error> {
+pub async fn link_project_pnp<'a>(project: &'a Project, install: &'a Install) -> Result<LinkResult, Error> {
     let tree
         = &install.install_state.resolution_tree;
 
@@ -236,6 +236,9 @@ pub async fn link_project_pnp<'a>(project: &'a mut Project, install: &'a mut Ins
 
     let dependencies_meta
         = linker::helpers::TopLevelConfiguration::from_project(project);
+
+    let mut packages_by_location
+        = BTreeMap::new();
 
     let mut package_registry_data: BTreeMap<_, BTreeMap<_, _>>
         = BTreeMap::new();
@@ -354,8 +357,10 @@ pub async fn link_project_pnp<'a>(project: &'a mut Project, install: &'a mut Ins
             .relative_to(&project.project_cwd);
 
         if !matches!(physical_package_data, PackageData::MissingZip {..}) {
-            install.install_state.packages_by_location.insert(package_location_rel.clone(), locator.clone());
-            install.install_state.locations_by_package.insert(locator.clone(), package_location_rel.clone());
+            packages_by_location.insert(
+                package_location_rel.clone(),
+                locator.clone(),
+            );
         }
 
         let mut package_location = package_location_rel
@@ -540,8 +545,13 @@ pub async fn link_project_pnp<'a>(project: &'a mut Project, install: &'a mut Ins
         &tree.descriptor_to_locator,
     );
 
-    Ok(build::BuildRequests {
+    let build_requests = build::BuildRequests {
         entries: all_build_entries,
         dependencies: package_build_dependencies?,
+    };
+
+    Ok(LinkResult {
+        packages_by_location,
+        build_requests,
     })
 }

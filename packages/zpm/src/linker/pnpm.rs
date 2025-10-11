@@ -1,9 +1,16 @@
 use std::collections::BTreeMap;
 use zpm_utils::{IoResultExt, ToHumanString};
 
-use crate::{build::{self, BuildRequests}, error::Error, fetchers::PackageData, install::Install, linker, project::Project};
+use crate::{
+    build,
+    error::Error,
+    fetchers::PackageData,
+    install::Install,
+    linker::{self, LinkResult},
+    project::Project,
+};
 
-pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut Install) -> Result<BuildRequests, Error> {
+pub async fn link_project_pnpm<'a>(project: &'a Project, install: &'a Install) -> Result<LinkResult, Error> {
     let tree
         = &install.install_state.resolution_tree;
 
@@ -14,6 +21,11 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
 
     // Remove existing node_modules
     linker::helpers::fs_remove_nm(nm_path)?;
+
+    let mut packages_by_location
+        = BTreeMap::new();
+    let mut locations_by_package
+        = BTreeMap::new();
 
     let mut all_build_entries
         = Vec::new();
@@ -52,8 +64,15 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
         let package_location_rel = package_location_abs
             .relative_to(&project.project_cwd);
 
-        install.install_state.packages_by_location.insert(package_location_rel.clone(), locator.clone());
-        install.install_state.locations_by_package.insert(locator.clone(), package_location_rel.clone());
+        packages_by_location.insert(
+            package_location_rel.clone(),
+            locator.clone(),
+        );
+
+        locations_by_package.insert(
+            locator.clone(),
+            package_location_rel.clone(),
+        );
 
         // We don't create node_modules directories and we don't build
         // local packages that are not fully contained within the project
@@ -91,7 +110,7 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
     for (locator, resolution) in &tree.locator_resolutions {
         // <empty path, if we assume the root workspace>
         let package_location
-            = install.install_state.locations_by_package.get(locator)
+            = locations_by_package.get(locator)
                 .expect("Failed to find package location; it should have been registered a little earlier");
 
         // /path/to/project
@@ -115,7 +134,7 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
                 .expect("Failed to find dependency resolution");
 
             // node_modules/.store/@types-no-deps-npm-1.0.0-xyz/package
-            let dep_rel_location = install.install_state.locations_by_package
+            let dep_rel_location = locations_by_package
                 .get(dep_locator)
                 .expect("Failed to find dependency location; it should have been registered a little earlier");
 
@@ -174,8 +193,13 @@ pub async fn link_project_pnpm<'a>(project: &'a mut Project, install: &'a mut In
         &tree.descriptor_to_locator,
     );
 
-    Ok(build::BuildRequests {
+    let build_requests = build::BuildRequests {
         entries: all_build_entries,
         dependencies: package_build_dependencies?,
+    };
+
+    Ok(LinkResult {
+        packages_by_location,
+        build_requests,
     })
 }

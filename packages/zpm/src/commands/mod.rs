@@ -20,6 +20,8 @@ mod init;
 mod install;
 mod node;
 mod pack;
+mod patch_commit;
+mod patch;
 mod rebuild;
 mod remove;
 mod run;
@@ -69,6 +71,8 @@ pub enum YarnCli {
     SetVersion(set_version::SetVersion),
     Node(node::Node),
     Pack(pack::Pack),
+    PatchCommit(patch_commit::PatchCommit),
+    Patch(patch::Patch),
     Rebuild(rebuild::Rebuild),
     Remove(remove::Remove),
     Run(run::Run),

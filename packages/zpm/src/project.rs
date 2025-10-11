@@ -15,7 +15,7 @@ use crate::{
     error::Error,
     git::{detect_git_operation, GitOperation},
     http::HttpClient,
-    install::{InstallContext, InstallManager, InstallState},
+    install::{InstallContext, InstallManager, InstallResult, InstallState},
     lockfile::{from_legacy_berry_lockfile, Lockfile},
     manifest::{helpers::read_manifest_with_size, Manifest},
     manifest_finder::CachedManifestFinder,
@@ -441,6 +441,22 @@ impl Project {
         Ok(&self.workspaces[*idx])
     }
 
+    pub fn try_workspace_by_locator(&self, locator: &Locator) -> Result<Option<&Workspace>, Error> {
+        match &locator.reference {
+            Reference::WorkspaceIdent(params) => {
+                Ok(Some(self.workspace_by_ident(&params.ident)?))
+            },
+
+            Reference::WorkspacePath(params) => {
+                Ok(Some(self.workspace_by_rel_path(&params.path)?))
+            },
+
+            _ => {
+                Ok(None)
+            },
+        }
+    }
+
     pub fn try_workspace_by_descriptor(&self, descriptor: &Descriptor) -> Result<Option<&Workspace>, Error> {
         match &descriptor.range {
             Range::WorkspaceIdent(params) => {
@@ -626,10 +642,12 @@ impl Project {
             silent_or_error: true,
             mode: None,
             roots: None,
-        }).await
+        }).await?;
+
+        Ok(())
     }
 
-    pub async fn run_install(&mut self, options: RunInstallOptions) -> Result<(), Error> {
+    pub async fn run_install(&mut self, options: RunInstallOptions) -> Result<InstallResult, Error> {
         // Useful for optimization purposes as we can reuse some information such as content flags.
         // Discard errors; worst case scenario we just recompute the whole state from scratch.
         if self.install_state.is_none() {
@@ -681,15 +699,16 @@ impl Project {
                 }
             }
 
-            let install_context = InstallContext::default()
-                .with_package_cache(Some(&package_cache))
-                .with_project(Some(self))
-                .set_check_checksums(options.check_checksums)
-                .set_enforced_resolutions(options.enforced_resolutions)
-                .set_prune_dev_dependencies(options.prune_dev_dependencies)
-                .set_refresh_lockfile(options.refresh_lockfile)
-                .set_mode(options.mode)
-                .with_systems(Some(&systems));
+            let install_context
+                = InstallContext::default()
+                    .with_package_cache(Some(&package_cache))
+                    .with_project(Some(self))
+                    .set_check_checksums(options.check_checksums)
+                    .set_enforced_resolutions(options.enforced_resolutions)
+                    .set_prune_dev_dependencies(options.prune_dev_dependencies)
+                    .set_refresh_lockfile(options.refresh_lockfile)
+                    .set_mode(options.mode)
+                    .with_systems(Some(&systems));
 
             let roots
                 = self.workspaces.iter()
@@ -697,20 +716,19 @@ impl Project {
                     .map(|w| w.descriptor())
                     .collect();
 
-            InstallManager::new()
-                .with_context(install_context)
-                .with_lockfile(lockfile?)
-                .with_previous_state(self.install_state.as_ref())
-                .with_roots(roots)
-                .with_constraints_check(!options.silent_or_error && self.config.settings.enable_constraints_checks.value && options.roots.is_none())
-                .with_skip_lockfile_update(options.roots.is_some())
-                .resolve_and_fetch().await?
-                .finalize(self).await?;
+            let install_result
+                = InstallManager::new()
+                    .with_context(install_context)
+                    .with_lockfile(lockfile?)
+                    .with_previous_state(self.install_state.as_ref())
+                    .with_roots(roots)
+                    .with_constraints_check(!options.silent_or_error && self.config.settings.enable_constraints_checks.value && options.roots.is_none())
+                    .with_skip_lockfile_update(options.roots.is_some())
+                    .resolve_and_fetch().await?
+                    .link_and_build(self).await?;
 
-            Ok(())
-        }).await?;
-
-        Ok(())
+            Ok(install_result)
+        }).await
     }
 }
 
@@ -790,6 +808,10 @@ impl Workspace {
         Locator::new(self.name.clone(), WorkspacePathReference {
             path: self.rel_path.clone(),
         }.into())
+    }
+
+    pub fn manifest_path(&self) -> Path {
+        self.path.with_join_str(MANIFEST_NAME)
     }
 
     pub async fn workspaces(&self) -> Result<(Vec<Workspace>, u128), Error> {
