@@ -6,6 +6,7 @@ use zpm_primitives::{Locator, RegistryReference};
 
 use crate::{
     error::Error,
+    http_npm,
     install::{FetchResult, InstallContext},
     npm::{self, NpmEntryExt},
 };
@@ -55,16 +56,22 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         return Ok(get_mock_fetch_result(context, locator, params)?);
     }
 
-    let registry_url
-        =  npm::registry_url_for_package_data(&project.config.registry_base_for(&params.ident), &params.ident, &params.version);
+    let registry_base
+        = project.config.registry_base_for(&params.ident);
+    let registry_path
+        = npm::registry_url_for_package_data(&params.ident, &params.version);
 
     let package_cache = context.package_cache
         .expect("The package cache is required for fetching npm packages");
 
     let cached_blob = package_cache.ensure_blob(locator.clone(), ".zip", || async {
         let response
-            = project.http_client.get(&registry_url)?.send().await?;
-
+            = http_npm::get(&http_npm::NpmHttpParams {
+                http_client: &project.http_client,
+                registry: &registry_base,
+                path: &registry_path,
+                authorization: None,
+            }).await?;
         let tgz_data = response.bytes().await
             .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
 

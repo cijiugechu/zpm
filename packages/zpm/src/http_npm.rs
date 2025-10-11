@@ -155,7 +155,7 @@ pub async fn get(params: &NpmHttpParams<'_>) -> Result<Response, Error> {
         = format!("{}{}", params.registry, params.path);
 
     let request
-        = params.http_client.get(url)?
+        = params.http_client.get(&url)?
             .header("authorization", params.authorization);
 
     Ok(request.send().await?)

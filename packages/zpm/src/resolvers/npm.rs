@@ -9,6 +9,7 @@ use zpm_utils::ToFileString;
 
 use crate::{
     error::Error,
+    http_npm,
     install::{InstallContext, IntoResolutionResult, ResolutionResult},
     manifest::RemoteManifest,
     npm,
@@ -181,8 +182,12 @@ fn build_resolution_result(context: &InstallContext, descriptor: &Descriptor, pa
         version,
     };
 
+    let expected_registry_base
+        = project.config.registry_base_for(&registry_reference.ident);
+    let expected_registry_path
+        = npm::registry_url_for_package_data(&registry_reference.ident, &registry_reference.version);
     let expected_registry_url
-        = npm::registry_url_for_package_data(&project.config.registry_base_for(&registry_reference.ident), &registry_reference.ident, &registry_reference.version);
+        = format!("{}{}", expected_registry_base, expected_registry_path);
 
     let locator = descriptor.resolve_with(match expected_registry_url == dist_manifest.tarball {
         true => registry_reference.into(),
@@ -215,11 +220,20 @@ pub async fn resolve_semver_descriptor(context: &InstallContext<'_>, descriptor:
     let package_ident = params.ident.as_ref()
         .unwrap_or(&descriptor.ident);
 
+    let registry_base
+        = project.config.registry_base_for(package_ident);
     let registry_url
-        = npm::registry_url_for_all_versions(&project.config.registry_base_for(package_ident), package_ident);
+        = npm::registry_url_for_all_versions(&registry_base, package_ident);
 
+    let path
+        = registry_url.strip_prefix(&registry_base).unwrap_or(&registry_url);
     let response
-        = project.http_client.get(&registry_url)?.send().await?;
+        = http_npm::get(&http_npm::NpmHttpParams {
+            http_client: &project.http_client,
+            registry: &registry_base,
+            path,
+            authorization: None,
+        }).await?;
 
     let registry_text = response.text().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
@@ -247,11 +261,20 @@ pub async fn resolve_tag_descriptor(context: &InstallContext<'_>, descriptor: &D
     let package_ident = params.ident.as_ref()
         .unwrap_or(&descriptor.ident);
 
+    let registry_base
+        = project.config.registry_base_for(package_ident);
     let registry_url
-        = npm::registry_url_for_all_versions(&project.config.registry_base_for(package_ident), package_ident);
+        = npm::registry_url_for_all_versions(&registry_base, package_ident);
 
+    let path
+        = registry_url.strip_prefix(&registry_base).unwrap_or(&registry_url);
     let response
-        = project.http_client.get(&registry_url)?.send().await?;
+        = http_npm::get(&http_npm::NpmHttpParams {
+            http_client: &project.http_client,
+            registry: &registry_base,
+            path,
+            authorization: None,
+        }).await?;
 
     let registry_text = response.text().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
@@ -287,11 +310,18 @@ pub async fn resolve_locator(context: &InstallContext<'_>, locator: &Locator, pa
     let project = context.project
         .expect("The project is required for resolving a workspace package");
 
-    let registry_url
-        = npm::registry_url_for_one_version(&project.config.registry_base_for(&params.ident), &params.ident, &params.version);
+    let registry_base
+        = project.config.registry_base_for(&params.ident);
+    let registry_path
+        = npm::registry_url_for_one_version(&params.ident, &params.version);
 
     let response
-        = project.http_client.get(&registry_url)?.send().await?;
+        = http_npm::get(&http_npm::NpmHttpParams {
+            http_client: &project.http_client,
+            registry: &registry_base,
+            path: &registry_path,
+            authorization: None,
+        }).await?;
 
     let registry_text = response.text().await
         .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
