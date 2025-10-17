@@ -888,7 +888,7 @@
       }
     },
     "@babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.27.6, @babel/runtime@npm:^7.28.4": {
-      "checksum": "75f9b3f6103bcf921b9b26506359be866ad94abdf462a8f3f10652e0ac24a7073dfb4234ec8349373bb64fccf289dab78158e4e67269529cdb36694fd6cce07c",
+      "checksum": "a0847daa2c7a7d672269e1feb8089f1cbcf9a18918a8edb536d6a8ad8ed5df04cc442504e7b4419da2ce4da68ac068626056258d00f266f65f9071748c02c89d",
       "resolution": {
         "resolution": "@babel/runtime@npm:7.28.4",
         "version": "7.28.4"
@@ -934,7 +934,7 @@
       }
     },
     "@base-ui-components/react@npm:^1.0.0-beta.1": {
-      "checksum": "2036c6b62476b6834371777a3f8b7bf3bc8044cf7a46c06360b6c879895a89937f857421757271337a869fe4ab69fb919f95b19ba0206e53ad2e127a2ae05849",
+      "checksum": "480b8d3be695de21d28f80e926aa759551f3609673fe1249b4cc6c03ea06cf91aa02d27e876ae353d31df461f927c030b832a17f15d1ee697eedfea21c8dad26",
       "resolution": {
         "resolution": "@base-ui-components/react@npm:1.0.0-beta.4",
         "version": "1.0.0-beta.4",
@@ -958,7 +958,7 @@
       }
     },
     "@base-ui-components/utils@npm:0.1.2": {
-      "checksum": "65868fa72c254e406b73e041ccc792e466601918206f188cfc9f6b1a1dcbcd82cad84b45aca218baedd31d01e62db15293e95f069cfb8d59ab438d32db132269",
+      "checksum": "6f45c46d507dccbd9d51ad8890fec02831ef76a285979d05e46da282e2d43ab183e5498d9f5072f18b897ec19ce94c3d46857748f012acc48ac94ec53b0e7676",
       "resolution": {
         "resolution": "@base-ui-components/utils@npm:0.1.2",
         "version": "0.1.2",
@@ -2070,7 +2070,7 @@
       }
     },
     "@floating-ui/utils@npm:^0.2.10": {
-      "checksum": "68250903539cbd4870d3e4cd3b6d90b1e9c9d8333bde696351646a87b96b55bcdcb3732650329cdf7dcfbfdfd130d686ff36c5bdeb202748813843f263b1f56e",
+      "checksum": "dc62e316c3fc202d56d3a8be594d1aa4052c515b489b7d1dcce71242a23af8aa7622bfd230db3902c60784d82a2e9b149b1d8d4239af3e87767dacf3e480c8c4",
       "resolution": {
         "resolution": "@floating-ui/utils@npm:0.2.10",
         "version": "0.2.10"
@@ -2549,14 +2549,14 @@
       }
     },
     "@isaacs/balanced-match@npm:^4.0.1": {
-      "checksum": "1189ae3b5e60449c97ccf245974268e7a1914c63fc5f9c58b368285535366748cefb0da723df9e6a661d5a7d4e4a25db8827527577f11fb945e087df3d701e2b",
+      "checksum": "1949307b597197be0c887e29085f102685e42026e72a1259fa37338503d6d709fa428586ec3475230c607e16e0c4ed464e823b2362d8efb1b27b40017b31ad9d",
       "resolution": {
         "resolution": "@isaacs/balanced-match@npm:4.0.1",
         "version": "4.0.1"
       }
     },
     "@isaacs/brace-expansion@npm:^5.0.0": {
-      "checksum": "5b5e9c1542b2fc43b6ce21118b48fe922475bf2eef93e5bedc5be4b04acbaa6d9b54cdd09b2df5463d2f34e7601d56dc21b400e6c11fd4313caab747ef896d46",
+      "checksum": "0faf191640cf2ca154d1fca36fe7a6b9a6726638acf1963d18e8dc89ab1f0ac8e97aa4d0bf5ef15e2e3be6792b868d872659856f3297a8300342c28d9c17cdac",
       "resolution": {
         "resolution": "@isaacs/brace-expansion@npm:5.0.0",
         "version": "5.0.0",
@@ -2581,7 +2581,7 @@
       }
     },
     "@isaacs/fs-minipass@npm:^4.0.0": {
-      "checksum": "27d76aa129adfdf35fbc5703ae4cb4e876ffcb84d0a8110d174abfe500e3c6c9f265312350b90912866737d8a4566b1312214d290c16522fcd5d43f8bd0fcc06",
+      "checksum": "40437539940d795e6463c6c9bdf7d5e131dca45f18eb8ae7ba4c851e02a7da42207ad0a9107a4ee4fbed7b0000ed03c44a4fd2f4988c2f48372fd20aec18f0ad",
       "resolution": {
         "resolution": "@isaacs/fs-minipass@npm:4.0.1",
         "version": "4.0.1",
@@ -2685,7 +2685,7 @@
       }
     },
     "@monaco-editor/loader@npm:^1.4.0": {
-      "checksum": "316b06bf698ec6220d084c62f0ed64239a56da001a71c540b068620101d89ca6a8cc491fbacaa67fe6457101b07497334dc2cdf0d65b7f18a347906afe5eb699",
+      "checksum": "b7647a845e8997279f5eec3f8fd7e4b9eef1ec8febe3c547c76d72aba2b15243b3858a3515afefc61e0a14d5c0072043c732bffe43b7eff660d623d1db37604d",
       "resolution": {
         "resolution": "@monaco-editor/loader@npm:1.5.0",
         "version": "1.5.0",
@@ -2914,7 +2914,7 @@
       }
     },
     "@preact/signals@npm:^2.3.1": {
-      "checksum": "f0cd4ae1d1fb151dbe19349919d8fc978dffd77462671aacba561589614a7114f43b5e1375554acc20285aad947d466fbba482ffab409a1c086a35dfa15da693",
+      "checksum": "d882dee0178a06957b7f21a3de9935f4fc87b40628a4bf46172622d65053417533046c60e610d8b602fe9dc9515ebe9c75fec61d781e1e4ddcb01b88c9698abf",
       "resolution": {
         "resolution": "@preact/signals@npm:2.3.2",
         "version": "2.3.2",
@@ -2976,7 +2976,7 @@
       }
     },
     "@reduxjs/toolkit@npm:1.x.x || 2.x.x": {
-      "checksum": "df0f9e77ec48edf6eba3ceabd98b9165786f54c690293c6a217c310ec2c2bf5ab4c78e45f605dcace7bbd4e966f449d57ad52c2faf7dfb693bc5b8906d565938",
+      "checksum": "cde076c8f7e3ab6d09d0609bd166dbe784e50549b231625d84c8072c11a9497eda1627e63a0db975ef3f592950cd16dcb987caa015e61f0ffbfdf391f5020534",
       "resolution": {
         "resolution": "@reduxjs/toolkit@npm:2.9.0",
         "version": "2.9.0",
@@ -2999,7 +2999,7 @@
       }
     },
     "@rollup/pluginutils@npm:^4.1.1, @rollup/pluginutils@npm:^4.2.1": {
-      "checksum": "b50e0894b7cdbfa95ffa0b20a592f8382339d82f3f977815ee7ab9d2642220cde5b89668ac9af739f63c4ebebfec7d11debbe7c07ba0bca8136af99d211d9cc2",
+      "checksum": "30e55c85861e053075ba9783b70904b9869d24abd5c8ffcba06bf6b0883aa643b74f75a0d0373e8be588871354106514de8a6b49c49379cd0eb386ad0cd6950f",
       "resolution": {
         "resolution": "@rollup/pluginutils@npm:4.2.1",
         "version": "4.2.1",
@@ -3010,7 +3010,7 @@
       }
     },
     "@rollup/pluginutils@npm:^5.2.0": {
-      "checksum": "1f1f8956dc43cba827aabf954b0f46afecfe62e04f76fb8c350af3a0b9b81226afa20537e13ac25900e1e489b243fae821e4c1ecf993a79bbcbdada299f5d454",
+      "checksum": "fc913955525aae9928bcfeea4e37cc7f78a0055d9155532e7c9a27fc5283fb9030022b4e0314edb6915919becb6e0c5ce75fd794415411695e418a8c5ab9eb5a",
       "resolution": {
         "resolution": "@rollup/pluginutils@npm:5.3.0",
         "version": "5.3.0",
@@ -3740,7 +3740,7 @@
       }
     },
     "@swc/helpers@npm:^0.5.12": {
-      "checksum": "809d6c6e08528292f0daae5dfe2b3f30f6d7de297a5e56132f92242037350297e7ec6dc167c0e2b1d4bd542446cb1233e8d0ac271b0191712d09d14f1ea6b85f",
+      "checksum": "8e2cd7fbb5fcdbd1352a305b54fbfe2daa6c0a0832553265d68ea56e332141219a1789eecd46c02fbf1a2ea4e52241e3cd895c1a1d7f949079a8bb40e731326f",
       "resolution": {
         "resolution": "@swc/helpers@npm:0.5.17",
         "version": "0.5.17",
@@ -4032,7 +4032,7 @@
       }
     },
     "@tanstack/react-query@npm:^5.81.5": {
-      "checksum": "1e04525f237e8ac3605d528d51ecff9e38e20d5783f3bf68ea82e81764c51b22f1d3abf8d4e618be09c9977b5a86eaa40eca973c12dc580141af014ba421af24",
+      "checksum": "88f644c7531592f4dd397261586b387685aa021e38627d5d85803c598946a53b994f7e5449e0c0905ffccb8ab4722931b587a4b45fc86cceaee7fc1ef91bfb13",
       "resolution": {
         "resolution": "@tanstack/react-query@npm:5.90.2",
         "version": "5.90.2",
@@ -4689,7 +4689,7 @@
       }
     },
     "@ungap/structured-clone@npm:^1.0.0": {
-      "checksum": "dbd04468cda46cbbdba1b7c2546ff0b50e8b577bb48fcc1e43f7a8b66cb6e622ff08e3fd2d0c94bb7cb882b4bada4a07fd0828dbd781fe9b2757b912b450ba12",
+      "checksum": "e7346dc32a542e105c2c2ade634b7489e4cc4389347e7a57cee92f8f25bcc80f7bf9b9eaa4fadb67aef0ad010c1b9a440edd1b22b5b65aec8ac611ae3c7eac38",
       "resolution": {
         "resolution": "@ungap/structured-clone@npm:1.3.0",
         "version": "1.3.0"
@@ -4856,6 +4856,7 @@
           "preact": "^10.26.9",
           "preact-iso": "^2.9.2",
           "preact-render-to-string": "^6.6.1",
+          "react": "npm:@preact/compat@^18.3.1",
           "react-instantsearch": "^7.16.0",
           "react-is": "^19.1.1",
           "react-json-doc": "^2.3.4",
@@ -6392,7 +6393,7 @@
       }
     },
     "chokidar@npm:^4.0.3": {
-      "checksum": "e429cc39f185c4657207fd54543062423735931ece4a0b6fc90e96b1a01cee005904699ddc4f7fbe88fe4eb99aedd0e5bffce779c6d9601030c7c10fea7e162a",
+      "checksum": "32c971fc5d5b4c23713514a0a71526a8178d7b07641cd5c5677c0b48a21cbde39e3ae01ab313db48fdba5d9cc2381ee798be208ee21b132023a61507b546dc4d",
       "resolution": {
         "resolution": "chokidar@npm:4.0.3",
         "version": "4.0.3",
@@ -6416,7 +6417,7 @@
       }
     },
     "chownr@npm:^3.0.0": {
-      "checksum": "6fbed5bee6b67588e383c5a988154990fe140b8c639d5e29ff26517205b8184dd6880f57574b4546b12a40f7b8e6a2d664ba04669aececf785c38dafe673407a",
+      "checksum": "562157272f019d31dd515c9a14ef7d6103951d69224939d435162cc1c1324b3d3d981e3a78e90c232f3d6a1a46f947b9510c5117cbcaf2f22256b9727d39a154",
       "resolution": {
         "resolution": "chownr@npm:3.0.0",
         "version": "3.0.0"
@@ -6667,7 +6668,7 @@
       }
     },
     "cross-fetch@npm:^3.0.4": {
-      "checksum": "dceedb657249c02e8f6b87f461b76158fcc5a8b72e6fd19f99c7d08d8da87da111727e276211ca606fa052ef172ae6d46bbd8811ec233ef59f67ac1471f09870",
+      "checksum": "7aa3bc512cf6e13a59913373f3ab5dc70029e684d046040278479fb0bd80faa2fed541534eca7bd82781d2b8777d14628d4c5c27475041ea33105468854f844f",
       "resolution": {
         "resolution": "cross-fetch@npm:3.2.0",
         "version": "3.2.0",
@@ -6699,7 +6700,7 @@
       }
     },
     "css-select@npm:^5.1.0": {
-      "checksum": "9ac3242d079faeead81951c0a31e5ef2fdd001fbcd1183edda8105ebd9e025622e900a5548c56c75849e9628fea64e2dd9f2c8dd4a35e240b01a1f8f4a18a7d1",
+      "checksum": "935ba1eb098f22c22cc75e501d45eed05971166d4d16922d8c805a3691888d5edacb433338c1d47e26d098d34e79da6f3903fb49c84e5c8f59443d72ddb760e3",
       "resolution": {
         "resolution": "css-select@npm:5.2.2",
         "version": "5.2.2",
@@ -6713,7 +6714,7 @@
       }
     },
     "css-selector-parser@npm:^3.0.0": {
-      "checksum": "88fe5344848bd0ebdf507518e3c59755502b8bdc1ea59ffbe1a5a75220627efd79f7ba857ecea136d6e0fbce2dd335acb9e50d7e99a295670b27571328d7a43b",
+      "checksum": "c20fde68970ea8e7ba5c7226e0f43da401bb1d00bf88408e612e8cec0a022eb5f563e11b6ef0c1054d868a82dadf7f1bb96d703f04b0fc3748b2f22bb589ae16",
       "resolution": {
         "resolution": "css-selector-parser@npm:3.1.3",
         "version": "3.1.3"
@@ -7119,7 +7120,7 @@
       }
     },
     "dom-serializer@npm:^2.0.0": {
-      "checksum": "99eba604b15c260c98ebcc83c0b66fe4188079c855e805d8128d84d0686225438b8816d75bb5699e0617ceb2f3c5df579c4c9704d4a1b849ee8c14bf310ad9cb",
+      "checksum": "93c9e901ece9ca06bb3e3df4fd24c9c4fb8c90185e2471503a4a475fdcb59d6df162733c9b760b9498424b7a97ad3ae64341b4e6e649e6f2e03f15e768b3083b",
       "resolution": {
         "resolution": "dom-serializer@npm:2.0.0",
         "version": "2.0.0",
@@ -7131,14 +7132,14 @@
       }
     },
     "domelementtype@npm:^2.3.0": {
-      "checksum": "3a255edc950403b5e84c55875cdb6f3c8b60e050ff1ac98d648385017b5a0993d29007e08bb879531fb5f8fdf73bdb5212ccfe23fb0e5eade034b1267a8827d2",
+      "checksum": "9a289298cabd69736597d3b21deaa4b655dfa2807b5c9dfd4cf5b08d9517aa62fbc83abe795463ea0c723fc0e070aeaf9379d75068060616cd593c4e284e2387",
       "resolution": {
         "resolution": "domelementtype@npm:2.3.0",
         "version": "2.3.0"
       }
     },
     "domhandler@npm:^5.0.2, domhandler@npm:^5.0.3": {
-      "checksum": "2a71ea361e45fc4786fd5963f3308305752c6e3e9c7009a0a4b1ad5f98830fd2c30466c9764fafb00739fd5fafef3719393b9a87e09e706abb8b6511c3143b7b",
+      "checksum": "1968afd195988efcadfca8b8b9b4739c824d387cb5ab201da47294a9f95dfe6f976ed2d413b94efc23fb93c026f27a21a6173f03b2878812e4624a213ccdcb48",
       "resolution": {
         "resolution": "domhandler@npm:5.0.3",
         "version": "5.0.3",
@@ -7161,7 +7162,7 @@
       }
     },
     "domutils@npm:^3.0.1": {
-      "checksum": "d6ef58bed1387c355a9b16882c984f64cee510fd72b48cb92aad7bc70a4b715a8c48786908772417d53b4444cedac14c9b2bf66b7a9594f6c6e1f933d5fba956",
+      "checksum": "412e781b4fa62660a76c6c1e4320dee555a2a5bd399f3e81821fc538f533c344daf271e3c918b15c975e203fa95a2784174333f7736cd2cc97062cb1f5178c11",
       "resolution": {
         "resolution": "domutils@npm:3.2.2",
         "version": "3.2.2",
@@ -7287,14 +7288,14 @@
       }
     },
     "entities@npm:^4.2.0, entities@npm:^4.4.0": {
-      "checksum": "8e814aad35e0483057829b4a5ba2a0b2d1e32482c4d56843bc3f5a482577fa0f857ab4d70c8adba38b2d660370160306fb1f70aa7f143b86be0fd5e86a030a7b",
+      "checksum": "97df0f643875a662228a4ecc8cff5053aad080347c130d243d7fba521921025936c62b31c30520be85b7a63ad1d379b8f41ce3a5664fdf640fbc8b620a206c9a",
       "resolution": {
         "resolution": "entities@npm:4.5.0",
         "version": "4.5.0"
       }
     },
     "entities@npm:^6.0.0": {
-      "checksum": "15d7f6ae8319ee47f087dd1edc7f2474a10349370e17407c7c822b4613029a0a1884e9ce7eb29a87847ee3df6c6f1080d0e93d1fb2451f8dcd2e2420f2113a88",
+      "checksum": "c0cc30811d79e13f3c5fe6dfb404a2d8a0ae3f570ba1ca26e3683439678f983da9326055488886421afb6639a751a8747124caca576d04a3fd8756d40c8960bd",
       "resolution": {
         "resolution": "entities@npm:6.0.1",
         "version": "6.0.1"
@@ -7895,7 +7896,7 @@
       }
     },
     "estree-walker@npm:^2.0.1, estree-walker@npm:^2.0.2": {
-      "checksum": "ebe4a5d3a8914198412eb5e5e5ca5a2d3e7b0c9ca31ba72e348508349dea8f5e4f4e645340f8ae8c5602b6b30faaff8c14917f213ff986373bd75e8c5fd4396d",
+      "checksum": "1ace04b85bd562186f5c35a13e90e6d09063d38f01caeacedde27d92909e9ee6fddd67bb7e6db0426c2c0d63718b6839883460150f1e443e53298b6d9a77b9d7",
       "resolution": {
         "resolution": "estree-walker@npm:2.0.2",
         "version": "2.0.2"
@@ -8091,7 +8092,7 @@
       }
     },
     "flatted@npm:^3.2.9": {
-      "checksum": "1cfb2991a68e22f436c5eb63f9eb9e15a1957622d0d36a3e36e8124fedc7be45f4fc918e641fb19c6726ccac0c5220d102f5c830f3f6af99120b42b42adb39aa",
+      "checksum": "0f18f68e928d8ad8b76fc9615dc40354d17035f25b8bd86f2464eb58fd4f51c7d68278d718bfdf678fbb87a0f10a408a01d295caa69fa57e91e80d8936d76bcf",
       "resolution": {
         "resolution": "flatted@npm:3.3.3",
         "version": "3.3.3"
@@ -8144,7 +8145,7 @@
       }
     },
     "foreground-child@npm:^3.1.0, foreground-child@npm:^3.3.1": {
-      "checksum": "9fa6a033e56a0a48b8b25ae03cae1a618298a9d0eaa9d5962ed0d0b11c6d615eb930f4789ade1f04c8f97cf2ada5d2382f686bc83245041c3ae45291a01cbdfd",
+      "checksum": "ab862feeca47e8d74ec7dcc57dc679bd3cac63bc530bc29edfcaed832401d70db30ea98a4b35aaf296ebae90b7cec93dd056d7a8f8fbd3f6e98def043712a60e",
       "resolution": {
         "resolution": "foreground-child@npm:3.3.1",
         "version": "3.3.1",
@@ -8346,7 +8347,7 @@
       }
     },
     "github-from-package@npm:0.0.0": {
-      "checksum": "a675e4cae1e4da0fe1923c0837211766e329af0040b7bc418d726b9ccf0e532e0d67c05790ff3053aeda126cdf3339fc57a216b072177dceff5d17c5deb87375",
+      "checksum": "00941cd4fd5b8cde74bc81e578f1b6e5fcaac9322546ba9d1f509198d535db345b6c094585a3d3e540d73096ae1144512a29b00fd5b3d2647a0f584e973e37b4",
       "resolution": {
         "resolution": "github-from-package@npm:0.0.0",
         "version": "0.0.0"
@@ -8360,7 +8361,7 @@
       }
     },
     "glob@npm:^10.2.2": {
-      "checksum": "3a34c0bf800eb7fa9c1beb08b0c481515526da38d548bdd6ac17c07591f1d2aabc29c6b6cbcd5504462a507de3010d36292c996fde4a10bd1a48863fecfa476c",
+      "checksum": "911120304d40452c8723bda4e75d5e71a470149a8de249c8ec5776477417e2da02a73676a853500d18a6c79a46ff371b95869be16d2da7ac412516d0be02a1c6",
       "resolution": {
         "resolution": "glob@npm:10.4.5",
         "version": "10.4.5",
@@ -8375,7 +8376,7 @@
       }
     },
     "glob@npm:^11.0.3": {
-      "checksum": "1879983a1d022916e0eb3728d4f5a5747dc777537cabe0997fbfa8ff3f5534b0df4a632208b996d92379e12f5f045bb0770042b8b11e708e31fefe8c1ce28622",
+      "checksum": "a01e43837cb01697fa0e02f04294e2a83293a4f9cba02ed4950b4ea37f2790d6454c505fb2e2e413704a9c369e4d16e98509b411696a86d29bf25c7d1e710352",
       "resolution": {
         "resolution": "glob@npm:11.0.3",
         "version": "11.0.3",
@@ -8913,14 +8914,14 @@
       }
     },
     "htm@npm:^3.0.0": {
-      "checksum": "35511804ea3c1e8a0c437cdd24dcc3a939de1a65215778979ea54e27bd9770847bcf2e2f7634222df21b38e04e12bc480b3f5785dd5897a0bd149519b5e0d9c1",
+      "checksum": "f6d9640ec3c06bbd4c8c0faa40dc716665aaf57ca7d49671fd4e69bcd62150262b25792ffc4bb952a50e1f935fd6c8e81c8fd48ea583e5a91df16562ab01be5e",
       "resolution": {
         "resolution": "htm@npm:3.1.1",
         "version": "3.1.1"
       }
     },
     "html-escaper@npm:3.0.3": {
-      "checksum": "df1ab34d98a6c6d3486f1d3a37566da00df16417f0c60395693f8680f0e497ba13bb3eac615b339881e448f63a2028d4ee18d2d322f6449aaf8c6fe23050d69a",
+      "checksum": "f175fc48733867ea85d6dc23efd4384a9f6005d4463c31ff85d9c3c7d03849fc00486fad8e35ad3104984777aae6593ba507704a2c9232adf65f47d431a4143d",
       "resolution": {
         "resolution": "html-escaper@npm:3.0.3",
         "version": "3.0.3"
@@ -8981,7 +8982,7 @@
       }
     },
     "i18next@npm:^23.11.5": {
-      "checksum": "2676db659edf65c919025d3b45d79c1b613e056b70775ff998ed219087c4db6ef5da19e4436998ddaa50e9e57d6b4937a00db037a4027a9f02fe1ac798047ae0",
+      "checksum": "ff2e8b5771de147727f266d84c94c3bbb6a309e9708dbb8a7dfa919bd826e8cd9fd41afa73e573f4e292656cb660d8df500d69d327b8f88cad90227cce810b9f",
       "resolution": {
         "resolution": "i18next@npm:23.16.8",
         "version": "23.16.8",
@@ -9143,7 +9144,7 @@
       }
     },
     "instantsearch-ui-components@npm:0.11.2": {
-      "checksum": "3de727fdf294fd73a76dee6e0dd21f5a8ec433773392c4a43ece00ccd0c10bbc73fcf1fbeae0c19098f96977efa9b95f71966ce8d41265367e0c28d0fbcf590a",
+      "checksum": "f683f5315ad740d69fea30cc1bce3affd02ec38790299bead1aef3fb1c53685e87948f68559afa0bb16c456ac9ce917b3be0d263c8c9f7909a5884f835654e41",
       "resolution": {
         "resolution": "instantsearch-ui-components@npm:0.11.2",
         "version": "0.11.2",
@@ -9153,7 +9154,7 @@
       }
     },
     "instantsearch.js@npm:4.80.0, instantsearch.js@npm:^4.80.0": {
-      "checksum": "c2b669a2edb72a79e5255b04454978b16c5571885463c20151741c44b8c9e9801219e7e1b72a0f9a5af454d5942cd6f6e0c485976ed75fe892de89958092a269",
+      "checksum": "fd838b555ddd2bdc9777e1146170ed2657eec9fd6d46f383c69e8e815818afacae379eb21b94d34bad088332c6edb4225bb486e4fee2b08209c3fa5776a21f59",
       "resolution": {
         "resolution": "instantsearch.js@npm:4.80.0",
         "version": "4.80.0",
@@ -9588,7 +9589,7 @@
       }
     },
     "isexe@npm:^3.1.1": {
-      "checksum": "f9723011dfb3ba4f9b5486dc66bb1e97c938a1a7028e5e9526625db18b21f068bdb0ed1fdab021fe02cdd17da8ea6f1cc9032f2ba91d7d4434e5da65330b8631",
+      "checksum": "9fb3f09ddff09a35ef4f1ea199990dea0688eaed10b74c8914ba46ee2af8aa035a0c752abb10c78dc7c91777fa58da915286f27dbcf9f8cecfd0f1d4731b515c",
       "resolution": {
         "resolution": "isexe@npm:3.1.1",
         "version": "3.1.1"
@@ -9610,7 +9611,7 @@
       }
     },
     "jackspeak@npm:^3.1.2": {
-      "checksum": "10b1f95c922ae246a09e8a961a446a416579a4cf38ecf4916941b4d83364f63bd171e6995fea2b0f8eb65ba753b76466e4d70c31304e45267da9b9756dc2887e",
+      "checksum": "b4a73b5555eba1e43a5b47f64e0784e7df531769b7fe8d5855cbebef22ed8260260b1dae0d505d1e9883ad899491a0b4da737c4b7152e59c62c3e3af811a62c8",
       "resolution": {
         "resolution": "jackspeak@npm:3.4.3",
         "version": "3.4.3",
@@ -9624,7 +9625,7 @@
       }
     },
     "jackspeak@npm:^4.1.1": {
-      "checksum": "f545f47d13723010c04fa69a33b8d6574e1e387f24f0f583f2312b15853a1c0f4b341616d0808aba2988cf162ec876c84fff018052e60e466e40ab0a343ff400",
+      "checksum": "aaf4fb075721ca680ce772815b089f8e0146b096d56b8ec521af082ae7669f66f133646b925db950ff2e5f6227efdf6374e8ae5fb0a993c4b342c1681b7572bb",
       "resolution": {
         "resolution": "jackspeak@npm:4.1.1",
         "version": "4.1.1",
@@ -10046,14 +10047,14 @@
       }
     },
     "lru-cache@npm:^10.0.1, lru-cache@npm:^10.2.0, lru-cache@npm:^10.4.3": {
-      "checksum": "795db07fde5c0e9dbb91bb9cf118467b863369a67e90eb0fdba8c69a0f0bc53c2832f744cc76df3c19ebdc95b2e703f8384fe2e86b181d6302be448cbb4000db",
+      "checksum": "bb26941408c21c7cffd3928bc750bd53fae23e799f0ddaa945550e0cdb2b722046b64194531e738549269b5505cd665aa4bec8dc3295d9a25507b27564378706",
       "resolution": {
         "resolution": "lru-cache@npm:10.4.3",
         "version": "10.4.3"
       }
     },
     "lru-cache@npm:^11.0.0": {
-      "checksum": "eda7e86443d003ea835863557f830dddfdbeb2df03151db5117cd87f11046a66e99612acd5b9550efd8f66061983c2929a8b784c755b8fe12d52d50927c12056",
+      "checksum": "58a18dd97a984bfad9a4e306d4f13fc335f5986cdb37d98f9a30f0aeb456440dac753fd76d165549a65a6295522fe722b7a9b32095041125d9f25d7fe7cefc8e",
       "resolution": {
         "resolution": "lru-cache@npm:11.2.2",
         "version": "11.2.2"
@@ -10946,7 +10947,7 @@
       }
     },
     "minimatch@npm:^10.0.3": {
-      "checksum": "6ca66f0c7fd010f2f12041c89db34e1b3e83570aad5e0ce74b46cf2c7ed69223a26507ace0b636ac8f28605f20b2717c247e6c5ac049aaef0d67b2c534f9b359",
+      "checksum": "b244491e0bc98f3714ea64443ac239a9dbc82ec3dd28de25ecc44b7f9fbc545da5fc5474232d7016b203ad8e19d08d4687ef65b03a5f9bd00f995c388efad696",
       "resolution": {
         "resolution": "minimatch@npm:10.0.3",
         "version": "10.0.3",
@@ -10966,7 +10967,7 @@
       }
     },
     "minimatch@npm:^9.0.4, minimatch@npm:^9.0.5": {
-      "checksum": "be90abec6e4d6abf3df4751e5429bc9da0203a2be48b3db00667b5726fac6b6eefdc2cf98879c2120ef31e1b52b2d58431059044d135dd3679f0162f0e37479a",
+      "checksum": "19ac6ad4bc671f023944027e1425105dc33126e75d47e460bc5718cac4533747398d789aba0d713531ebf5a62cac32f70136efd95a2b94ae9673889cf68bfe5d",
       "resolution": {
         "resolution": "minimatch@npm:9.0.5",
         "version": "9.0.5",
@@ -11000,7 +11001,7 @@
       }
     },
     "minipass@npm:^5.0.0 || ^6.0.2 || ^7.0.0, minipass@npm:^7.0.2, minipass@npm:^7.0.3, minipass@npm:^7.0.4, minipass@npm:^7.1.2": {
-      "checksum": "7ae1f8c110d9a6739857797acbc301aebf263b3ef14540969ec778f7df2f41d63efcb3b7cf86bf30dec3454dcfd4cd46bc8308c9456e0183000f7f6a997ac6cf",
+      "checksum": "61f468e4fae6874191c516affef592109abccf17acf711f92f9c0bd6198eae77f43107f7fbf9cd887fb9607cef24bea0db189b2486f42072ac52b0f5cf05c913",
       "resolution": {
         "resolution": "minipass@npm:7.1.2",
         "version": "7.1.2"
@@ -11074,7 +11075,7 @@
       }
     },
     "minizlib@npm:^3.0.1, minizlib@npm:^3.1.0": {
-      "checksum": "e3610af35b02f3888f7af46903800059b59e73c46ce97844cc6b2ca257c137fb79d1a0452c25a3f8b693887888f069a47b85161a496ebd46398d73a4c3f5aa4c",
+      "checksum": "5fff03a5e57d5fa9185425223d1518778da3660f526b1ff2e8c918124db96c87e5750005514a97bfd1c019c0aad4b19aa4bcf153590801d873a724c57d60762a",
       "resolution": {
         "resolution": "minizlib@npm:3.1.0",
         "version": "3.1.0",
@@ -11119,7 +11120,7 @@
       }
     },
     "nanoid@npm:^3.3.11": {
-      "checksum": "9d76edf2ae5e5f6661730dd72ac7f9bd8e8c1f0d6e4ddb730954ab72eb33aa6a7a4196efc6de9ce7533232573508a54ee7d69c4aa7f19a4bfc429da31d56ff61",
+      "checksum": "90b22703e4f5e5a3c1470e70ab9ba6eff1856db330b8e0cdd9faa4d3a3b42fbb6c78853d534f206cc26d9b7c15eef9fc49deb940d756fa9acd7b37fc49910fca",
       "resolution": {
         "resolution": "nanoid@npm:3.3.11",
         "version": "3.3.11"
@@ -11303,7 +11304,7 @@
       }
     },
     "nth-check@npm:^2.0.0, nth-check@npm:^2.0.1": {
-      "checksum": "026e98c331eeb44830a703ed192979ba718dfa3b712cd49267cf16ec60da8ef89ce3157dcf400140cb22db65ed1cc2fed273412d290ef2a430a9fb3e7242e7f5",
+      "checksum": "6daa3f13459524b43d510d8ae94f1b5af8e6dedf3522e5cf1519f94994c6fd0e1a681c770694d7c89c31d125148daee771f22c834f540f489d72d24accb991b1",
       "resolution": {
         "resolution": "nth-check@npm:2.1.1",
         "version": "2.1.1",
@@ -11434,7 +11435,7 @@
       }
     },
     "oniguruma-to-es@npm:^4.3.3": {
-      "checksum": "de3a666c1f4652a7109deea1b4aafce21e9afe8731163652f0fd7d9806c28d9d6751d2e264a2365d52c0aa178432177aed479f5d00f180eddf54281c526e8c6f",
+      "checksum": "337533dfa9d73f3d3451ec59d3d50322d83b9c20d8cc50b8d0f4bcc1faa4dddb66e9973b345eb0f1c17e2e3401d33a9d52ffade5af13cc66534d1f7a2a0c00ac",
       "resolution": {
         "resolution": "oniguruma-to-es@npm:4.3.3",
         "version": "4.3.3",
@@ -11552,7 +11553,7 @@
       }
     },
     "package-json-from-dist@npm:^1.0.0": {
-      "checksum": "e78f9e502a87f234e35cce484658eb970965b59c93de3c85e7f3153ea6bf50eb601c08bea23409bbc0dcb89ae43b6982d201986af51b85268efa3f97deff04e2",
+      "checksum": "771392d20f923920ee93cc3b90e3740323f6118ba8e67ee73d8fd07b819446ede7842e47afff28bf8bc8001335e76d283152c6fad702fedbbc4f7db74a5398d8",
       "resolution": {
         "resolution": "package-json-from-dist@npm:1.0.1",
         "version": "1.0.1"
@@ -11681,7 +11682,7 @@
       }
     },
     "parse5@npm:^7.0.0": {
-      "checksum": "377c0af57f08d6c47cdbbb56461475e2cbe66da2ffceb4ed91509e635ae7abe036e488973abd2a8c1dbe47e4480142771ae00fb181390cc9cd008fcbd44b1750",
+      "checksum": "a44559add7de03aed911fc39d8794d7374eafb1b6b61c63efe75fe1816633a2fceb129eb2a7ce1adc1904b2b446fcc1ee6dd858f1d41833ba6b4ead6c2da4ff6",
       "resolution": {
         "resolution": "parse5@npm:7.3.0",
         "version": "7.3.0",
@@ -11730,7 +11731,7 @@
       }
     },
     "path-scurry@npm:^1.11.1": {
-      "checksum": "656c984bb7ea779cd006689a9ec8d71089ae89e124320d8a1cfd9fb8f465834825bf823d72bdb36cbbeed056dc68cc2521f1de79c709f22b887a54d405db76e4",
+      "checksum": "98262ab1ba4a2efe186c927e18bbc3b1156124f51a319a7c052d48e0ebfe8d40cd7cae5b62b533637362d67010134ff32a2221e3aa6e09d6ef8d2d74803d78f9",
       "resolution": {
         "resolution": "path-scurry@npm:1.11.1",
         "version": "1.11.1",
@@ -11741,7 +11742,7 @@
       }
     },
     "path-scurry@npm:^2.0.0": {
-      "checksum": "04c6d75b8c2e0f7799b956baaeb13e063b7a03ddd024e8d5c8715a551ff115939521e86353b3690788e9647d188659dc028b7bb7ba2f9a826041337a36512449",
+      "checksum": "923389c5cdae66389935f8f71846c9644cff01717ea2bcb71e476357dd47a6fa1cb39fae7a03bc60982a80b933f1154085d70df74f8e0582e4175cd7f20f225f",
       "resolution": {
         "resolution": "path-scurry@npm:2.0.0",
         "version": "2.0.0",
@@ -11823,7 +11824,7 @@
       }
     },
     "preact@npm:^10.0.0, preact@npm:^10.10.0, preact@npm:^10.26.9": {
-      "checksum": "c274621cc48ca9111d588f6b0b6049058eb43bbe45f3a4e8bf9025998613d6440f724b1e78a6c52199d55245ea1e01033871ca7d63527f8f581841694d8a8101",
+      "checksum": "ad77c20317f864fccb161ddabecc3cd8064c3d7eb7b6064d276a4dcfed4f0454c7c8b2fc1e6e78661d9a098a6c94f3981f8df476f696364fa1d7d06def4508fa",
       "resolution": {
         "resolution": "preact@npm:10.27.2",
         "version": "10.27.2"
@@ -12036,6 +12037,16 @@
         }
       }
     },
+    "react@npm:@preact/compat@^18.3.1": {
+      "checksum": "6b1fe647a76b4863ee9e223724dcb697766712e1a5324c2011388fb77884ffb5493f6403ee7370efffb5c461d757b3907450408d76d1073021eab3f4c35a91c5",
+      "resolution": {
+        "resolution": "react@npm:@preact/compat@18.3.1",
+        "version": "18.3.1",
+        "peerDependencies": {
+          "preact": "*"
+        }
+      }
+    },
     "react-devtools-core@npm:^4.19.1": {
       "checksum": "3843d7db4ed06cf80cd424952bc4a9f1830665c50238e1fc2736492170a6528bb46ca454b5f287386ab6d7e5c8ca8ca00908d6a42c361f8abab4449c03057d88",
       "resolution": {
@@ -12048,7 +12059,7 @@
       }
     },
     "react-instantsearch@npm:^7.16.0": {
-      "checksum": "f74314ce2dc335ea1d0394dae90d4c16ca011647b36334a17a047417b7ea7b216799f09fda734dba27eb138fa31b0aaed09d96c5462c56c95749ead1ddae2017",
+      "checksum": "eccf28f7c85dc54ff3801a17178a5068a0a1e22897ad4e01e7785340cf4bf3e35600cc1703c9a45ed9b10fe98a952eceafbc6081cd38e86d754cf6d57bd87c99",
       "resolution": {
         "resolution": "react-instantsearch@npm:7.16.3",
         "version": "7.16.3",
@@ -12066,7 +12077,7 @@
       }
     },
     "react-instantsearch-core@npm:7.16.3": {
-      "checksum": "9bea8833f8d60efbbe9bf20d3e8b60289d116e62fd347a6fbb3b4b45a8b3f35fa4622c4c2db7c1e7547190a32730f7516b00849f34883cd6955382a13917b60f",
+      "checksum": "021fb2c938a2e643cc87a049345e9adc2e9e97771af72ec70c9dc24cea344a263391db74f55c5583eed5d177605ba0f6de6e9963947d016f8c135862984295ed",
       "resolution": {
         "resolution": "react-instantsearch-core@npm:7.16.3",
         "version": "7.16.3",
@@ -12154,7 +12165,7 @@
       }
     },
     "readdirp@npm:^4.0.1": {
-      "checksum": "5461de41a94e4d082034baf43454931348d541ee186caf99003a34386a8c623a7fa1922b25e814da0db8efc75329ddbe6a4c75d24016b5a86adea570f2e0c3f3",
+      "checksum": "081df6be32b3080ea692eae7f565970722af07699b1fd80e266a58fc4305cf6d004a1502f4628ea918dc6b3e7cc90a85e1cad9f32e6f7e969958bb6baed4b040",
       "resolution": {
         "resolution": "readdirp@npm:4.1.2",
         "version": "4.1.2"
@@ -12289,7 +12300,7 @@
       }
     },
     "regex@npm:^6.0.1": {
-      "checksum": "bbd462c084fef6fb2c65b65344f9c8478dd42b95903e02a9d0c64dbf21ce5c17d24daaeca6cf8ecc20493f66435e6cace7616292ba7470623eef36e8a4aca224",
+      "checksum": "821251400a070af79624ba2d38212851326399fda05f50180860e72cc78e6b370aa441fee6f530c2f762bcb3d2c94f2ff2b6e3cd4e2e723ddbcc841bcf41dab7",
       "resolution": {
         "resolution": "regex@npm:6.0.1",
         "version": "6.0.1",
@@ -12518,7 +12529,7 @@
       }
     },
     "resolve@npm:^1.22.10": {
-      "checksum": "882dbebc0e7b03c50fabb92167551fb0b2baea167b744d43c4851c5a8b7bc11916746d5d6e1ecffba019c2a22d55e428c196a6ad52e32ea6d93581a4949cc0f1",
+      "checksum": "25bd43ce05ca41b9b9bc5f666cf9aabe1d69e3260c86d3fabd97296ce1106d5a84b9718bb2647d8709eb72dcf8d527a3ed10d10672421a482a387b4a8a14f247",
       "resolution": {
         "resolution": "resolve@npm:1.22.10",
         "version": "1.22.10",
@@ -12530,7 +12541,7 @@
       }
     },
     "resolve@npm:^2.0.0-next.5": {
-      "checksum": "b48c2010816d71cd4917275f5bcc170988984b770001ae060010963be4733ddee72c8403fb4b28a67de6d1d56b77a1cdf125e98c8b7d6b7a7f5bd595a9e90aa7",
+      "checksum": "ac30740a1fdf4c80410cfe97cb288477e0db3576b532e8268fe69d4b4b16e3514af71497a663539cfe6164d7ed42d6d6a35c3e259ecb77fb95599ebea331bdfe",
       "resolution": {
         "resolution": "resolve@npm:2.0.0-next.5",
         "version": "2.0.0-next.5",
@@ -12542,7 +12553,7 @@
       }
     },
     "resolve@patch:resolve%40npm%3A%5E1.22.10#<builtin>": {
-      "checksum": "f12907cc91f1b8e7d9f6fe6e04b5ef5e8de3fed2bbc7a51137e28ae5ebce86c6654db14eb72da228c66e5efd9b86f28dac34f18c4fb4173ad3b6dbc807836a4c",
+      "checksum": "6fe06fd58f18a2f3734d718cd5b2f496d5870b79d9e0533ae238aee749e138a71c58dd0a31a0848f0fa6f8e78ba6f1d80604e90b82450a15960b0e0c823acd9f",
       "resolution": {
         "resolution": "resolve@patch:resolve%40npm%3A1.22.10#<builtin>&checksum=0710b472d66db91acddd307fe7c3b9587f321c6b6fd04cbe76511e55dfec85e2606caefb6aa6391c325a4a16470d6969f897066c790556a4d3dbda09b1005b87",
         "version": "1.22.10",
@@ -12554,7 +12565,7 @@
       }
     },
     "resolve@patch:resolve%40npm%3A%5E2.0.0-next.5#<builtin>": {
-      "checksum": "b48c2010816d71cd4917275f5bcc170988984b770001ae060010963be4733ddee72c8403fb4b28a67de6d1d56b77a1cdf125e98c8b7d6b7a7f5bd595a9e90aa7",
+      "checksum": "ac30740a1fdf4c80410cfe97cb288477e0db3576b532e8268fe69d4b4b16e3514af71497a663539cfe6164d7ed42d6d6a35c3e259ecb77fb95599ebea331bdfe",
       "resolution": {
         "resolution": "resolve@patch:resolve%40npm%3A2.0.0-next.5#<builtin>&checksum=0710b472d66db91acddd307fe7c3b9587f321c6b6fd04cbe76511e55dfec85e2606caefb6aa6391c325a4a16470d6969f897066c790556a4d3dbda09b1005b87",
         "version": "2.0.0-next.5",
@@ -12678,7 +12689,7 @@
       }
     },
     "rollup@npm:^4.34.9, rollup@npm:^4.43.0": {
-      "checksum": "c740d2f68af2e7bd57bd36542de472d777d5b4a41f3a70de0ac4e1d670796edaf24a4d1d4d3a9dab1b5aba3d659db84b644803bdf3dc8c3a90da8181d8188838",
+      "checksum": "74e9ad4619a944b5974d30c0380efff39d275c6f76da8748e2fc2936553e94e7535f537b8aa7b08277f91b95454225bbcf7783fb23d2840b7220c1c34e6a00c9",
       "resolution": {
         "resolution": "rollup@npm:4.52.4",
         "version": "4.52.4",
@@ -13070,7 +13081,7 @@
       }
     },
     "signal-exit@npm:^4.0.1": {
-      "checksum": "fd5c74f6a19b9c2b8fa519a3ed3ae419e13d6bb78854d5cb20a30f2d90e108e67378cdd4cdf79a9271bb3607019fab2084fa30798e4e26f9e6a03e7b45abd8a5",
+      "checksum": "1a6c126ab6ff2969fe1cbb0addda7dbf7f4b1529a3bad18734502217e14064946a94e92b9a7e679ce032f2fc66ff65ddba4ae9e221b72b0caaa53282aed78ee4",
       "resolution": {
         "resolution": "signal-exit@npm:4.1.0",
         "version": "4.1.0"
@@ -13547,7 +13558,7 @@
       }
     },
     "swr@npm:^2.2.5": {
-      "checksum": "19a25a2e4ef2cd2912c37ca972061d39e081c1bd8603e872534c309c439a427ede2c60972b5653c31f91b522d00593183c72adbb014a2464264c85936b6c0585",
+      "checksum": "a537c53caba3bc077aa3ef1a7bd30f043359f57811a96f27915ed951201efbaed2a5eaaa640c66aa0d5265d97ed906c33a175c832ce38ffa1deed6045328a660",
       "resolution": {
         "resolution": "swr@npm:2.3.6",
         "version": "2.3.6",
@@ -13604,7 +13615,7 @@
       }
     },
     "tar@npm:^7.4.3, tar@npm:^7.5.1": {
-      "checksum": "694856007e707abc65838502ce752d4a1135504168f4639aabac1235c75bf3b3c5a949d4f7baf3132805201ebdc66e899e0881a49f04497f20809ff19822d85a",
+      "checksum": "ec11c511b2a73d1ad9ee058ba2bcdd68ba25273fdeac54d2c591da49daca0930c19081cc11f5c2d9cda5951e769cb3ec7e5693520ef4b6d565ccfe42fa775a4a",
       "resolution": {
         "resolution": "tar@npm:7.5.1",
         "version": "7.5.1",
@@ -13727,7 +13738,7 @@
       }
     },
     "tiny-invariant@npm:^1.3.3": {
-      "checksum": "67451d57a0985f2b32c891625485854329d481642e8af1dbdd662496a4667d73c12c36872782cdf3ecc65b80f38ffadc16718087f716a3ce6e53c17a8ccfcba1",
+      "checksum": "69a38caf72cfddd402018215b7e7cafc495a695ecb3ef39a93631a4bd87460091ac49e24558bef4239b608d3886255347c4359f88530a6b7a8e0dd9213f4feef",
       "resolution": {
         "resolution": "tiny-invariant@npm:1.3.3",
         "version": "1.3.3"
@@ -13820,7 +13831,7 @@
       }
     },
     "tslib@npm:^2.0.3, tslib@npm:^2.4.0, tslib@npm:^2.8.0": {
-      "checksum": "cf84b5a3e3542d9b3307c03e5b8d7f8eb03ca432d28b1297a82bfbc162ba73f5995ba353916a05b248580dbd0f61bf086176c0a5877f99b9f0a842d1cf51cc1a",
+      "checksum": "1a8910b1fe7f0c9a27b5e053fe69dfce2220ccbddbdfb9145d587ba6092af06843680642aacd3bc41fbf60e7d6f40c1bdd86c46ba3c4f0c8dfca5beb777e58a0",
       "resolution": {
         "resolution": "tslib@npm:2.8.1",
         "version": "2.8.1"
@@ -14375,7 +14386,7 @@
       }
     },
     "vite@npm:^6.3.6": {
-      "checksum": "9f48cfc3f8623b7933273a6301aed0f3a98e4ee45c38f0b54bf5025b7a312d4116c4a59ec7608cf7dee3d45adb8fd1d7bc7ace0f490da971744e80c27cd0210a",
+      "checksum": "2fc92e84f92a1ce9477aa4f862add7f834a4ce975e901c5dbbc83f763183842144dd2f83913c965124c5a2799b9f91e194bf4bddfc448d43dbd7f57530dea332",
       "resolution": {
         "resolution": "vite@npm:6.3.6",
         "version": "6.3.6",
@@ -14420,7 +14431,7 @@
       }
     },
     "vite@npm:^7.1.7": {
-      "checksum": "61123427517948f2c6e5e4cc6fef7495863ebdd35675467c24af90ebf38988f1faba7e58294633800d044a69a15392cc50efe03081210ac4c57ed9762e9e47cd",
+      "checksum": "6e23c89b33f6282413c70d89b95b5f3e5249304c88935da1f4423ad731f0e0895d0b4af827a26a71f5a6f8b88bae8e39a3ea7d0e56a6f922898543a09b594799",
       "resolution": {
         "resolution": "vite@npm:7.1.9",
         "version": "7.1.9",
@@ -14465,7 +14476,7 @@
       }
     },
     "vite-plugin-svgr@npm:^4.3.0": {
-      "checksum": "700bbcadcea9269248e58e011b28da6ded4e7afc1ae491eec310933fe57abbca4944a2c82c6b0003dcef46f4b27486ee241dcd6bee4939b7eec85225155210c1",
+      "checksum": "902e66845cd1eb9a3a893815d20d97d1afd88d2ac8e7a79c7ff418df45c317bb4bcc9f3216c0ca459c884c882dadbdc082c6b38c3079540a205abb393b37a621",
       "resolution": {
         "resolution": "vite-plugin-svgr@npm:4.5.0",
         "version": "4.5.0",
@@ -14746,7 +14757,7 @@
       }
     },
     "yallist@npm:^5.0.0": {
-      "checksum": "2f485d09b9458ded03dd7ebebad2c7118ee55c03f50c8f3869e907001125670894052fbc1ac2c886c0b69be500ae4c6e1bdfecbfa9942b3d45f53c1524087a57",
+      "checksum": "813c3ff105c0c86e91fae895c7b40d122ae4bd7cc6435bfa5f8a50dc711c82dabb41c1f5e120ca22eaa282fb90aed69440f1b1ea5606f13544780f7d7dc3aae2",
       "resolution": {
         "resolution": "yallist@npm:5.0.0",
         "version": "5.0.0"
@@ -14808,14 +14819,14 @@
       }
     },
     "zod@npm:^4.1.8": {
-      "checksum": "a4ef70bcf4333c6ef90e7a9d78673f5d77a22531e013f4eb87deae4a37757aff6ba259c4e815c7bc03d1b2a28ee223b17ea6e35af3079f7af1a26a31ebafca8e",
+      "checksum": "4a4598281c51232b760af1094f083b380056c1d1c64448e0001bcbf5ed7763f707cc5a205140633859f952d1582079c1368008b5d736d5e4313144c19c2878ad",
       "resolution": {
         "resolution": "zod@npm:4.1.12",
         "version": "4.1.12"
       }
     },
     "zod-to-json-schema@npm:^3.24.6": {
-      "checksum": "514edf9c5b20c5f78a327136675bab9ef09631a1fd13f6d53962535ecd2b11bf0bd34aa98e8b6a3b4af17c9942bb10d1e3ba3dc1e35c5bc9d4da2d3fc4e3a19a",
+      "checksum": "bee97323774987d6bdab6bef893b73b352ee16b3982aa81f63556d0e760b580ac5ffc24e954d27dc5d05f5ffb8254488f66ffc1bf0b25ae298862a24a5c18e0f",
       "resolution": {
         "resolution": "zod-to-json-schema@npm:3.24.6",
         "version": "3.24.6",
