@@ -21,6 +21,9 @@ pub async fn set_timeout<F: Future>(timeout: std::time::Duration, f: F) -> Resul
 
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum Error {
+    #[error("Home directory not found")]
+    HomeDirectoryNotFound,
+
     #[error("Failed to read the requested setting: {0}")]
     ConfigurationError(#[from] zpm_config::GetError),
 
@@ -416,6 +419,12 @@ pub enum Error {
 
     #[error("The following options of the run command cannot be used when running scripts: {}", .0.join(", "))]
     InvalidRunScriptOptions(Vec<String>),
+
+    #[error("Rustup doesn't seem to be installed; first install it by running {}", DataType::Code.colorize("curl https://sh.rustup.rs | bash"))]
+    MissingRustup,
+
+    #[error("Samply doesn't seem to be installed; first install it by running {}", DataType::Code.colorize("curl https://github.com/mstange/samply/releases/download/samply-v0.13.1/samply-installer.sh | sh"))]
+    MissingSamply,
 
     // Silent error; no particular message, just exit with an exit code 1
     #[error("")]

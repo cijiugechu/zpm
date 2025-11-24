@@ -27,6 +27,7 @@ mod remove;
 mod run;
 mod set_resolution;
 mod set_version;
+mod set_version_from_sources;
 mod unplug;
 mod up;
 mod workspaces_focus;
@@ -43,6 +44,7 @@ pub enum YarnCli {
     CheckReference(debug::check_reference::CheckReference),
     CheckRequirements(debug::check_requirements::CheckRequirements),
     CheckSemverVersion(debug::check_semver_version::CheckSemverVersion),
+    Flamegraph(debug::flamegraph::Flamegraph),
     Http(debug::http::Http),
     IterZip(debug::iter_zip::IterZip),
     PrintHoisting(debug::print_hoisting::PrintHoisting),
@@ -72,6 +74,7 @@ pub enum YarnCli {
     Install(install::Install),
     SetResolution(set_resolution::SetResolution),
     SetVersion(set_version::SetVersion),
+    SetVersionFromSources(set_version_from_sources::SetVersionFromSources),
     Node(node::Node),
     Pack(pack::Pack),
     PatchCommit(patch_commit::PatchCommit),
