@@ -31,6 +31,7 @@ mod set_version_from_sources;
 mod unplug;
 mod up;
 mod workspaces_focus;
+mod workspaces_foreach;
 mod workspaces_list;
 mod workspace;
 mod why;
@@ -47,6 +48,9 @@ pub enum YarnCli {
     Flamegraph(debug::flamegraph::Flamegraph),
     Http(debug::http::Http),
     IterZip(debug::iter_zip::IterZip),
+    PrintBranchBase(debug::print_branch_base::PrintBranchBase),
+    PrintChangedFiles(debug::print_changed_files::PrintChangedFiles),
+    PrintChangedWorkspaces(debug::print_changed_workspaces::PrintChangedWorkspaces),
     PrintHoisting(debug::print_hoisting::PrintHoisting),
     PrintPlatform(debug::print_platform::PrintPlatform),
     SyncFs(debug::sync_fs::SyncFs),
@@ -85,6 +89,7 @@ pub enum YarnCli {
     Unplug(unplug::Unplug),
     Up(up::Up),
     WorkspacesFocus(workspaces_focus::WorkspacesFocus),
+    WorkspacesForeach(workspaces_foreach::WorkspacesForeach),
     WorkspacesList(workspaces_list::WorkspacesList),
     Workspace(workspace::Workspace),
     Why(why::Why),
