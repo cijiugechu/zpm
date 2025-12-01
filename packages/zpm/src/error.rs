@@ -180,6 +180,9 @@ pub enum Error {
     #[error("Time error: {0}")]
     TimeError(#[from] std::time::SystemTimeError),
 
+    #[error("Chrono error: {0}")]
+    ChronoError(#[from] chrono::ParseError),
+
     #[error("Invalid glob pattern ({0})")]
     InvalidGlob(String),
 
