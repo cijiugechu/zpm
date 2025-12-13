@@ -16,9 +16,9 @@
 
 ---
 
-> [!INFO]
-> This repository contains the sources for Yarn starting from version 6.
+> [!NOTE]
+> 
+> This repository contains the sources for Yarn version 6 and above.
 >
-> To see the sources for Yarn Berry (>=2 <6), check [yarnpkg/berry](https://github.com/yarnpkg/berry/).
->
-> To see the sources for Yarn Classic (<2), check [yarnpkg/yarn](http://github.com/yarnpkg/yarn/).
+> - To see the sources for Yarn Berry (>=2 <6), check [yarnpkg/berry](https://github.com/yarnpkg/berry/).
+> - To see the sources for Yarn Classic (<2), check [yarnpkg/yarn](http://github.com/yarnpkg/yarn/).
