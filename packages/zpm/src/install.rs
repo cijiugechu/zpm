@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use zpm_config::PackageExtension;
 use zpm_primitives::{Descriptor, GitRange, Ident, Locator, PatchRange, PeerRange, Range, Reference, RegistrySemverRange, RegistryTagRange, SemverDescriptor, SemverPeerRange, WorkspaceIdentRange};
-use zpm_utils::{Hash64, IoResultExt, Path, ToHumanString, UrlEncoded};
+use zpm_utils::{Hash64, IoResultExt, Path, System, ToHumanString, UrlEncoded};
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use zpm_utils::{FromFileString, ToFileString};
@@ -22,14 +22,14 @@ use crate::{
     primitives_exts::RangeExt,
     project::{InstallMode, Project},
     report::{ReportContext, async_section, current_report, with_context_result},
-    resolvers::{Resolution, SyncResolutionAttempt, resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution}, system, tree_resolver::{ResolutionTree, TreeResolver},
+    resolvers::{Resolution, SyncResolutionAttempt, resolve_descriptor, resolve_locator, try_resolve_descriptor_sync, validate_resolution}, tree_resolver::{ResolutionTree, TreeResolver},
 };
 
 #[derive(Clone)]
 pub struct InstallContext<'a> {
     pub package_cache: Option<&'a CompositeCache>,
     pub project: Option<&'a Project>,
-    pub systems: Option<&'a Vec<system::System>>,
+    pub systems: Option<&'a Vec<System>>,
     pub check_checksums: bool,
     pub check_resolutions: bool,
     pub prune_dev_dependencies: bool,
@@ -97,7 +97,7 @@ impl<'a> InstallContext<'a> {
         self
     }
 
-    pub fn with_systems(mut self, systems: Option<&'a Vec<system::System>>) -> Self {
+    pub fn with_systems(mut self, systems: Option<&'a Vec<System>>) -> Self {
         self.systems = systems;
         self
     }
@@ -136,6 +136,14 @@ impl FetchResult {
             resolution: None,
             package_data,
         }
+    }
+
+    pub fn new_mock(archive_path: Path, package_directory: Path) -> Self {
+        Self::new(PackageData::MissingZip {
+            archive_path,
+            context_directory: package_directory.clone(),
+            package_directory,
+        })
     }
 }
 
@@ -230,7 +238,7 @@ impl InstallOpResult {
 }
 
 impl<'a> GraphOut<InstallContext<'a>, InstallOp<'a>> for InstallOpResult {
-    fn graph_follow_ups(&self, ctx: &InstallContext<'a>) -> Vec<InstallOp<'a>> {
+    fn graph_follow_ups(&self, _op: &InstallOp<'a>, ctx: &InstallContext<'a>) -> Vec<InstallOp<'a>> {
         match self {
             InstallOpResult::Validated => {
                 vec![]
@@ -254,7 +262,8 @@ impl<'a> GraphOut<InstallContext<'a>, InstallOp<'a>> for InstallOpResult {
                 let transitive_dependencies = resolution.dependencies
                     .values()
                     .cloned()
-                    .map(|dependency| InstallOp::Resolve {descriptor: dependency});
+                    .map(|dependency| InstallOp::Resolve {descriptor: dependency})
+                    .chain(resolution.variants.iter().map(|variant| InstallOp::Resolve {descriptor: variant.clone()}));
 
                 follow_ups.extend(transitive_dependencies);
                 follow_ups
@@ -421,6 +430,16 @@ impl<'a> GraphIn<'a, InstallContext<'a>, InstallOpResult, Error> for InstallOp<'
                         timeout,
                         fetch_locator(context.clone(), &locator.clone(), is_mock_request, dependencies)
                     ).await.map_err(|_| Error::TaskTimeout)?;
+
+                    if is_mock_request {
+                        if let Ok(result) = future.as_ref() {
+                            if let FetchResult {package_data: PackageData::Zip {..}, ..} = result {
+                                current_report().await.as_ref().map(|report| {
+                                    report.warn(format!("Mock request for {} returned a zip package; this should not happen.", locator.to_print_string()));
+                                });
+                            }
+                        }
+                    }
 
                     Ok(InstallOpResult::Fetched(future?))
                 }).await
@@ -754,7 +773,7 @@ impl<'a> InstallManager<'a> {
         }
 
         self.result.install_state.resolution_tree = TreeResolver::default()
-            .with_resolutions(&self.result.install_state.descriptor_to_locator, &self.result.install_state.normalized_resolutions)
+            .with_resolutions(&self.result.install_state.descriptor_to_locator, &self.result.install_state.normalized_resolutions)?
             .with_roots(self.result.roots.clone())
             .run();
 

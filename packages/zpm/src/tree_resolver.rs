@@ -4,10 +4,10 @@ use bincode::{Decode, Encode};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use zpm_primitives::{Descriptor, Ident, Locator, Range, Reference};
-use zpm_utils::ToHumanString;
+use zpm_utils::{System, ToHumanString};
 
 use crate::{
-    resolvers::Resolution,
+    error::Error, resolvers::Resolution
 };
 
 #[derive(Clone, Debug, Default, Decode, Encode, Serialize, Deserialize, PartialEq, Eq)]
@@ -33,15 +33,30 @@ pub struct TreeResolver {
 }
 
 impl TreeResolver {
-    pub fn with_resolutions(mut self, descriptor_to_locators: &BTreeMap<Descriptor, Locator>, normalized_resolutions: &BTreeMap<Locator, Resolution>) -> Self {
+    pub fn with_resolutions(mut self, descriptor_to_locators: &BTreeMap<Descriptor, Locator>, normalized_resolutions: &BTreeMap<Locator, Resolution>) -> Result<Self, Error> {
         self.resolution_tree.descriptor_to_locator.clear();
         self.resolution_tree.locator_resolutions.clear();
 
         self.original_workspace_definitions.clear();
 
-        for (descriptor, locator) in descriptor_to_locators.iter().sorted_by_cached_key(|(d, _)| d.ident.clone()) {
-            let resolution = normalized_resolutions.get(locator)
-                .expect("Expected the locator to have a resolution");
+        let system
+            = System::current();
+
+        for (descriptor, mut locator) in descriptor_to_locators.iter().sorted_by_cached_key(|(d, _)| d.ident.clone()) {
+            let mut resolution
+                = &normalized_resolutions[locator];
+
+            if !resolution.variants.is_empty() {
+                let matching_variant
+                    = resolution.variants.iter()
+                        .map(|variant| &descriptor_to_locators[variant])
+                        .map(|locator| &normalized_resolutions[locator])
+                        .find(|resolution| resolution.requirements.validate_system(&system))
+                        .ok_or_else(|| Error::NoMatchingVariantFound(locator.clone()))?;
+
+                locator = &matching_variant.locator;
+                resolution = &normalized_resolutions[locator];
+            }
 
             self.resolution_tree.descriptor_to_locator.insert(descriptor.clone(), locator.clone());
             self.resolution_tree.locator_resolutions.insert(locator.clone(), resolution.clone());
@@ -52,7 +67,7 @@ impl TreeResolver {
             }
         }
 
-        self
+        Ok(self)
     }
 
     pub fn with_roots(mut self, roots: BTreeSet<Descriptor>) -> Self {
