@@ -435,6 +435,36 @@ pub enum Error {
     #[error("Your version of npm doesn't support workspaces")]
     UnsupportedNpmWorkspaces(zpm_semver::Version),
 
+    #[error("Declining a version bump is only allowed when using the `--deferred` flag or when `preferDeferredVersions` is enabled")]
+    VersionDeclineNotAllowed,
+
+    #[error("Cannot use {0} as a version bump strategy when using the `--deferred` flag or when `preferDeferredVersions` is enabled and `--immediate` isn't set")]
+    InvalidDeferredVersionBump(String),
+
+    #[error("Can't bump the version if there wasn't a version to begin with - use 0.0.0 as initial version then run the command again.")]
+    NoVersionFoundForActiveWorkspace,
+
+    #[error("No existing version found for workspace {}", .0.to_print_string())]
+    NoVersionFoundForWorkspace(Ident),
+
+    #[error("Recursive version apply is not implemented yet")]
+    RecursiveVersionApplyNotImplemented,
+
+    #[error("Can't bump the version to one that would be lower than the current one (trying to bump {} from version {} to version {})", .0.to_print_string(), .1.to_print_string(), .2.to_print_string())]
+    VersionBumpLowerThanCurrent(Ident, zpm_semver::Version, zpm_semver::Version),
+
+    #[error("Can't bump the version to one that would be lower than the current deferred one ({})", .0.to_print_string())]
+    VersionBumpLowerThanDeferred(zpm_semver::Version),
+
+    #[error("The project doesn't seem to require a version bump.")]
+    NoVersionBumpRequiredForProject,
+
+    #[error("No versioning file found")]
+    VersioningFileNotFound,
+
+    #[error("Multiple versioning files found")]
+    MultipleVersioningFilesFound,
+
     #[error("Failed to get detected root")]
     FailedToGetSwitchDetectedRoot,
 

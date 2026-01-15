@@ -5,7 +5,7 @@ use zpm_config::{Configuration, ConfigurationContext};
 use zpm_macro_enum::zpm_enum;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Descriptor, Ident, Locator, Range, Reference, WorkspaceIdentReference, WorkspaceMagicRange, WorkspacePathReference};
-use zpm_utils::{LastModifiedAt, Path, ToFileString, ToHumanString, impl_file_string_from_str, impl_file_string_serialization};
+use zpm_utils::{LastModifiedAt, Path, ToFileString, ToHumanString};
 use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
 
@@ -33,20 +33,12 @@ pub const PNP_DATA_NAME: &str = ".pnp.data.json";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InstallMode {
     /// Don't run the build scripts.
-    #[pattern(spec = "skip-build")]
+    #[pattern("skip-build")]
+    #[to_file_string(|| "skip-build".to_string())]
+    #[to_print_string(|| "skip-build".to_string())]
     SkipBuild,
 }
 
-impl ToFileString for InstallMode {
-    fn to_file_string(&self) -> String {
-        match self {
-            InstallMode::SkipBuild => "skip-build".to_string(),
-        }
-    }
-}
-
-impl_file_string_from_str!(InstallMode);
-impl_file_string_serialization!(InstallMode);
 
 #[derive(Default)]
 pub struct RunInstallOptions {
@@ -213,6 +205,10 @@ impl Project {
 
     pub fn ignore_path(&self) -> Path {
         self.project_cwd.with_join_str(".yarn/ignore")
+    }
+
+    pub fn versioning_path(&self) -> Path {
+        self.project_cwd.with_join_str(".yarn/versions")
     }
 
     pub fn migration_path(&self) -> Path {
