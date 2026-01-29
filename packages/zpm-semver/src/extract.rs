@@ -1,12 +1,26 @@
 use super::{range::{OperatorType, Token, TokenType}, version::VersionRc, Version};
+use crate::{
+    MAX_SAFE_COMPONENT_LENGTH,
+    MAX_SAFE_INTEGER,
+};
 
 pub fn extract_number(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<u32> {
-    let mut num: u32 = 0;
+    let mut num: u64 = 0;
     let mut valid = false;
+    let mut digits = 0usize;
 
     while let Some(&c) = str.peek() {
         if c.is_ascii_digit() {
-            num = num.saturating_mul(10).saturating_add(c.to_digit(10)?);
+            digits += 1;
+            if digits > MAX_SAFE_COMPONENT_LENGTH {
+                return None;
+            }
+
+            let digit = c.to_digit(10)? as u64;
+            num = num.checked_mul(10)?.checked_add(digit)?;
+            if num > MAX_SAFE_INTEGER {
+                return None;
+            }
             valid = true;
 
             str.next();
@@ -16,7 +30,13 @@ pub fn extract_number(str: &mut std::iter::Peekable<std::str::Chars>) -> Option<
     }
 
     match valid {
-        true => Some(num),
+        true => {
+            if num > u32::MAX as u64 {
+                None
+            } else {
+                Some(num as u32)
+            }
+        }
         false => None
     }
 }

@@ -1,4 +1,5 @@
 use rstest::rstest;
+use zpm_utils::FromFileString;
 
 use crate::{Version, VersionRc};
 
@@ -31,4 +32,23 @@ fn test_version_lt(#[case] left: Version, #[case] right: Version) {
 #[case("1.0.0-x-y-z.-", "1.0.0-x-y-z.a")]
 fn test_version_next_immediate(#[case] left: Version, #[case] right: Version) {
     assert_eq!(left.next_immediate_spec(), right);
+}
+
+#[test]
+fn test_version_max_length() {
+    let long_prerelease = "a".repeat(257);
+    let version = format!("1.2.3-{}", long_prerelease);
+    assert!(Version::from_file_string(&version).is_err());
+}
+
+#[test]
+fn test_version_max_safe_integer() {
+    assert!(Version::from_file_string("1.2.9007199254740992").is_err());
+}
+
+#[test]
+fn test_version_max_safe_component_length() {
+    // From node-semver coerce tests: `'1'.repeat(17)` is rejected.
+    let version = "1".repeat(17);
+    assert!(Version::from_file_string(&version).is_err());
 }
