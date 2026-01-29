@@ -1,7 +1,13 @@
 use rkyv::Archive;
 use zpm_utils::{impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, ToFileString, ToHumanString};
 
-use crate::{extract::extract_version, range::RangeKind, Error, Range};
+use crate::{
+    extract::extract_version,
+    range::RangeKind,
+    Error,
+    Range,
+    MAX_LENGTH,
+};
 
 #[cfg(test)]
 #[path = "./version.test.rs"]
@@ -246,6 +252,10 @@ impl FromFileString for Version {
     type Error = Error;
 
     fn from_file_string(src: &str) -> Result<Self, Error> {
+        if src.len() > MAX_LENGTH {
+            return Err(Error::InvalidVersion(src.to_string()));
+        }
+
         let mut iter = src.chars().peekable();
 
         let (version, _) = extract_version(&mut iter)
