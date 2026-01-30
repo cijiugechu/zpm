@@ -1,6 +1,7 @@
 mod error;
 mod extract;
 mod range;
+mod rkyv_ecow;
 mod version;
 
 pub use error::Error;

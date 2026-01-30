@@ -3,6 +3,7 @@ name = "zpm-semver"
 edition = "2021"
 
 [dependencies]
+ecow = { workspace = true }
 rkyv = { workspace = true, features = ["bytecheck"] }
 rstest = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
