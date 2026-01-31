@@ -71,6 +71,10 @@ impl ToFileString for RawPath {
     fn to_file_string(&self) -> String {
         self.raw.clone()
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        out.write_str(&self.raw)
+    }
 }
 
 impl ToHumanString for RawPath {
@@ -1050,6 +1054,10 @@ impl FromFileString for Path {
 impl ToFileString for Path {
     fn to_file_string(&self) -> String {
         self.path.clone()
+    }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        out.write_str(&self.path)
     }
 }
 

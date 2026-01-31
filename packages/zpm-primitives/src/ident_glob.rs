@@ -43,6 +43,10 @@ impl ToFileString for IdentGlob {
     fn to_file_string(&self) -> String {
         self.glob.glob().to_string()
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        out.write_str(self.glob.glob())
+    }
 }
 
 impl ToHumanString for IdentGlob {

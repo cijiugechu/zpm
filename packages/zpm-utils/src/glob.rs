@@ -91,6 +91,10 @@ impl ToFileString for Glob {
     fn to_file_string(&self) -> String {
         self.raw().to_string()
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        out.write_str(self.raw())
+    }
 }
 
 impl ToHumanString for Glob {

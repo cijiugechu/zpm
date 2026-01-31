@@ -295,6 +295,34 @@ impl ToFileString for Version {
 
         res
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        write!(out, "{}.{}.{}", self.major, self.minor, self.patch)?;
+
+        if let Some(rc) = &self.rc {
+            out.write_str("-")?;
+
+            let mut first = true;
+            for segment in rc.iter() {
+                if !first {
+                    out.write_str(".")?;
+                }
+                first = false;
+
+                match segment {
+                    VersionRc::Number(n) => {
+                        write!(out, "{}", n)?;
+                    }
+
+                    VersionRc::String(s) => {
+                        out.write_str(s)?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl ToHumanString for Version {

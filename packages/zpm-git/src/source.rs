@@ -76,6 +76,21 @@ impl ToFileString for GitSource {
             },
         }
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        match self {
+            GitSource::GitHub { owner, repository } => {
+                out.write_str("github:")?;
+                out.write_str(owner)?;
+                out.write_str("/")?;
+                out.write_str(repository)
+            },
+
+            GitSource::Url(url) => {
+                out.write_str(url)
+            },
+        }
+    }
 }
 
 impl ToHumanString for GitSource {

@@ -39,6 +39,14 @@ impl ToFileString for RangeKind {
             RangeKind::Exact => "*".to_string(),
         }
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        match self {
+            RangeKind::Caret => out.write_str("^"),
+            RangeKind::Tilde => out.write_str("~"),
+            RangeKind::Exact => out.write_str("*"),
+        }
+    }
 }
 
 impl ToHumanString for RangeKind {
@@ -324,6 +332,10 @@ impl FromFileString for Range {
 impl ToFileString for Range {
     fn to_file_string(&self) -> String {
         self.source.clone()
+    }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        out.write_str(&self.source)
     }
 }
 

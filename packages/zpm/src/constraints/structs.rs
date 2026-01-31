@@ -44,6 +44,38 @@ impl ToFileString for Caller {
 
         parts.join(" ")
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        let mut has_output = false;
+
+        if let Some(method_name) = &self.method_name {
+            out.write_str(method_name)?;
+            has_output = true;
+        }
+
+        if let Some(file) = &self.file {
+            if has_output {
+                out.write_str(" ")?;
+            }
+
+            out.write_str("(")?;
+            out.write_str(file)?;
+
+            if let Some(line) = &self.line {
+                out.write_str(":")?;
+                write!(out, "{}", line)?;
+
+                if let Some(column) = &self.column {
+                    out.write_str(":")?;
+                    write!(out, "{}", column)?;
+                }
+            }
+
+            out.write_str(")")?;
+        }
+
+        Ok(())
+    }
 }
 
 impl ToHumanString for Caller {

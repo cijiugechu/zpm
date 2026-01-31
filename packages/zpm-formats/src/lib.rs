@@ -44,6 +44,12 @@ impl ToFileString for CompressionAlgorithm {
             CompressionAlgorithm::Deflate(level) => level.to_string(),
         }
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        match self {
+            CompressionAlgorithm::Deflate(level) => write!(out, "{}", level),
+        }
+    }
 }
 
 impl ToHumanString for CompressionAlgorithm {

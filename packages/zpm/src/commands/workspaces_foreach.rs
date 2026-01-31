@@ -47,6 +47,7 @@ pub enum FollowedDependencies {
 pub enum Limit {
     #[pattern(r"^(?<limit>\d+)$")]
     #[to_file_string(|params| format!("{}", params.limit))]
+    #[write_file_string(|params, out| write!(out, "{}", params.limit))]
     #[to_print_string(|params| format!("{}", params.limit))]
     Fixed {
         limit: usize,

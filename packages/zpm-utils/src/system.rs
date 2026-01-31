@@ -117,6 +117,37 @@ impl ToFileString for System {
 
         segments.join("-")
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        let mut has_output = false;
+
+        if let Some(os) = &self.os {
+            os.write_file_string(out)?;
+            has_output = true;
+        }
+
+        if let Some(arch) = &self.arch {
+            if has_output {
+                out.write_str("-")?;
+            }
+            arch.write_file_string(out)?;
+            has_output = true;
+        }
+
+        if let Some(libc) = &self.libc {
+            if has_output {
+                out.write_str("-")?;
+            }
+            libc.write_file_string(out)?;
+            has_output = true;
+        }
+
+        if !has_output {
+            out.write_str("unknown")?;
+        }
+
+        Ok(())
+    }
 }
 
 static CURRENT_DESCRIPTION: LazyLock<System> = LazyLock::new(|| {

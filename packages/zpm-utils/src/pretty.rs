@@ -98,6 +98,14 @@ impl<T: ToFileString> ToFileString for Secret<T> {
             self.value.to_file_string()
         }
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        if REDACTED.load(Ordering::Relaxed) {
+            out.write_str("<redacted>")
+        } else {
+            self.value.write_file_string(out)
+        }
+    }
 }
 
 impl<T: ToHumanString> ToHumanString for Secret<T> {

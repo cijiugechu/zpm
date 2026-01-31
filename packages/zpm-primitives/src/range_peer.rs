@@ -15,6 +15,7 @@ type Error = Infallible;
 pub enum PeerRange {
     #[pattern(r"(?<range>.*)")]
     #[to_file_string(|params| params.range.to_file_string())]
+    #[write_file_string(|params, out| params.range.write_file_string(out))]
     #[to_print_string(|params| DataType::Range.colorize(&params.range.to_file_string()))]
     Semver {
         range: zpm_semver::Range,
@@ -22,6 +23,7 @@ pub enum PeerRange {
 
     #[pattern(r"workspace:(?<magic>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.magic.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.magic.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.magic.to_file_string())))]
     WorkspaceMagic {
         magic: zpm_semver::RangeKind,
@@ -29,6 +31,7 @@ pub enum PeerRange {
 
     #[pattern("workspace:(?<range>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.range.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.range.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.range.to_file_string())))]
     WorkspaceSemver {
         range: zpm_semver::Range,
@@ -36,6 +39,7 @@ pub enum PeerRange {
 
     #[pattern(r"workspace:(?<path>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.path.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.path.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.path.to_file_string())))]
     WorkspacePath {
         path: Path,

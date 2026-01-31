@@ -22,7 +22,13 @@ pub trait FromFileString {
 }
 
 pub trait ToFileString {
-    fn to_file_string(&self) -> String;
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result;
+
+    fn to_file_string(&self) -> String {
+        let mut buffer = String::new();
+        let _ = self.write_file_string(&mut buffer);
+        buffer
+    }
 }
 
 pub trait ToHumanString {
@@ -108,6 +114,10 @@ impl<T: ToFileString> ToFileString for Box<T> {
     fn to_file_string(&self) -> String {
         self.as_ref().to_file_string()
     }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        self.as_ref().write_file_string(out)
+    }
 }
 
 impl<T: ToHumanString> ToHumanString for Box<T> {
@@ -140,6 +150,10 @@ impl ToFileString for bool {
     fn to_file_string(&self) -> String {
         self.to_string()
     }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        write!(out, "{}", self)
+    }
 }
 
 impl ToHumanString for bool {
@@ -159,6 +173,10 @@ impl FromFileString for usize {
 impl ToFileString for usize {
     fn to_file_string(&self) -> String {
         self.to_string()
+    }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        write!(out, "{}", self)
     }
 }
 
@@ -180,6 +198,10 @@ impl ToFileString for u64 {
     fn to_file_string(&self) -> String {
         self.to_string()
     }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        write!(out, "{}", self)
+    }
 }
 
 impl ToHumanString for u64 {
@@ -199,6 +221,10 @@ impl FromFileString for std::time::Duration {
 impl ToFileString for std::time::Duration {
     fn to_file_string(&self) -> String {
         self.as_secs().to_string()
+    }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        write!(out, "{}", self.as_secs())
     }
 }
 
@@ -220,6 +246,10 @@ impl ToFileString for String {
     fn to_file_string(&self) -> String {
         self.as_str().to_file_string()
     }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        out.write_str(self)
+    }
 }
 
 impl ToHumanString for String {
@@ -231,6 +261,10 @@ impl ToHumanString for String {
 impl ToFileString for &str {
     fn to_file_string(&self) -> String {
         self.to_string()
+    }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        out.write_str(self)
     }
 }
 
@@ -258,6 +292,14 @@ impl<T: ToFileString> ToFileString for Option<T> {
             value.to_file_string()
         } else {
             "null".to_string()
+        }
+    }
+
+    fn write_file_string<W: fmt::Write>(&self, out: &mut W) -> fmt::Result {
+        if let Some(value) = self {
+            value.write_file_string(out)
+        } else {
+            out.write_str("null")
         }
     }
 }

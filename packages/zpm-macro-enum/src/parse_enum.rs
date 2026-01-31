@@ -183,6 +183,8 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
         = Vec::new();
     let mut to_file_string_arms
         = Vec::new();
+    let mut write_file_string_arms
+        = Vec::new();
     let mut to_print_string_arms
         = Vec::new();
 
@@ -217,6 +219,10 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
                         Self::#variant_ident(#primary_field_name) => #primary_field_name.clone(),
                     });
 
+                    write_file_string_arms.push(quote! {
+                        Self::#variant_ident(#primary_field_name) => out.write_str(#primary_field_name),
+                    });
+
                     to_print_string_arms.push(quote! {
                         Self::#variant_ident(#primary_field_name) => #primary_field_name.clone(),
                     });
@@ -230,6 +236,10 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
 
                     to_file_string_arms.push(quote! {
                         Self::#variant_ident(src) => src.clone(),
+                    });
+
+                    write_file_string_arms.push(quote! {
+                        Self::#variant_ident(src) => out.write_str(src),
                     });
 
                     parse_quote!{#enum_name::#variant_ident(src.to_string())}
@@ -334,6 +344,12 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
                 .map(|attr| attr.parse_args::<AttributeBag>())
                 .collect::<Result<Vec<_>, _>>()?;
 
+        let mut write_file_string_attrs
+            = variant.attrs.iter()
+                .filter(|attr| attr.path().is_ident("write_file_string"))
+                .map(|attr| attr.parse_args::<AttributeBag>())
+                .collect::<Result<Vec<_>, _>>()?;
+
         let mut to_print_string_attrs
             = variant.attrs.iter()
                 .filter(|attr| attr.path().is_ident("to_print_string"))
@@ -342,6 +358,37 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
 
         let mut has_serialization_arm
             = false;
+        let mut has_write_arm
+            = false;
+
+        if let Some(mut write_file_string_attr) = write_file_string_attrs.pop() {
+            let Some(write_file_string_attr) = write_file_string_attr.take("main") else {
+                errors.push(syn::Error::new(variant.span(), "Expected a closure in #[write_file_string(|params, out| ...)]"));
+                continue;
+            };
+
+            has_write_arm = true;
+
+            match &variant_type {
+                VariantType::Struct(struct_name, _) => {
+                    write_file_string_arms.push(quote! {
+                        Self::#variant_ident(params) => {
+                            fn call<W: std::fmt::Write, F: Fn(&#struct_name, &mut W) -> std::fmt::Result>(f: F, p: &#struct_name, out: &mut W) -> std::fmt::Result { f(p, out) }
+                            call(#write_file_string_attr, params, out)
+                        },
+                    });
+                },
+
+                VariantType::Empty => {
+                    write_file_string_arms.push(quote! {
+                        Self::#variant_ident => {
+                            fn call<W: std::fmt::Write, F: Fn(&mut W) -> std::fmt::Result>(f: F, out: &mut W) -> std::fmt::Result { f(out) }
+                            call(#write_file_string_attr, out)
+                        },
+                    });
+                },
+            }
+        }
 
         if let Some(mut to_file_string_attr) = to_file_string_attrs.pop() {
             let Some(to_file_string_attr) = to_file_string_attr.take("main") else {
@@ -411,6 +458,14 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
                 });
 
                 has_serialization_arm = true;
+            }
+
+            if !has_write_arm {
+                write_file_string_arms.push(quote! {
+                    Self::#variant_ident => out.write_str(#literal),
+                });
+
+                has_write_arm = true;
             }
 
             errors.extend(literal_attr.errors());
@@ -497,6 +552,13 @@ pub fn parse_enum(args: ParseEnumArgs, ast: DeriveInput) -> Result<proc_macro::T
                 match self {
                     #(#to_file_string_arms)*
                     _ => panic!("Invalid value"),
+                }
+            }
+
+            fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+                match self {
+                    #(#write_file_string_arms)*
+                    _ => out.write_str(&self.to_file_string()),
                 }
             }
         }

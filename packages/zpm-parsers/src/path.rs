@@ -297,6 +297,42 @@ impl ToFileString for Path {
 
         result
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        let parts
+            = self.to_parts();
+
+        let mut has_output = false;
+
+        for part in parts {
+            match part {
+                PathSegment::Identifier(segment) => {
+                    if has_output {
+                        out.write_str(".")?;
+                    }
+
+                    out.write_str(segment)?;
+                    has_output = true;
+                },
+
+                PathSegment::Number(segment) => {
+                    out.write_str("[")?;
+                    out.write_str(segment)?;
+                    out.write_str("]")?;
+                    has_output = true;
+                },
+
+                PathSegment::String(segment) => {
+                    out.write_str("[")?;
+                    out.write_str(&JsonDocument::to_string(segment).expect("Failed to escape string"))?;
+                    out.write_str("]")?;
+                    has_output = true;
+                },
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl ToHumanString for Path {

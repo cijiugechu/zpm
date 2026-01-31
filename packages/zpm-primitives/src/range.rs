@@ -1,4 +1,4 @@
-use std::{hash::Hash, str::FromStr, sync::LazyLock};
+use std::{fmt, hash::Hash, str::FromStr, sync::LazyLock};
 
 use regex::Regex;
 use rkyv::Archive;
@@ -20,6 +20,17 @@ fn format_registry_semver(ident: &Option<Ident>, range: &zpm_semver::Range) -> S
     }
 }
 
+fn write_registry_semver<W: fmt::Write>(ident: &Option<Ident>, range: &zpm_semver::Range, out: &mut W) -> fmt::Result {
+    out.write_str("npm:")?;
+
+    if let Some(ident) = ident {
+        ident.write_file_string(out)?;
+        out.write_str("@")?;
+    }
+
+    range.write_file_string(out)
+}
+
 fn format_registry_tag(ident: &Option<Ident>, tag: &str) -> String {
     match ident {
         Some(ident) => format!("npm:{}@{}", ident.to_file_string(), tag),
@@ -27,11 +38,31 @@ fn format_registry_tag(ident: &Option<Ident>, tag: &str) -> String {
     }
 }
 
+fn write_registry_tag<W: fmt::Write>(ident: &Option<Ident>, tag: &str, out: &mut W) -> fmt::Result {
+    out.write_str("npm:")?;
+
+    if let Some(ident) = ident {
+        ident.write_file_string(out)?;
+        out.write_str("@")?;
+    }
+
+    out.write_str(tag)
+}
+
 fn format_path_range(path: &str) -> String {
     if EXPLICIT_PATH_REGEX.is_match(path) {
         path.to_string()
     } else {
         format!("file:{}", path)
+    }
+}
+
+fn write_path_range<W: fmt::Write>(path: &str, out: &mut W) -> fmt::Result {
+    if EXPLICIT_PATH_REGEX.is_match(path) {
+        out.write_str(path)
+    } else {
+        out.write_str("file:")?;
+        out.write_str(path)
     }
 }
 
@@ -59,11 +90,13 @@ pub enum RangeError {
 pub enum Range {
     #[no_pattern]
     #[to_file_string(|| "missing!".to_string())]
+    #[write_file_string(|out| out.write_str("missing!"))]
     #[to_print_string(|| DataType::Range.colorize("missing!"))]
     MissingPeerDependency,
 
     #[pattern(r"builtin:(?<range>.*)")]
     #[to_file_string(|params| format!("builtin:{}", params.range.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("builtin:")?; params.range.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("builtin:{}", params.range.to_file_string())))]
     Builtin {
         range: zpm_semver::Range,
@@ -71,6 +104,7 @@ pub enum Range {
 
     #[pattern(r"(?<range>.*)")]
     #[to_file_string(|params| params.range.to_file_string())]
+    #[write_file_string(|params, out| params.range.write_file_string(out))]
     #[to_print_string(|params| DataType::Range.colorize(&params.range.to_file_string()))]
     AnonymousSemver {
         range: zpm_semver::Range,
@@ -78,6 +112,7 @@ pub enum Range {
 
     #[pattern(r"npm:(?:(?<ident>.*)@)?(?<range>.*)")]
     #[to_file_string(|params| format_registry_semver(&params.ident, &params.range))]
+    #[write_file_string(|params, out| write_registry_semver(&params.ident, &params.range, out))]
     #[to_print_string(|params| DataType::Range.colorize(&format_registry_semver(&params.ident, &params.range)))]
     RegistrySemver {
         ident: Option<Ident>,
@@ -86,6 +121,7 @@ pub enum Range {
 
     #[pattern(r"npm:(?:(?<ident>.*)@)?(?<tag>[-a-z0-9._^v][-a-z0-9._]*)")]
     #[to_file_string(|params| format_registry_tag(&params.ident, &params.tag))]
+    #[write_file_string(|params, out| write_registry_tag(&params.ident, &params.tag, out))]
     #[to_print_string(|params| DataType::Range.colorize(&format_registry_tag(&params.ident, &params.tag)))]
     RegistryTag {
         ident: Option<Ident>,
@@ -94,6 +130,7 @@ pub enum Range {
 
     #[pattern(r"link:(?<path>.*)")]
     #[to_file_string(|params| format!("link:{}", params.path))]
+    #[write_file_string(|params, out| { out.write_str("link:")?; out.write_str(&params.path) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("link:{}", params.path)))]
     Link {
         path: String,
@@ -101,6 +138,7 @@ pub enum Range {
 
     #[pattern(r"portal:(?<path>.*)")]
     #[to_file_string(|params| format!("portal:{}", params.path))]
+    #[write_file_string(|params, out| { out.write_str("portal:")?; out.write_str(&params.path) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("portal:{}", params.path)))]
     Portal {
         path: String,
@@ -109,6 +147,7 @@ pub enum Range {
     #[pattern(r"file:(?<path>.*\.(?:tgz|tar\.gz))")]
     #[pattern(r"(?<path>\.{0,2}/.*\.(?:tgz|tar\.gz))")]
     #[to_file_string(|params| format_path_range(&params.path))]
+    #[write_file_string(|params, out| write_path_range(&params.path, out))]
     #[to_print_string(|params| DataType::Range.colorize(&format_path_range(&params.path)))]
     Tarball {
         path: String,
@@ -117,6 +156,7 @@ pub enum Range {
     #[pattern(r"file:(?<path>.*)")]
     #[pattern(r"(?<path>\.{0,2}/.*)")]
     #[to_file_string(|params| format_path_range(&params.path))]
+    #[write_file_string(|params, out| write_path_range(&params.path, out))]
     #[to_print_string(|params| DataType::Range.colorize(&format_path_range(&params.path)))]
     Folder {
         path: String,
@@ -124,6 +164,12 @@ pub enum Range {
 
     #[pattern(r"patch:(?<inner>.*)#(?<path>.*)$")]
     #[to_file_string(|params| format!("patch:{}#{}", params.inner.to_file_string(), params.path))]
+    #[write_file_string(|params, out| {
+        out.write_str("patch:")?;
+        params.inner.write_file_string(out)?;
+        out.write_str("#")?;
+        out.write_str(&params.path)
+    })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("patch:{}#{}", params.inner.to_file_string(), params.path)))]
     #[struct_attr(rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::ser::Sharing, <__S as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
     #[struct_attr(rkyv(deserialize_bounds(__D: rkyv::de::Pooling, <__D as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
@@ -136,6 +182,13 @@ pub enum Range {
 
     #[pattern(r"catalog:(?<catalog>.+)?")]
     #[to_file_string(|params| format!("catalog:{}", params.catalog.as_deref().unwrap_or("")))]
+    #[write_file_string(|params, out| {
+        out.write_str("catalog:")?;
+        if let Some(catalog) = &params.catalog {
+            out.write_str(catalog)?;
+        }
+        Ok(())
+    })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("catalog:{}", params.catalog.as_deref().unwrap_or(""))))]
     Catalog {
         catalog: Option<String>,
@@ -143,6 +196,10 @@ pub enum Range {
 
     #[pattern(r"workspace:(?<magic>.*)")]
     #[to_file_string(|params| format!("workspace:{}", serde_plain::to_string(&params.magic).unwrap()))]
+    #[write_file_string(|params, out| {
+        out.write_str("workspace:")?;
+        out.write_str(&serde_plain::to_string(&params.magic).unwrap())
+    })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", serde_plain::to_string(&params.magic).unwrap())))]
     WorkspaceMagic {
         magic: zpm_semver::RangeKind,
@@ -150,6 +207,7 @@ pub enum Range {
 
     #[pattern(r"workspace:(?<range>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.range.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.range.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.range.to_file_string())))]
     WorkspaceSemver {
         range: zpm_semver::Range,
@@ -157,6 +215,7 @@ pub enum Range {
 
     #[pattern(r"workspace:(?<ident>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.ident.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.ident.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.ident.to_file_string())))]
     WorkspaceIdent {
         ident: Ident,
@@ -164,6 +223,7 @@ pub enum Range {
 
     #[pattern(r"workspace:(?<path>.*)")]
     #[to_file_string(|params| format!("workspace:{}", params.path.to_file_string()))]
+    #[write_file_string(|params, out| { out.write_str("workspace:")?; params.path.write_file_string(out) })]
     #[to_print_string(|params| DataType::Range.colorize(&format!("workspace:{}", params.path.to_file_string())))]
     WorkspacePath {
         path: Path,
@@ -171,6 +231,7 @@ pub enum Range {
 
     #[pattern("(?<git>.*)")]
     #[to_file_string(|params| params.git.to_file_string())]
+    #[write_file_string(|params, out| params.git.write_file_string(out))]
     #[to_print_string(|params| DataType::Range.colorize(&params.git.to_file_string()))]
     Git {
         git: zpm_git::GitRange,
@@ -178,6 +239,7 @@ pub enum Range {
 
     #[pattern(r"(?<url>https?://.*(?:/.*|\.tgz|\.tar\.gz))")]
     #[to_file_string(|params| params.url.clone())]
+    #[write_file_string(|params, out| out.write_str(&params.url))]
     #[to_print_string(|params| DataType::Range.colorize(&params.url))]
     Url {
         url: String,
@@ -185,6 +247,7 @@ pub enum Range {
 
     #[pattern(r"(?<tag>.*)")]
     #[to_file_string(|params| params.tag.clone())]
+    #[write_file_string(|params, out| out.write_str(&params.tag))]
     #[to_print_string(|params| DataType::Range.colorize(&params.tag))]
     AnonymousTag {
         tag: String,
@@ -193,6 +256,12 @@ pub enum Range {
     // We keep this at the end so virtual ranges are listed last when sorted
     #[pattern(r"virtual:(?<inner>.*)#(?<hash>[a-f0-9]*)$")]
     #[to_file_string(|params| format!("virtual:{}#{}", params.inner.to_file_string(), params.hash.to_file_string()))]
+    #[write_file_string(|params, out| {
+        out.write_str("virtual:")?;
+        params.inner.write_file_string(out)?;
+        out.write_str("#")?;
+        params.hash.write_file_string(out)
+    })]
     #[to_print_string(|params| format!("{} {}", params.inner.to_print_string(), DataType::Range.colorize(&format!("[{}]", params.hash.mini()))))]
     #[struct_attr(rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::ser::Sharing, <__S as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
     #[struct_attr(rkyv(deserialize_bounds(__D: rkyv::de::Pooling, <__D as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]

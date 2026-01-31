@@ -95,6 +95,28 @@ impl ToFileString for GitReference {
 
         format!("{}#{}", self.repo.to_file_string(), params.join("&"))
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        self.repo.write_file_string(out)?;
+        out.write_str("#")?;
+
+        let commit = urlencoding::encode(&self.commit);
+        write!(out, "commit={}", commit)?;
+
+        if let Some(cwd) = &self.prepare_params.cwd {
+            out.write_str("&")?;
+            let cwd = urlencoding::encode(cwd);
+            write!(out, "cwd={}", cwd)?;
+        }
+
+        if let Some(workspace) = &self.prepare_params.workspace {
+            out.write_str("&")?;
+            let workspace = urlencoding::encode(workspace);
+            write!(out, "workspace={}", workspace)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl ToHumanString for GitReference {

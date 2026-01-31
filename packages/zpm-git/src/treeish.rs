@@ -22,4 +22,17 @@ impl ToFileString for GitTreeish {
             GitTreeish::Tag(tag) => format!("tag={}", tag),
         }
     }
+
+    fn write_file_string<W: std::fmt::Write>(&self, out: &mut W) -> std::fmt::Result {
+        match self {
+            GitTreeish::AnythingGoes(treeish) => out.write_str(treeish),
+            GitTreeish::Head(head) => write!(out, "head={}", head),
+            GitTreeish::Commit(commit) => write!(out, "commit={}", commit),
+            GitTreeish::Semver(range) => {
+                out.write_str("semver=")?;
+                range.write_file_string(out)
+            },
+            GitTreeish::Tag(tag) => write!(out, "tag={}", tag),
+        }
+    }
 }

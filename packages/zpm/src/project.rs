@@ -35,12 +35,14 @@ pub enum InstallMode {
     /// Don't run the build scripts.
     #[pattern("skip-build")]
     #[to_file_string(|| "skip-build".to_string())]
+    #[write_file_string(|out| out.write_str("skip-build"))]
     #[to_print_string(|| "skip-build".to_string())]
     SkipBuild,
 
     /// Just update the lockfile, skip the fetching and linking.
     #[pattern("update-lockfile")]
     #[to_file_string(|| "update-lockfile".to_string())]
+    #[write_file_string(|out| out.write_str("update-lockfile"))]
     #[to_print_string(|| "update-lockfile".to_string())]
     UpdateLockfile,
 }
