@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
 
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use serde::Deserialize;
@@ -12,6 +13,7 @@ use crate::{
     error::Error,
     http_npm,
     install::{InstallContext, InstallOpResult, IntoResolutionResult, ResolutionResult},
+    manifest_cache::{ManifestCache, ManifestCacheEntry},
     manifest::RemoteManifest,
     npm,
     resolvers::{Resolution, workspace},
@@ -46,6 +48,66 @@ fn fix_manifest(manifest: &mut RemoteManifestWithScripts) {
                 break;
             }
         }
+    }
+}
+
+async fn fetch_registry_metadata(
+    context: &InstallContext<'_>,
+    registry_base: &str,
+    registry_path: &str,
+    authorization: Option<String>,
+) -> Result<Bytes, Error> {
+    let project = context.project
+        .expect("The project is required for resolving a workspace package");
+
+    let cache = ManifestCache::new(project).ok();
+    let cache_key = ManifestCache::cache_key(registry_base, registry_path);
+
+    let cached_entry = cache.as_ref()
+        .and_then(|cache| cache.get(&cache_key).ok().flatten());
+
+    let conditional = cached_entry.as_ref().and_then(|entry| {
+        let etag = entry.etag.as_deref();
+        let last_modified = entry.last_modified.as_deref();
+
+        if etag.is_none() && last_modified.is_none() {
+            None
+        } else {
+            Some(http_npm::ConditionalRequest { etag, last_modified })
+        }
+    });
+
+    let params = http_npm::NpmHttpParams {
+        http_client: &project.http_client,
+        registry: registry_base,
+        path: registry_path,
+        authorization: authorization.as_deref(),
+        otp: None,
+    };
+
+    match http_npm::get_with_meta(&params, conditional).await? {
+        http_npm::GetWithMetaResult::NotModified => {
+            if let Some(entry) = cached_entry {
+                return Ok(Bytes::from(entry.body));
+            }
+
+            let bytes = http_npm::get(&params).await?;
+            Ok(bytes)
+        },
+        http_npm::GetWithMetaResult::Ok { bytes, etag, last_modified } => {
+            if etag.is_some() || last_modified.is_some() {
+                if let Some(cache) = &cache {
+                    let entry = ManifestCacheEntry {
+                        body: bytes.clone().to_vec(),
+                        etag,
+                        last_modified,
+                    };
+                    let _ = cache.put(&cache_key, &entry);
+                }
+            }
+
+            Ok(bytes)
+        },
     }
 }
 
@@ -176,13 +238,7 @@ pub async fn resolve_semver_descriptor(context: &InstallContext<'_>, descriptor:
         }).await?;
 
     let bytes
-        = http_npm::get(&http_npm::NpmHttpParams {
-            http_client: &project.http_client,
-            registry: &registry_base,
-            path: &registry_path,
-            authorization: authorization.as_deref(),
-            otp: None,
-        }).await?;
+        = fetch_registry_metadata(context, &registry_base, &registry_path, authorization).await?;
 
     #[serde_as]
     #[derive(Deserialize)]
@@ -245,13 +301,7 @@ pub async fn resolve_tag_descriptor(context: &InstallContext<'_>, descriptor: &D
         }).await?;
 
     let bytes
-        = http_npm::get(&http_npm::NpmHttpParams {
-            http_client: &project.http_client,
-            registry: &registry_base,
-            path: &registry_path,
-            authorization: authorization.as_deref(),
-            otp: None,
-        }).await?;
+        = fetch_registry_metadata(context, &registry_base, &registry_path, authorization).await?;
 
     #[serde_as]
     #[derive(Deserialize)]
