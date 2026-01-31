@@ -124,11 +124,24 @@ pub fn unpack_tgz(buffer: &[u8]) -> Result<Cow<'_, [u8]>, Error> {
     if buffer.starts_with(&[0x1f, 0x8b]) {
         let mut gz = flate2::read::GzDecoder::new(buffer);
 
-        let mut buffer = Vec::new();
-        gz.read_to_end(&mut buffer)?;
+        let mut out = Vec::with_capacity(gzip_isize_hint(buffer).unwrap_or(0));
+        gz.read_to_end(&mut out)?;
 
-        Ok(Cow::Owned(buffer))
+        Ok(Cow::Owned(out))
     } else {
         Ok(Cow::Borrowed(buffer))
     }
+}
+
+fn gzip_isize_hint(buffer: &[u8]) -> Option<usize> {
+    // ISIZE is the uncompressed size modulo 2^32, stored in the last 4 bytes (little-endian).
+    if buffer.len() < 4 {
+        return None;
+    }
+
+    let tail = buffer.get(buffer.len().saturating_sub(4)..)?;
+    let raw: [u8; 4] = tail.try_into().ok()?;
+    let isize = u32::from_le_bytes(raw) as usize;
+
+    Some(isize)
 }
