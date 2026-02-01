@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData, sync::LazyLock};
+use std::{collections::{BTreeMap, BTreeSet, HashMap}, hash::Hash, marker::PhantomData, sync::LazyLock};
 
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -811,10 +811,12 @@ impl<'a> InstallManager<'a> {
             .with_roots(self.result.roots.clone())
             .run();
 
-        self.result.lockfile.resolutions = self.result.install_state.descriptor_to_locator
-            .iter()
-            .map(|(descriptor, locator)| (descriptor.clone(), locator.clone()))
-            .collect();
+        let mut resolutions = HashMap::with_capacity(self.result.install_state.descriptor_to_locator.len());
+        resolutions.extend(
+            self.result.install_state.descriptor_to_locator.iter()
+                .map(|(descriptor, locator)| (descriptor.clone(), locator.clone()))
+        );
+        self.result.lockfile.resolutions = resolutions;
         self.result.lockfile_changed = self.result.lockfile != self.initial_lockfile;
 
         self.result.skip_build = self.context.mode == Some(InstallMode::SkipBuild);
