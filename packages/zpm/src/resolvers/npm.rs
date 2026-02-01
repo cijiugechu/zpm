@@ -66,6 +66,12 @@ async fn fetch_registry_metadata(
     let cached_entry = cache.as_ref()
         .and_then(|cache| cache.get(&cache_key).ok().flatten());
 
+    if let (Some(cache), Some(entry)) = (cache.as_ref(), cached_entry.as_ref()) {
+        if cache.is_fresh(entry) {
+            return Ok(Bytes::from(entry.body.clone()));
+        }
+    }
+
     let conditional = cached_entry.as_ref().and_then(|entry| {
         let etag = entry.etag.as_deref();
         let last_modified = entry.last_modified.as_deref();
@@ -88,6 +94,9 @@ async fn fetch_registry_metadata(
     match http_npm::get_with_meta(&params, conditional).await? {
         http_npm::GetWithMetaResult::NotModified => {
             if let Some(entry) = cached_entry {
+                if let Some(cache) = &cache {
+                    let _ = cache.refresh(&cache_key, &entry);
+                }
                 return Ok(Bytes::from(entry.body));
             }
 
@@ -95,15 +104,14 @@ async fn fetch_registry_metadata(
             Ok(bytes)
         },
         http_npm::GetWithMetaResult::Ok { bytes, etag, last_modified } => {
-            if etag.is_some() || last_modified.is_some() {
-                if let Some(cache) = &cache {
-                    let entry = ManifestCacheEntry {
-                        body: bytes.clone().to_vec(),
-                        etag,
-                        last_modified,
-                    };
-                    let _ = cache.put(&cache_key, &entry);
-                }
+            if let Some(cache) = &cache {
+                let entry = ManifestCacheEntry {
+                    body: bytes.clone().to_vec(),
+                    etag,
+                    last_modified,
+                    fresh_until: None,
+                };
+                let _ = cache.put(&cache_key, &entry);
             }
 
             Ok(bytes)

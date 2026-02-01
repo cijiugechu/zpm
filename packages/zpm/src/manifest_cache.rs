@@ -13,12 +13,16 @@ pub struct ManifestCacheEntry {
     pub body: Vec<u8>,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
+    pub fresh_until: Option<u64>,
 }
 
 #[derive(Debug)]
 pub struct ManifestCache {
     root: Path,
     enable_write: bool,
+    enabled: bool,
+    enable_cache_control: bool,
+    max_age: std::time::Duration,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,20 +30,30 @@ struct CacheMeta {
     version: u32,
     etag: Option<String>,
     last_modified: Option<String>,
+    fresh_until: Option<u64>,
 }
 
 impl ManifestCache {
     pub fn new(project: &Project) -> Result<Self, Error> {
+        let enabled = project.config.settings.enable_manifest_cache.value;
+        let enable_cache_control = project.config.settings.enable_manifest_cache_control.value;
+        let max_age = project.config.settings.manifest_cache_max_age.value;
         let root = project.preferred_cache_path()
             .with_join_str(MANIFEST_CACHE_DIR);
 
-        let enable_write = !project.config.settings.enable_immutable_cache.value;
+        let enable_write = enabled && !project.config.settings.enable_immutable_cache.value;
 
         if enable_write {
             root.fs_create_dir_all()?;
         }
 
-        Ok(Self { root, enable_write })
+        Ok(Self {
+            root,
+            enable_write,
+            enabled,
+            enable_cache_control,
+            max_age,
+        })
     }
 
     pub fn cache_key(registry: &str, path: &str) -> String {
@@ -47,6 +61,10 @@ impl ManifestCache {
     }
 
     pub fn get(&self, key: &str) -> Result<Option<ManifestCacheEntry>, Error> {
+        if !self.enabled {
+            return Ok(None);
+        }
+
         let (body_path, meta_path) = self.paths_for_key(key);
 
         if !body_path.fs_exists() || !meta_path.fs_exists() {
@@ -76,6 +94,7 @@ impl ManifestCache {
             body,
             etag: meta.etag,
             last_modified: meta.last_modified,
+            fresh_until: meta.fresh_until,
         }))
     }
 
@@ -87,10 +106,13 @@ impl ManifestCache {
         let (body_path, meta_path) = self.paths_for_key(key);
         let hash = hash_key(key);
 
+        let fresh_until = entry.fresh_until.or_else(|| self.compute_fresh_until());
+
         let meta = CacheMeta {
             version: SCHEMA_VERSION,
             etag: entry.etag.clone(),
             last_modified: entry.last_modified.clone(),
+            fresh_until,
         };
 
         let meta_text = serde_json::to_string(&meta)
@@ -108,14 +130,66 @@ impl ManifestCache {
         Ok(())
     }
 
+    pub fn refresh(&self, key: &str, entry: &ManifestCacheEntry) -> Result<(), Error> {
+        if !self.enable_write {
+            return Ok(());
+        }
+
+        let (_body_path, meta_path) = self.paths_for_key(key);
+        let hash = hash_key(key);
+
+        let meta = CacheMeta {
+            version: SCHEMA_VERSION,
+            etag: entry.etag.clone(),
+            last_modified: entry.last_modified.clone(),
+            fresh_until: self.compute_fresh_until(),
+        };
+
+        let meta_text = serde_json::to_string(&meta)
+            .map_err(|err| Error::SerializationError(err.to_string()))?;
+
+        let tmp_meta = self.root.with_join_str(format!(".{}.meta.tmp-{}", hash, rand::random::<u64>()));
+        tmp_meta.fs_write_text(meta_text)?;
+        tmp_meta.fs_rename(&meta_path)?;
+
+        Ok(())
+    }
+
+    pub fn is_fresh(&self, entry: &ManifestCacheEntry) -> bool {
+        if !self.enable_cache_control || self.max_age.is_zero() {
+            return false;
+        }
+
+        let Some(fresh_until) = entry.fresh_until else {
+            return false;
+        };
+
+        fresh_until >= now_seconds()
+    }
+
     fn paths_for_key(&self, key: &str) -> (Path, Path) {
         let hash = hash_key(key);
         let body_path = self.root.with_join_str(format!("{}.json", hash));
         let meta_path = self.root.with_join_str(format!("{}.meta.json", hash));
         (body_path, meta_path)
     }
+
+    fn compute_fresh_until(&self) -> Option<u64> {
+        if !self.enable_cache_control || self.max_age.is_zero() {
+            return None;
+        }
+
+        Some(now_seconds().saturating_add(self.max_age.as_secs()))
+    }
 }
 
 fn hash_key(key: &str) -> String {
     hex::encode(Sha256::digest(key.as_bytes()))
+}
+
+fn now_seconds() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }
