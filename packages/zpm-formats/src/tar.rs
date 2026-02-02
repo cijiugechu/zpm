@@ -135,9 +135,7 @@ pub fn unpack_tgz(buffer: &[u8]) -> Result<Cow<'_, [u8]>, Error> {
 
 fn gzip_isize_hint(buffer: &[u8]) -> Option<usize> {
     // ISIZE is the uncompressed size modulo 2^32, stored in the last 4 bytes (little-endian).
-    const MIN_GZIP_ISIZE: usize = 16;
     const MAX_GZIP_ISIZE: usize = 64 * 1024 * 1024;
-    const MIN_GZIP_OVERHEAD: usize = 18; // header + footer
 
     if buffer.len() < 4 {
         return None;
@@ -146,16 +144,8 @@ fn gzip_isize_hint(buffer: &[u8]) -> Option<usize> {
     let tail = buffer.get(buffer.len().saturating_sub(4)..)?;
     let raw: [u8; 4] = tail.try_into().ok()?;
     let isize = u32::from_le_bytes(raw) as usize;
-    if isize <= MIN_GZIP_ISIZE || isize > MAX_GZIP_ISIZE {
+    if isize > MAX_GZIP_ISIZE {
         return None;
-    }
-    let compressed_payload = buffer.len().saturating_sub(MIN_GZIP_OVERHEAD);
-    if compressed_payload > 0 {
-        // Allow slight expansion to avoid rejecting incompressible gzip payloads.
-        let min_reasonable = compressed_payload.saturating_mul(9) / 10;
-        if isize < min_reasonable {
-            return None;
-        }
     }
 
     Some(isize)
