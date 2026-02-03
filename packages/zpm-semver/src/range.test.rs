@@ -1,5 +1,5 @@
 use rstest::rstest;
-use zpm_utils::FromFileString;
+use zpm_utils::{FromFileString, ToFileString};
 
 use crate::{range::{OperatorType, Token, TokenType}, Range, Version};
 
@@ -120,6 +120,11 @@ fn test_range_min(#[case] range: Range, #[case] expected: Option<Version>) {
 #[case(Range::exact(Version { major: 1, minor: 2, patch: 3, rc: None }), "1.2.3")]
 fn test_range_factories(#[case] range: Range, #[case] expected: Range) {
     assert_eq!(range, expected);
+}
+
+#[test]
+fn test_range_any_stringify() {
+    assert_eq!(Range::any().to_file_string(), "*");
 }
 
 #[test]
@@ -249,4 +254,10 @@ fn test_range_tokenize() {
         ),
         Token::Syntax(TokenType::RParen),
     ]));
+}
+
+#[test]
+fn test_exact_version_is_strict() {
+    let range = Range::from_file_string(">=1.2.3 <=1.2.3").unwrap();
+    assert_eq!(range.exact_version(), None);
 }
