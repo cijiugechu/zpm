@@ -2,7 +2,7 @@ use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData, sy
 
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use zpm_config::PackageExtension;
+use zpm_config::{ChecksumBehavior, PackageExtension};
 use zpm_primitives::{Descriptor, GitRange, Ident, Locator, PatchRange, PeerRange, Range, Reference, RegistrySemverRange, RegistryTagRange, SemverDescriptor, SemverPeerRange, WorkspaceIdentRange};
 use zpm_utils::{Hash64, IoResultExt, Path, System, ToHumanString, UrlEncoded};
 use rkyv::Archive;
@@ -756,6 +756,11 @@ impl<'a> InstallManager<'a> {
             })
             .collect::<Result<BTreeMap<_, _>, Error>>()?;
 
+        let checksum_behavior = self.context.project
+            .map(|project| project.config.settings.checksum_behavior.value)
+            .unwrap_or(ChecksumBehavior::Throw);
+        let allow_checksum_mismatch = crate::fetchers::should_force_refresh(&self.context);
+
         for entry in self.result.lockfile.entries.values_mut() {
             let package_data = self.result.package_data
                 .get(&entry.resolution.locator)
@@ -767,7 +772,26 @@ impl<'a> InstallManager<'a> {
             let previous_checksum = previous_entry
                 .and_then(|s| s.checksum.as_ref());
 
+            let should_check_checksums
+                = self.context.check_checksums && previous_checksum.is_some();
+
+            let actual_checksum = if should_check_checksums {
+                if let Some(checksum) = package_data.checksum() {
+                    Some(checksum)
+                } else if let PackageData::Zip {archive_path, ..} = package_data {
+                    let data = archive_path
+                        .fs_read_prealloc()?;
+
+                    Some(Hash64::from_data(&data))
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
             let mut checksum = package_data.checksum()
+                .or_else(|| actual_checksum.clone())
                 .or_else(|| previous_checksum.cloned())
                 .or_else(|| late_checksums.get(&entry.resolution.locator).cloned());
 
@@ -779,25 +803,41 @@ impl<'a> InstallManager<'a> {
                 checksum = None;
             }
 
-            if self.context.check_checksums {
-                if let Some(previous_checksum) = previous_checksum {
-                    if checksum.as_ref() != Some(previous_checksum) {
-                        if let PackageData::Zip {archive_path, ..} = package_data {
-                            if let Some(project) = &self.context.project {
-                                let quarantine_path = project.ignore_path()
-                                    .with_join_str("quarantine")
-                                    .with_join_str(entry.resolution.locator.slug())
-                                    .with_ext("zip");
+            if should_check_checksums {
+                if let (Some(previous_checksum), Some(actual_checksum)) = (previous_checksum, actual_checksum.as_ref()) {
+                    if actual_checksum != previous_checksum {
+                        if allow_checksum_mismatch && matches!(checksum_behavior, ChecksumBehavior::Reset | ChecksumBehavior::Throw) {
+                            checksum = Some(actual_checksum.clone());
+                        } else {
+                            match checksum_behavior {
+                                ChecksumBehavior::Ignore => {
+                                    checksum = Some(previous_checksum.clone());
+                                }
 
-                                let data = archive_path
-                                    .fs_read_prealloc()?;
+                                ChecksumBehavior::Update => {
+                                    checksum = Some(actual_checksum.clone());
+                                }
 
-                                quarantine_path
-                                    .fs_create_parent()?
-                                    .fs_write(&data)?;
+                                ChecksumBehavior::Reset | ChecksumBehavior::Throw => {
+                                    if let PackageData::Zip {archive_path, ..} = package_data {
+                                        if let Some(project) = &self.context.project {
+                                            let quarantine_path = project.ignore_path()
+                                                .with_join_str("quarantine")
+                                                .with_join_str(entry.resolution.locator.slug())
+                                                .with_ext("zip");
+
+                                            let data = archive_path
+                                                .fs_read_prealloc()?;
+
+                                            quarantine_path
+                                                .fs_create_parent()?
+                                                .fs_write(&data)?;
+                                        }
+                                    }
+
+                                    return Err(Error::ChecksumMismatch(entry.resolution.locator.clone()));
+                                }
                             }
-
-                            return Err(Error::ChecksumMismatch(entry.resolution.locator.clone()));
                         }
                     }
                 }

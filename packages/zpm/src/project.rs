@@ -1,7 +1,7 @@
 use std::{collections::{BTreeMap, BTreeSet, HashSet}, io::ErrorKind, sync::Arc, time::UNIX_EPOCH};
 
 use globset::{GlobBuilder, GlobSetBuilder};
-use zpm_config::{Configuration, ConfigurationContext};
+use zpm_config::{CacheMigrationMode, ChecksumBehavior, Configuration, ConfigurationContext};
 use zpm_macro_enum::zpm_enum;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Descriptor, Ident, Locator, Range, Reference, WorkspaceIdentReference, WorkspaceMagicRange, WorkspacePathReference};
@@ -403,25 +403,47 @@ impl Project {
         let compression_algorithm
             = self.config.settings.compression_level.value;
 
+        let cache_migration_mode
+            = self.config.settings.cache_migration_mode.value;
+
         let enable_global_cache
             = self.config.settings.enable_global_cache.value;
 
         let enable_immutable_cache
             = self.config.settings.enable_immutable_cache.value;
 
-        let name_suffix = match compression_algorithm {
-            Some(zpm_formats::CompressionAlgorithm::Deflate(_)) => format!("-d{}", compression_algorithm.unwrap().to_file_string()),
-            None => "".to_string(),
+        let name_suffix = if cache_migration_mode == CacheMigrationMode::RequiredOnly {
+            "".to_string()
+        } else {
+            match compression_algorithm {
+                Some(zpm_formats::CompressionAlgorithm::Deflate(_)) => format!("-d{}", compression_algorithm.as_ref().unwrap().to_file_string()),
+                None => "".to_string(),
+            }
+        };
+
+        let cache_checkpoint_override
+            = self.config.settings.cache_checkpoint_override.value;
+
+        let cache_checkpoint = if cache_checkpoint_override > 0 {
+            cache_checkpoint_override
+        } else {
+            crate::cache::CACHE_VERSION
+        };
+
+        let zip_data_epilogue = {
+            let raw = self.config.settings.zip_data_epilogue.value.clone();
+            if raw.is_empty() { None } else { Some(raw.into_bytes()) }
         };
 
         let global_cache
-            = Some(DiskCache::new(global_cache_path, name_suffix.clone(), enable_immutable_cache));
+            = Some(DiskCache::new(global_cache_path, name_suffix.clone(), enable_immutable_cache, cache_checkpoint));
 
         let local_cache = (!enable_global_cache)
-            .then(|| DiskCache::new(local_cache_path, name_suffix, enable_immutable_cache));
+            .then(|| DiskCache::new(local_cache_path, name_suffix, enable_immutable_cache, cache_checkpoint));
 
         Ok(CompositeCache::new(
             compression_algorithm,
+            zip_data_epilogue,
             global_cache,
             local_cache,
         ))
@@ -797,11 +819,15 @@ impl Project {
                 }
             }
 
+            let check_checksums
+                = options.check_checksums
+                    || self.config.settings.checksum_behavior.value != ChecksumBehavior::Ignore;
+
             let install_context
                 = InstallContext::default()
                     .with_package_cache(Some(&package_cache))
                     .with_project(Some(self))
-                    .set_check_checksums(options.check_checksums)
+                    .set_check_checksums(check_checksums)
                     .set_enforced_resolutions(options.enforced_resolutions)
                     .set_prune_dev_dependencies(options.prune_dev_dependencies)
                     .set_refresh_lockfile(options.refresh_lockfile)

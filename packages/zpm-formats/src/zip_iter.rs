@@ -33,11 +33,30 @@ impl<'a> ZipIterator<'a> {
             return Err(Error::InvalidZipFile("Too small to contain the end of central directory record".to_string()))
         }
 
-        let end_of_central_directory_record_offset
-            = buffer.len() - end_of_central_directory_record_size;
+        let signature = [0x50, 0x4b, 0x05, 0x06];
+        let mut end_of_central_directory_record_offset = None;
+        let mut offset = buffer.len() - end_of_central_directory_record_size;
 
-        let end_of_central_directory_record = EndOfCentralDirectoryRecord::read_from_bytes(&buffer[end_of_central_directory_record_offset..])
-            .map_err(|_| Error::InvalidZipFile("Failed to parse end of central directory record".to_string()))?;
+        loop {
+            if buffer[offset..offset + 4] == signature {
+                end_of_central_directory_record_offset = Some(offset);
+                break;
+            }
+
+            if offset == 0 {
+                break;
+            }
+
+            offset -= 1;
+        }
+
+        let Some(end_of_central_directory_record_offset) = end_of_central_directory_record_offset else {
+            return Err(Error::InvalidZipFile("Failed to locate end of central directory record".to_string()))
+        };
+
+        let end_of_central_directory_record = EndOfCentralDirectoryRecord::ref_from_prefix(&buffer[end_of_central_directory_record_offset..])
+            .map_err(|_| Error::InvalidZipFile("Failed to parse end of central directory record".to_string()))?
+            .0;
 
         let central_directory_record_offset
             = end_of_central_directory_record.offset_of_central_directory.get() as usize;

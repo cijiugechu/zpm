@@ -22,21 +22,41 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
     let package_subdir
         = locator.ident.nm_subdir();
 
-    let cached_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
-        let tgz_data
-            = tarball_path.fs_read()?;
-        let tar_data
-            = zpm_formats::tar::unpack_tgz(&tgz_data)?;
+    let force_refresh = super::should_force_refresh(context);
 
-        let entries
-            = zpm_formats::tar::entries_from_tar(&tar_data)?
-                .into_iter()
-                .strip_first_segment()
-                .prepare_npm_entries(&package_subdir)
-                .collect();
+    let cached_blob = if force_refresh {
+        package_cache.refresh_blob(locator.clone(), ".zip", || async {
+            let tgz_data
+                = tarball_path.fs_read()?;
+            let tar_data
+                = zpm_formats::tar::unpack_tgz(&tgz_data)?;
 
-        Ok(package_cache.bundle_entries(entries)?)
-    }).await?;
+            let entries
+                = zpm_formats::tar::entries_from_tar(&tar_data)?
+                    .into_iter()
+                    .strip_first_segment()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?
+    } else {
+        package_cache.upsert_blob(locator.clone(), ".zip", || async {
+            let tgz_data
+                = tarball_path.fs_read()?;
+            let tar_data
+                = zpm_formats::tar::unpack_tgz(&tgz_data)?;
+
+            let entries
+                = zpm_formats::tar::entries_from_tar(&tar_data)?
+                    .into_iter()
+                    .strip_first_segment()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?
+    };
 
     let first_entry
         = zpm_formats::zip::first_entry_from_zip(&cached_blob.data)?;

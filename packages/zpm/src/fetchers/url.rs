@@ -47,7 +47,30 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         None
     };
 
-    let cached_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
+    let force_refresh = super::should_force_refresh(context);
+
+    let cached_blob = if force_refresh {
+        package_cache.refresh_blob(locator.clone(), ".zip", || async {
+            let response = project.http_client.get(&params.url)?
+                .header("authorization", authorization.as_deref())
+                .send().await?;
+
+            let tgz_data = response.bytes().await
+                .map_err(|err| Error::RemoteRegistryError(Arc::new(err)))?;
+            let tar_data
+                = zpm_formats::tar::unpack_tgz(&tgz_data)?;
+
+            let entries
+                = zpm_formats::tar::entries_from_tar(&tar_data)?
+                    .into_iter()
+                    .strip_first_segment()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect::<Vec<_>>();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?
+    } else {
+        package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let response = project.http_client.get(&params.url)?
             .header("authorization", authorization.as_deref())
             .send().await?;
@@ -65,7 +88,8 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
                 .collect::<Vec<_>>();
 
         Ok(package_cache.bundle_entries(entries)?)
-    }).await?;
+        }).await?
+    };
 
     let first_entry
         = zpm_formats::zip::first_entry_from_zip(&cached_blob.data)?;

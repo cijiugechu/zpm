@@ -53,6 +53,10 @@ pub struct Install {
     #[cli::option("--check-checksums", default = false)]
     check_checksums: bool,
 
+    /// Validate cache contents against the lockfile checksums
+    #[cli::option("--check-cache", default = false)]
+    check_cache: bool,
+
     /// Refresh the package metadata stored in the lockfile
     #[cli::option("--refresh-lockfile", default = false)]
     refresh_lockfile: bool,
@@ -96,7 +100,7 @@ impl Install {
         sort_workspace_dependencies(&project)?;
 
         project.run_install(RunInstallOptions {
-            check_checksums: self.check_checksums,
+            check_checksums: self.check_checksums || self.check_cache,
             check_resolutions: self.check_resolutions,
             refresh_lockfile: self.refresh_lockfile,
             mode: self.mode,

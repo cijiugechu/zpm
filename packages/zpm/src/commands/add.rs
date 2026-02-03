@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use clipanion::cli;
 use zpm_parsers::{Document, JsonDocument, Value};
-use zpm_primitives::{AnonymousSemverRange, Descriptor};
+use zpm_primitives::{AnonymousSemverRange, Descriptor, Range};
 use zpm_semver::RangeKind;
 use zpm_utils::{FromFileString, ToFileString, ToHumanString};
 
@@ -20,6 +20,14 @@ struct AddRequest {
     peer: bool,
     dev: bool,
     optional: bool,
+}
+
+fn manifest_range(range: &Range) -> String {
+    match range {
+        Range::RegistrySemver(params) if params.ident.is_some() => range.to_file_string(),
+        Range::RegistryTag(params) if params.ident.is_some() => range.to_file_string(),
+        _ => range.to_anonymous_range().to_file_string(),
+    }
 }
 
 async fn expand_with_types<'a>(install_context: &InstallContext<'a>, _resolve_options: &descriptor_loose::ResolveOptions, requests: Vec<(Descriptor, AddRequest)>) -> Result<Vec<(Descriptor, AddRequest)>, Error> {
@@ -291,14 +299,14 @@ impl Add {
             if request.dev {
                 document.set_path(
                     &zpm_parsers::Path::from_segments(vec!["devDependencies".to_string(), descriptor.ident.to_file_string()]),
-                    Value::String(descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(manifest_range(&descriptor.range)),
                 )?;
             }
 
             if request.optional {
                 document.set_path(
                     &zpm_parsers::Path::from_segments(vec!["optionalDependencies".to_string(), descriptor.ident.to_file_string()]),
-                    Value::String(descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(manifest_range(&descriptor.range)),
                 )?;
             }
 
@@ -312,7 +320,7 @@ impl Add {
             if request.prod {
                 document.set_path(
                     &zpm_parsers::Path::from_segments(vec!["dependencies".to_string(), descriptor.ident.to_file_string()]),
-                    Value::String(descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(manifest_range(&descriptor.range)),
                 )?;
             }
         }

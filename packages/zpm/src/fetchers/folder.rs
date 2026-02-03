@@ -21,15 +21,29 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
     let package_subdir
         = locator.ident.nm_subdir();
 
-    let pkg_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
-        let entries
-            = zpm_formats::entries_from_folder(&context_directory)?
-                .into_iter()
-                .prepare_npm_entries(&package_subdir)
-                .collect::<Vec<_>>();
+    let force_refresh = super::should_force_refresh(context);
 
-        Ok(package_cache.bundle_entries(entries)?)
-    }).await?;
+    let pkg_blob = if force_refresh {
+        package_cache.refresh_blob(locator.clone(), ".zip", || async {
+            let entries
+                = zpm_formats::entries_from_folder(&context_directory)?
+                    .into_iter()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect::<Vec<_>>();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?
+    } else {
+        package_cache.upsert_blob(locator.clone(), ".zip", || async {
+            let entries
+                = zpm_formats::entries_from_folder(&context_directory)?
+                    .into_iter()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect::<Vec<_>>();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?
+    };
 
     let first_entry
         = zpm_formats::zip::first_entry_from_zip(&pkg_blob.data)?;

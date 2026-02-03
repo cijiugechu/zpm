@@ -14,6 +14,31 @@
       },
       "default": ["main", "master"]
     },
+    "checksumBehavior": {
+      "type": "crate::types::ChecksumBehavior",
+      "description": "How to handle checksum mismatches when reading from the cache",
+      "default": "throw"
+    },
+    "cacheMigrationMode": {
+      "type": "crate::types::CacheMigrationMode",
+      "description": "How to handle cache migrations when cache keys change",
+      "default": "match-spec"
+    },
+    "cacheVersionOverride": {
+      "type": "usize",
+      "description": "Override the cache key version used by Yarn (0 means use the built-in version)",
+      "default": 0
+    },
+    "cacheCheckpointOverride": {
+      "type": "usize",
+      "description": "Override the cache key checkpoint recorded in the lockfile (0 means use the built-in version)",
+      "default": 0
+    },
+    "zipDataEpilogue": {
+      "type": "string",
+      "description": "Extra data appended to zip archives (testing/debug)",
+      "default": ""
+    },
     "compressionLevel": {
       "type": ["zpm_formats::CompressionAlgorithm", "null"],
       "description": "The compression level to use for the packed file"

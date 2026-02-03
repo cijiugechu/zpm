@@ -2,6 +2,7 @@ use std::process::ExitStatus;
 
 use zpm_parsers::{Document, JsonDocument, Value};
 use zpm_utils::{Path, ToFileString};
+use zpm_primitives::Range;
 use clipanion::cli;
 use zpm_semver::RangeKind;
 
@@ -151,10 +152,18 @@ pub async fn install_dependencies(workspace_path: &Path, loose_resolutions: Vec<
     let mut formatter
         = JsonDocument::new(manifest_content)?;
 
+    let manifest_range = |range: &Range| -> String {
+        match range {
+            Range::RegistrySemver(params) if params.ident.is_some() => range.to_file_string(),
+            Range::RegistryTag(params) if params.ident.is_some() => range.to_file_string(),
+            _ => range.to_anonymous_range().to_file_string(),
+        }
+    };
+
     for resolution in &loose_resolutions {
         formatter.set_path(
             &zpm_parsers::Path::from_segments(vec!["dependencies".to_string(), resolution.descriptor.ident.to_file_string()]),
-            Value::String(resolution.descriptor.range.to_anonymous_range().to_file_string()),
+            Value::String(manifest_range(&resolution.descriptor.range)),
         )?;
     }
 

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use clipanion::cli;
 use zpm_parsers::{Document, JsonDocument, Value};
-use zpm_primitives::Ident;
+use zpm_primitives::{Ident, Range};
 use zpm_semver::RangeKind;
 use zpm_utils::ToFileString;
 
@@ -82,6 +82,14 @@ pub struct Up {
 }
 
 impl Up {
+    fn manifest_range(range: &Range) -> String {
+        match range {
+            Range::RegistrySemver(params) if params.ident.is_some() => range.to_file_string(),
+            Range::RegistryTag(params) if params.ident.is_some() => range.to_file_string(),
+            _ => range.to_anonymous_range().to_file_string(),
+        }
+    }
+
     pub async fn execute(&self) -> Result<(), Error> {
         let project
             = Project::new(None).await?;
@@ -136,17 +144,17 @@ impl Up {
             for resolution in loose_resolutions.iter() {
                 document.update_path(
                     &zpm_parsers::Path::from_segments(vec!["dependencies".to_string(), resolution.descriptor.ident.to_file_string()]),
-                    Value::String(resolution.descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(Self::manifest_range(&resolution.descriptor.range)),
                 )?;
 
                 document.update_path(
                     &zpm_parsers::Path::from_segments(vec!["devDependencies".to_string(), resolution.descriptor.ident.to_file_string()]),
-                    Value::String(resolution.descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(Self::manifest_range(&resolution.descriptor.range)),
                 )?;
 
                 document.update_path(
                     &zpm_parsers::Path::from_segments(vec!["optionalDependencies".to_string(), resolution.descriptor.ident.to_file_string()]),
-                    Value::String(resolution.descriptor.range.to_anonymous_range().to_file_string()),
+                    Value::String(Self::manifest_range(&resolution.descriptor.range)),
                 )?;
             }
 

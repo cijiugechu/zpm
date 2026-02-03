@@ -81,7 +81,67 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
     let package_subdir
         = locator.ident.nm_subdir();
 
-    let cached_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
+    let force_refresh = super::should_force_refresh(context);
+
+    let cached_blob = if force_refresh {
+        package_cache.refresh_blob(locator.clone(), ".zip", || async {
+            let original_bytes = match &original_data.package_data {
+                PackageData::Zip {archive_path, ..} => Some(archive_path.fs_read()?),
+                _ => None,
+            };
+
+            let original_entries = match &original_data.package_data {
+                PackageData::Local {package_directory, ..} => {
+                    zpm_formats::entries_from_folder(package_directory)?
+                },
+
+                PackageData::Zip {..} => {
+                    let package_subpath
+                        = original_data.package_data.package_subpath();
+
+                    zpm_formats::zip::entries_from_zip(original_bytes.as_ref().unwrap())?
+                        .into_iter()
+                        .strip_path_prefix(&package_subpath)
+                        .collect::<Vec<_>>()
+                },
+
+                PackageData::Abstract | PackageData::MissingZip {..} => {
+                    return Err(Error::Unsupported);
+                },
+            };
+
+            let package_json_entry
+                = original_entries
+                    .first()
+                    .ok_or(Error::MissingPackageManifest)?;
+
+            let manifest: RemoteManifest
+                = JsonDocument::hydrate_from_slice(&package_json_entry.data)?;
+
+            let package_version
+                = manifest.version
+                    .unwrap_or_default();
+
+            let patched_entries = match is_builtin {
+                true => {
+                    apply_patch(original_entries.clone(), &patch_content, &package_version)
+                        .unwrap_or(original_entries)
+                },
+
+                false => {
+                    apply_patch(original_entries, &patch_content, &package_version)?
+                },
+            };
+
+            let patched_entries = patched_entries
+                .into_iter()
+                .prepare_npm_entries(&package_subdir)
+                .collect::<Vec<_>>();
+
+            Ok(package_cache.bundle_entries(patched_entries)?)
+        }).await?
+    } else {
+        package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let original_bytes = match &original_data.package_data {
             PackageData::Zip {archive_path, ..} => Some(archive_path.fs_read()?),
             _ => None,
@@ -136,7 +196,8 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             .collect::<Vec<_>>();
 
         Ok(package_cache.bundle_entries(patched_entries)?)
-    }).await?;
+        }).await?
+    };
 
     let package_json_entry
         = zpm_formats::zip::first_entry_from_zip(&cached_blob.data)?;

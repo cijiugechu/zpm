@@ -46,27 +46,40 @@ impl CacheEntry {
 
 pub struct CompositeCache {
     pub compression_algorithm: Option<zpm_formats::CompressionAlgorithm>,
+    pub zip_data_epilogue: Option<Vec<u8>>,
 
     pub global_cache: Option<DiskCache>,
     pub local_cache: Option<DiskCache>,
 }
 
 impl CompositeCache {
-    pub fn new(compression_algorithm: Option<zpm_formats::CompressionAlgorithm>, global_cache: Option<DiskCache>, local_cache: Option<DiskCache>) -> Self {
+    pub fn new(
+        compression_algorithm: Option<zpm_formats::CompressionAlgorithm>,
+        zip_data_epilogue: Option<Vec<u8>>,
+        global_cache: Option<DiskCache>,
+        local_cache: Option<DiskCache>,
+    ) -> Self {
         CompositeCache {
             compression_algorithm,
+            zip_data_epilogue,
             global_cache,
             local_cache,
         }
     }
 
     pub fn bundle_entries(&self, entries: Vec<Entry>) -> Result<Vec<u8>, Error> {
-        let archive = entries
+        let mut archive = entries
             .into_iter()
             .update_crc32()
             .compress(self.compression_algorithm)
             .collect::<Vec<_>>()
             .to_zip();
+
+        if let Some(epilogue) = &self.zip_data_epilogue {
+            if !epilogue.is_empty() {
+                archive.extend_from_slice(epilogue);
+            }
+        }
 
         Ok(archive)
     }
@@ -172,6 +185,28 @@ impl CompositeCache {
         panic!("Expected at least one cache to be set");
     }
 
+    pub async fn refresh_blob<R, F>(&self, key: Locator, ext: &str, func: F) -> Result<DataCacheEntry, Error>
+    where
+        R: Future<Output = Result<Vec<u8>, Error>>,
+        F: FnOnce() -> R,
+    {
+        if let Some(ref cache) = self.local_cache {
+            return cache.refresh_blob(key.clone(), ext, || async {
+                if let Some(ref cache) = self.global_cache {
+                    Ok(cache.refresh_blob(key, ext, || Self::load(func)).await?.data)
+                } else {
+                    Self::load(func).await
+                }
+            }).await;
+        }
+
+        if let Some(ref cache) = self.global_cache {
+            return cache.refresh_blob(key, ext, || Self::load(func)).await;
+        }
+
+        panic!("Expected at least one cache to be set");
+    }
+
     pub async fn clean(&self) -> Result<usize, Error> {
         if let Some(ref cache) = self.local_cache {
             return cache.clean().await;
@@ -185,22 +220,24 @@ pub struct DiskCache {
     cache_path: Path,
     name_suffix: String,
     immutable: bool,
+    cache_version: usize,
     accessed_files: Arc<Mutex<HashSet<String>>>,
 }
 
 impl DiskCache {
-    pub fn new(cache_path: Path, name_suffix: String, immutable: bool) -> Self {
+    pub fn new(cache_path: Path, name_suffix: String, immutable: bool, cache_version: usize) -> Self {
         DiskCache {
             cache_path,
             name_suffix,
             immutable,
+            cache_version,
             accessed_files: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
     pub fn key_path(&self, locator: &Locator, ext: &str) -> Path {
         let key_name
-            = format!("{}-{}{}{}", locator.slug(), CACHE_VERSION, self.name_suffix, ext);
+            = format!("{}-{}{}{}", locator.slug(), self.cache_version, self.name_suffix, ext);
 
         let key_path = self.cache_path
             .with_join_str(&key_name);
@@ -325,6 +362,33 @@ impl DiskCache {
                     }
                 }).await.unwrap()
             },
+        })
+    }
+
+    pub async fn refresh_blob<R, F>(&self, key: Locator, ext: &str, func: F) -> Result<DataCacheEntry, Error>
+    where
+        R: Future<Output = Result<Vec<u8>, Error>>,
+        F: FnOnce() -> R,
+    {
+        if self.immutable {
+            return Err(Error::ImmutableCache(key));
+        }
+
+        let key_path = self.key_path(&key, ext);
+        let key_path_buf = key_path.to_path_buf();
+
+        let data
+            = self.fetch_and_store_blob::<R, F>(key_path_buf, func).await?;
+
+        let checksum
+            = Hash64::from_data(&data);
+
+        Ok(DataCacheEntry {
+            info: InfoCacheEntry {
+                path: key_path,
+                checksum: Some(checksum),
+            },
+            data,
         })
     }
 

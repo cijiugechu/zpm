@@ -11,6 +11,10 @@ use crate::{
 use super::PackageData;
 
 pub fn try_fetch_locator_sync(context: &InstallContext, locator: &Locator, params: &RegistryReference, is_mock_request: bool) -> Result<Option<FetchResult>, Error> {
+    if super::should_force_refresh(context) {
+        return Ok(None);
+    }
+
     if is_mock_request {
         let archive_path = context.package_cache.unwrap()
             .key_path(locator, ".zip");
@@ -76,9 +80,35 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             allow_oidc: false,
         }).await?;
 
-    let cached_blob = package_cache.ensure_blob(locator.clone(), ".zip", || async {
-        let bytes
-            = http_npm::get(&http_npm::NpmHttpParams {
+    let force_refresh = super::should_force_refresh(context);
+
+    let cached_blob = if force_refresh {
+        package_cache.refresh_blob(locator.clone(), ".zip", || async {
+            let bytes
+                = http_npm::get(&http_npm::NpmHttpParams {
+                    http_client: &project.http_client,
+                    registry: &fetch_registry,
+                    path: &fetch_path,
+                    authorization: authorization.as_deref(),
+                    otp: None,
+                }).await?;
+
+            let tar_data
+                = zpm_formats::tar::unpack_tgz(&bytes)?;
+
+            let entries
+                = zpm_formats::tar::entries_from_tar(&tar_data)?
+                    .into_iter()
+                    .strip_first_segment()
+                    .prepare_npm_entries(&package_subdir)
+                    .collect::<Vec<_>>();
+
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?.info
+    } else {
+        package_cache.ensure_blob(locator.clone(), ".zip", || async {
+            let bytes
+                = http_npm::get(&http_npm::NpmHttpParams {
                 http_client: &project.http_client,
                 registry: &fetch_registry,
                 path: &fetch_path,
@@ -96,8 +126,9 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
                 .prepare_npm_entries(&package_subdir)
                 .collect::<Vec<_>>();
 
-        Ok(package_cache.bundle_entries(entries)?)
-    }).await?.into_info();
+            Ok(package_cache.bundle_entries(entries)?)
+        }).await?.into_info()
+    };
 
     let package_directory = cached_blob.path
         .with_join(&package_subdir);

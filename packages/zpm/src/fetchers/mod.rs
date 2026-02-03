@@ -1,3 +1,4 @@
+use zpm_config::{CacheMigrationMode, ChecksumBehavior};
 use zpm_primitives::{Locator, Reference, RegistryReference};
 use zpm_utils::{Hash64, Path, ToHumanString};
 use serde::{Deserialize, Serialize};
@@ -63,6 +64,50 @@ pub enum PackageData {
         /** Directory that contains the package.json file */
         package_directory: Path,
     },
+}
+
+pub(crate) fn should_force_refresh(context: &InstallContext<'_>) -> bool {
+    let Some(project) = context.project else {
+        return false;
+    };
+
+    let checksum_behavior
+        = project.config.settings.checksum_behavior.value;
+
+    if checksum_behavior == ChecksumBehavior::Reset {
+        return true;
+    }
+
+    let cache_migration_mode
+        = project.config.settings.cache_migration_mode.value;
+
+    let cache_version_override
+        = project.config.settings.cache_version_override.value;
+
+    let cache_checkpoint_override
+        = project.config.settings.cache_checkpoint_override.value;
+
+    let cache_version = if cache_version_override > 0 {
+        cache_version_override
+    } else {
+        crate::cache::CACHE_VERSION
+    };
+
+    let cache_checkpoint = if cache_checkpoint_override > 0 {
+        cache_checkpoint_override
+    } else {
+        crate::cache::CACHE_VERSION
+    };
+
+    if cache_version == cache_checkpoint {
+        return false;
+    }
+
+    match cache_migration_mode {
+        CacheMigrationMode::Always => true,
+        CacheMigrationMode::MatchSpec | CacheMigrationMode::RequiredOnly =>
+            cache_checkpoint_override == 0 && cache_version_override > 0,
+    }
 }
 
 impl PackageData {

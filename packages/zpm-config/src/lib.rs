@@ -967,3 +967,5 @@ merge_settings!(zpm_utils::Secret<String>, |s: &str| FromFileString::from_file_s
 
 merge_settings!(crate::types::NodeLinker, |s: &str| FromFileString::from_file_string(s).unwrap());
 merge_settings!(crate::types::PnpFallbackMode, |s: &str| FromFileString::from_file_string(s).unwrap());
+merge_settings!(crate::types::ChecksumBehavior, |s: &str| FromFileString::from_file_string(s).unwrap());
+merge_settings!(crate::types::CacheMigrationMode, |s: &str| FromFileString::from_file_string(s).unwrap());
