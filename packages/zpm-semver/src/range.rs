@@ -6,7 +6,7 @@ use zpm_utils::{
     ToFileString, ToHumanString,
 };
 
-use crate::{Error, VersionRc};
+use crate::Error;
 
 use super::{extract, Version};
 
@@ -257,16 +257,15 @@ impl BoundSet {
 
     fn min_candidate(&self) -> Option<Version> {
         match &self.lower {
-            Bound::Unbounded => Some(Version::new_from_components(
-                0,
-                0,
-                0,
-                Some(vec![VersionRc::Number(0)]),
-            )),
+            Bound::Unbounded => None,
             Bound::Lower(Predicate::Including(version)) => Some(version.clone()),
             Bound::Lower(Predicate::Excluding(version)) => Some(version.next_immediate_spec()),
             Bound::Upper(_) => None,
         }
+    }
+
+    fn is_unbounded(&self) -> bool {
+        matches!(self.lower, Bound::Unbounded) && matches!(self.upper, Bound::Unbounded)
     }
 }
 
@@ -418,13 +417,8 @@ impl Range {
         Range {
             source: "*".to_string(),
             sets: vec![
-                BoundSet::at_least(Predicate::Including(Version::new_from_components(
-                    0,
-                    0,
-                    0,
-                    Some(vec![VersionRc::Number(0)]),
-                )))
-                .expect("Lower bound should be valid"),
+                BoundSet::new(Bound::Unbounded, Bound::Unbounded)
+                    .expect("Unbounded range should be valid"),
             ],
             exact_version: None,
         }
@@ -527,6 +521,13 @@ impl Range {
     }
 
     pub fn range_min(&self) -> Option<Version> {
+        if self.sets.iter().any(|set| set.is_unbounded()) {
+            let min_version = Version::new_from_components(0, 0, 0, None);
+            if self.check(&min_version) {
+                return Some(min_version);
+            }
+        }
+
         self.sets
             .iter()
             .filter_map(|set| set.min_candidate())
