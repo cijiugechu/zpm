@@ -267,7 +267,7 @@ impl Project {
             let source_lockfile
                 = Project::lockfile_from(&source_lockfile_path)?;
 
-            lockfile.resolutions.extend(source_lockfile.resolutions.into_iter());
+            lockfile.resolutions_mut().extend_from(source_lockfile.into_resolutions());
         }
 
         Ok(lockfile)

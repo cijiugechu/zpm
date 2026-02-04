@@ -22,23 +22,155 @@ pub struct LockfileEntry {
     pub resolution: Resolution,
 }
 
+/// Wrapper around lockfile resolutions to avoid accidental unordered iteration.
+#[repr(transparent)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::ser::Sharing, <__S as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
+#[rkyv(deserialize_bounds(__D: rkyv::de::Pooling, <__D as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
+#[rkyv(bytecheck(bounds(__C: rkyv::validation::ArchiveContext + rkyv::validation::SharedContext, <__C as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
+pub struct LockfileResolutions(HashMap<Descriptor, Locator>);
+
+impl LockfileResolutions {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn get(&self, descriptor: &Descriptor) -> Option<&Locator> {
+        self.0.get(descriptor)
+    }
+
+    pub fn insert(&mut self, descriptor: Descriptor, locator: Locator) -> Option<Locator> {
+        self.0.insert(descriptor, locator)
+    }
+
+    pub fn contains_key(&self, descriptor: &Descriptor) -> bool {
+        self.0.contains_key(descriptor)
+    }
+
+    pub fn extend_from(&mut self, other: LockfileResolutions) {
+        self.0.extend(other.0);
+    }
+
+    pub fn iter_sorted(&self) -> Vec<(&Descriptor, &Locator)> {
+        let mut items: Vec<_> = self.0.iter().collect();
+        items.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+        items
+    }
+
+    fn iter_unordered(&self) -> std::collections::hash_map::Iter<'_, Descriptor, Locator> {
+        self.0.iter()
+    }
+}
+
+impl From<HashMap<Descriptor, Locator>> for LockfileResolutions {
+    fn from(value: HashMap<Descriptor, Locator>) -> Self {
+        Self(value)
+    }
+}
+
+/// Wrapper around lockfile entries to make unordered iteration explicit.
+#[repr(transparent)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::ser::Sharing, <__S as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
+#[rkyv(deserialize_bounds(__D: rkyv::de::Pooling, <__D as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
+#[rkyv(bytecheck(bounds(__C: rkyv::validation::ArchiveContext + rkyv::validation::SharedContext, <__C as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
+pub struct LockfileEntries(HashMap<Locator, LockfileEntry>);
+
+impl LockfileEntries {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn get(&self, locator: &Locator) -> Option<&LockfileEntry> {
+        self.0.get(locator)
+    }
+
+    pub fn get_mut(&mut self, locator: &Locator) -> Option<&mut LockfileEntry> {
+        self.0.get_mut(locator)
+    }
+
+    pub fn insert(&mut self, locator: Locator, entry: LockfileEntry) -> Option<LockfileEntry> {
+        self.0.insert(locator, entry)
+    }
+
+    pub fn contains_key(&self, locator: &Locator) -> bool {
+        self.0.contains_key(locator)
+    }
+
+    pub(crate) fn values_unordered(&self) -> std::collections::hash_map::Values<'_, Locator, LockfileEntry> {
+        self.0.values()
+    }
+
+    pub(crate) fn values_unordered_mut(&mut self) -> std::collections::hash_map::ValuesMut<'_, Locator, LockfileEntry> {
+        self.0.values_mut()
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator + rkyv::ser::Sharing, <__S as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
 #[rkyv(deserialize_bounds(__D: rkyv::de::Pooling, <__D as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source))]
 #[rkyv(bytecheck(bounds(__C: rkyv::validation::ArchiveContext + rkyv::validation::SharedContext, <__C as rkyv::rancor::Fallible>::Error: rkyv::rancor::Source)))]
 pub struct Lockfile {
-    pub metadata: LockfileMetadata,
-    pub resolutions: HashMap<Descriptor, Locator>,
-    pub entries: HashMap<Locator, LockfileEntry>,
+    metadata: LockfileMetadata,
+    resolutions: LockfileResolutions,
+    entries: LockfileEntries,
 }
 
 impl Lockfile {
     pub fn new() -> Self {
         Self {
             metadata: LockfileMetadata::new(),
-            resolutions: HashMap::new(),
-            entries: HashMap::new(),
+            resolutions: LockfileResolutions::new(),
+            entries: LockfileEntries::new(),
         }
+    }
+
+    pub(crate) fn metadata(&self) -> &LockfileMetadata {
+        &self.metadata
+    }
+
+    pub(crate) fn metadata_mut(&mut self) -> &mut LockfileMetadata {
+        &mut self.metadata
+    }
+
+    pub(crate) fn resolutions(&self) -> &LockfileResolutions {
+        &self.resolutions
+    }
+
+    pub(crate) fn resolutions_mut(&mut self) -> &mut LockfileResolutions {
+        &mut self.resolutions
+    }
+
+    pub(crate) fn entries(&self) -> &LockfileEntries {
+        &self.entries
+    }
+
+    pub(crate) fn entries_mut(&mut self) -> &mut LockfileEntries {
+        &mut self.entries
+    }
+
+    pub(crate) fn set_resolutions(&mut self, resolutions: LockfileResolutions) {
+        self.resolutions = resolutions;
+    }
+
+    pub(crate) fn into_resolutions(self) -> LockfileResolutions {
+        self.resolutions
     }
 }
 
@@ -48,7 +180,7 @@ impl<'de> Deserialize<'de> for Lockfile {
 
         let mut lockfile = Lockfile::new();
 
-        lockfile.metadata = payload.metadata;
+        *lockfile.metadata_mut() = payload.metadata;
 
         for (key, entry) in payload.entries {
             for descriptor in key.0 {
@@ -65,7 +197,7 @@ impl<'de> Deserialize<'de> for Lockfile {
 impl Serialize for Lockfile {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut counts: HashMap<Locator, usize> = HashMap::new();
-        for (descriptor, locator) in self.resolutions.iter() {
+        for (descriptor, locator) in self.resolutions.iter_unordered() {
             if descriptor.range.details().transient_resolution {
                 continue;
             }
@@ -75,8 +207,7 @@ impl Serialize for Lockfile {
         let mut descriptors_to_resolutions: HashMap<Locator, MultiKey<Descriptor>> =
             HashMap::with_capacity(counts.len());
 
-        let mut sorted_resolutions: Vec<_> = self.resolutions.iter().collect();
-        sorted_resolutions.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+        let sorted_resolutions = self.resolutions.iter_sorted();
 
         for (descriptor, locator) in sorted_resolutions {
             // Skip descriptors with transient_resolution set to true
@@ -299,7 +430,7 @@ pub fn from_legacy_berry_lockfile(data: &str) -> Result<Lockfile, Error> {
     let mut lockfile
         = Lockfile::new();
 
-    lockfile.metadata.version = 1;
+    lockfile.metadata_mut().version = 1;
 
     for (key, entry) in payload.entries.0 {
         let (same_idents, aliased_idents): (Vec<_>, Vec<_>)
@@ -411,7 +542,7 @@ pub fn from_pnpm_node_modules(project_cwd: &Path) -> Result<Lockfile, Error> {
             .map_err(|_| Error::PnpmNodeModulesReadError)?;
 
     let mut lockfile = Lockfile::new();
-    lockfile.metadata.version = 1;
+    lockfile.metadata_mut().version = 1;
 
     while let Some(entry) = pnpm_list.pop() {
         pnpm_list.extend(entry.dependencies.values().cloned());
@@ -514,7 +645,7 @@ mod tests {
     #[test]
     fn lockfile_serialization_is_stable() {
         let mut lockfile = Lockfile::new();
-        lockfile.metadata = LockfileMetadata { version: LOCKFILE_VERSION };
+        *lockfile.metadata_mut() = LockfileMetadata { version: LOCKFILE_VERSION };
 
         let locator_bar = Locator::from_file_string("bar@npm:2.3.4").unwrap();
         let locator_foo = Locator::from_file_string("foo@npm:1.2.3").unwrap();
@@ -523,18 +654,18 @@ mod tests {
         let resolution_foo = Resolution::new_empty(locator_foo.clone(), Version::from_file_string("1.2.3").unwrap());
 
         // Insert in a non-sorted order to ensure serialization sorting is deterministic.
-        lockfile.entries.insert(locator_foo.clone(), LockfileEntry {
+        lockfile.entries_mut().insert(locator_foo.clone(), LockfileEntry {
             checksum: None,
             resolution: resolution_foo,
         });
-        lockfile.entries.insert(locator_bar.clone(), LockfileEntry {
+        lockfile.entries_mut().insert(locator_bar.clone(), LockfileEntry {
             checksum: None,
             resolution: resolution_bar,
         });
 
-        lockfile.resolutions.insert(Descriptor::from_file_string("foo@npm:~1.1.0").unwrap(), locator_foo.clone());
-        lockfile.resolutions.insert(Descriptor::from_file_string("bar@npm:^2.0.0").unwrap(), locator_bar.clone());
-        lockfile.resolutions.insert(Descriptor::from_file_string("foo@npm:^1.0.0").unwrap(), locator_foo);
+        lockfile.resolutions_mut().insert(Descriptor::from_file_string("foo@npm:~1.1.0").unwrap(), locator_foo.clone());
+        lockfile.resolutions_mut().insert(Descriptor::from_file_string("bar@npm:^2.0.0").unwrap(), locator_bar.clone());
+        lockfile.resolutions_mut().insert(Descriptor::from_file_string("foo@npm:^1.0.0").unwrap(), locator_foo);
 
         let serialized = JsonDocument::to_string_pretty(&lockfile).unwrap();
 

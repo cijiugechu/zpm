@@ -491,15 +491,15 @@ impl<'a> GraphCache<InstallContext<'a>, InstallOp<'a>, InstallOpResult, Error> f
             let enforced_resolution
                 = ctx.enforced_resolutions.get(descriptor);
 
-            if let Some(locator) = self.lockfile.resolutions.get(descriptor) {
+            if let Some(locator) = self.lockfile.resolutions().get(descriptor) {
                 if enforced_resolution.map_or(true, |enforced_resolution| locator == enforced_resolution) {
-                    if self.lockfile.metadata.version != LockfileMetadata::new().version || ctx.refresh_lockfile {
+                    if self.lockfile.metadata().version != LockfileMetadata::new().version || ctx.refresh_lockfile {
                         return Ok(Some(InstallOpResult::Pinned(PinnedResult {
                             locator: locator.clone(),
                         })));
                     }
 
-                    let entry = self.lockfile.entries.get(locator)
+                    let entry = self.lockfile.entries().get(locator)
                         .unwrap_or_else(|| panic!("Expected a matching resolution to be found in the lockfile for any resolved locator; not found for {}.", locator.to_print_string()));
 
                     return Ok(Some(InstallOpResult::Resolved(entry.resolution.clone().into_resolution_result(ctx)?)));
@@ -722,10 +722,10 @@ impl<'a> InstallManager<'a> {
             }
         }
 
-        let missing_checksums = self.result.lockfile.entries.values()
+        let missing_checksums = self.result.lockfile.entries().values_unordered()
             .filter(|entry| {
                 let previous_entry
-                    = self.initial_lockfile.entries.get(&entry.resolution.locator);
+                    = self.initial_lockfile.entries().get(&entry.resolution.locator);
 
                 let has_checksum
                     = previous_entry.map_or(false, |s| s.checksum.is_some());
@@ -756,13 +756,13 @@ impl<'a> InstallManager<'a> {
             })
             .collect::<Result<BTreeMap<_, _>, Error>>()?;
 
-        for entry in self.result.lockfile.entries.values_mut() {
+        for entry in self.result.lockfile.entries_mut().values_unordered_mut() {
             let package_data = self.result.package_data
                 .get(&entry.resolution.locator)
                 .unwrap_or_else(|| panic!("Expected a matching package data to be found for any fetched locator; not found for {}.", entry.resolution.locator.to_file_string()));
 
             let previous_entry
-                = self.initial_lockfile.entries.get(&entry.resolution.locator);
+                = self.initial_lockfile.entries().get(&entry.resolution.locator);
 
             let previous_checksum = previous_entry
                 .and_then(|s| s.checksum.as_ref());
@@ -816,7 +816,7 @@ impl<'a> InstallManager<'a> {
             self.result.install_state.descriptor_to_locator.iter()
                 .map(|(descriptor, locator)| (descriptor.clone(), locator.clone()))
         );
-        self.result.lockfile.resolutions = resolutions;
+        self.result.lockfile.set_resolutions(resolutions.into());
         self.result.lockfile_changed = self.result.lockfile != self.initial_lockfile;
 
         self.result.skip_build = self.context.mode == Some(InstallMode::SkipBuild);
@@ -831,7 +831,7 @@ impl<'a> InstallManager<'a> {
     fn record_resolution(&mut self, resolution: Resolution, original_resolution: Resolution, package_data: Option<PackageData>) -> Result<(), Error> {
         self.result.install_state.normalized_resolutions.insert(resolution.locator.clone(), resolution.clone());
 
-        self.result.lockfile.entries.insert(resolution.locator.clone(), LockfileEntry {
+        self.result.lockfile.entries_mut().insert(resolution.locator.clone(), LockfileEntry {
             checksum: None,
             resolution: original_resolution,
         });
