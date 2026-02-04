@@ -1,6 +1,6 @@
 use rkyv::Archive;
 use zpm_utils::{impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, ToFileString, ToHumanString};
-use zpm_ecow::{EcoString, EcoVec};
+use zpm_utils::{EcoString, EcoVec};
 
 use crate::{
     extract::extract_version,

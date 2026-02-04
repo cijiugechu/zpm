@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use zpm_parsers::JsonDocument;
 use zpm_semver::{Version, VersionRc};
 use zpm_utils::{DataType, Hash64, Path, ToFileString, ToHumanString, Unit, is_terminal};
-use zpm_ecow::eco_vec;
+use zpm_utils::eco_vec;
 
 use crate::errors::Error;
 

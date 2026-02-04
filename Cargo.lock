@@ -4294,14 +4294,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zpm-ecow"
-version = "0.0.0"
-dependencies = [
- "ecow",
- "rkyv",
-]
-
-[[package]]
 name = "zpm-formats"
 version = "0.0.0"
 dependencies = [
@@ -4373,7 +4365,6 @@ dependencies = [
  "serde",
  "serde_plain",
  "thiserror 2.0.18",
- "zpm-ecow",
  "zpm-git",
  "zpm-macro-enum",
  "zpm-semver",
@@ -4388,7 +4379,6 @@ dependencies = [
  "rstest",
  "serde",
  "thiserror 2.0.18",
- "zpm-ecow",
  "zpm-utils",
 ]
 
@@ -4408,7 +4398,6 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "zpm-allocator",
- "zpm-ecow",
  "zpm-formats",
  "zpm-macro-enum",
  "zpm-parsers",
@@ -4434,6 +4423,7 @@ dependencies = [
  "base64",
  "blake2",
  "colored 3.1.1",
+ "ecow",
  "erased-serde",
  "fundu",
  "hex",
@@ -4453,6 +4443,5 @@ dependencies = [
  "tokio",
  "urlencoding",
  "wax",
- "zpm-ecow",
  "zpm-macro-enum",
 ]

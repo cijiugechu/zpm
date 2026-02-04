@@ -1,7 +1,7 @@
 use std::{fmt, string::FromUtf8Error};
 
 use colored::Colorize;
-use zpm_ecow::EcoString;
+use crate::EcoString;
 use erased_serde::serialize_trait_object;
 use fundu::parse_duration;
 use serde::{Serialize, Serializer};

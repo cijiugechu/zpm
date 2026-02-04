@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 
-use zpm_ecow::{EcoString, EcoVec};
+use zpm_utils::{EcoString, EcoVec};
 use rkyv::Archive;
 use zpm_utils::{DataType, FromFileString, ToFileString, ToHumanString, impl_file_string_from_str, impl_file_string_serialization};
 

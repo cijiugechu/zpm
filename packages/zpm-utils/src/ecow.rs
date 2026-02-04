@@ -1,7 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-pub extern crate ecow;
-
 use ecow::{EcoString as InnerEcoString, EcoVec as InnerEcoVec};
 use rkyv::{
     rancor::{Fallible, Source},
@@ -14,13 +12,13 @@ use rkyv::{
 #[macro_export]
 macro_rules! eco_vec {
     () => {
-        $crate::EcoVec($crate::ecow::eco_vec![])
+        $crate::EcoVec($crate::ecow_crate::eco_vec![])
     };
     ($elem:expr; $n:expr) => {
-        $crate::EcoVec($crate::ecow::eco_vec![$elem; $n])
+        $crate::EcoVec($crate::ecow_crate::eco_vec![$elem; $n])
     };
     ($($value:expr),+ $(,)?) => {
-        $crate::EcoVec($crate::ecow::eco_vec![$($value),+])
+        $crate::EcoVec($crate::ecow_crate::eco_vec![$($value),+])
     };
 }
 

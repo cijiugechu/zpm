@@ -1,4 +1,4 @@
-use zpm_ecow::EcoVec;
+use zpm_utils::EcoVec;
 
 use super::{range::{OperatorType, Token, TokenType}, version::VersionRc, Version};
 use crate::{
