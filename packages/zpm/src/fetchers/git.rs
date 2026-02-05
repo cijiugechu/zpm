@@ -1,4 +1,5 @@
 use zpm_formats::iter_ext::IterExt;
+use zpm_formats::zip::ToZip;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{GitReference, Locator};
 
@@ -24,6 +25,10 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
 
     let package_subdir
         = locator.ident.nm_subdir();
+    let package_subdir_for_entries
+        = package_subdir.clone();
+    let compression_algorithm
+        = package_cache.compression_algorithm;
 
     let pkg_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let repository_path
@@ -35,17 +40,28 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             &params.git.prepare_params,
         ).await?;
 
-        let pack_tar
-            = zpm_formats::tar::unpack_tgz(&pack_tgz)?;
+        let archive = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, Error> {
+            let pack_tar
+                = zpm_formats::tar::unpack_tgz(&pack_tgz)?;
 
-        let entries
-            = zpm_formats::tar::entries_from_tar(&pack_tar)?
-                .into_iter()
-                .strip_first_segment()
-                .prepare_npm_entries(&package_subdir)
-                .collect::<Vec<_>>();
+            let entries
+                = zpm_formats::tar::entries_from_tar(&pack_tar)?
+                    .into_iter()
+                    .strip_first_segment()
+                    .prepare_npm_entries(&package_subdir_for_entries)
+                    .collect::<Vec<_>>();
 
-        Ok(package_cache.bundle_entries(entries)?)
+            let archive
+                = entries.into_iter()
+                    .update_crc32()
+                    .compress(compression_algorithm)
+                    .collect::<Vec<_>>()
+                    .to_zip();
+
+            Ok(archive)
+        }).await??;
+
+        Ok(archive)
     }).await?;
 
     let first_entry
