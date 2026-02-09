@@ -27,6 +27,7 @@ rayon = { workspace = true }
 rkyv = { workspace = true, features = ["bytecheck"] }
 reqwest = { workspace = true, default-features = false, features = ["gzip", "http2", "hickory-dns", "rustls-tls"] }
 regex = { workspace = true }
+rustix = { workspace = true }
 serde_with = { workspace = true }
 serde_yaml = { workspace = true }
 thiserror = { workspace = true }
