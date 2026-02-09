@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::BTreeMap, iter::once, str::FromStr};
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use zpm_formats::{Entry, iter_ext::IterExt, zip::ToZip};
+use zpm_formats::{Entry, iter_ext::IterExt};
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{BuiltinRange, BuiltinReference, Descriptor, Ident, Locator};
 use zpm_utils::{Cpu, Os, Path, RawPath, System, ToFileString};
@@ -143,13 +143,13 @@ pub async fn fetch_nodejs_locator<'a>(context: &InstallContext<'a>, locator: &Lo
 
     let package_cache = context.package_cache
         .expect("The package cache is required for fetching npm packages");
+    let cache_packer
+        = package_cache.packer();
 
     let package_subdir
         = locator.ident.nm_subdir();
     let package_subdir_for_entries
         = package_subdir.clone();
-    let compression_algorithm
-        = package_cache.compression_algorithm;
     let locator_ident
         = locator.ident.clone();
     let bin_file
@@ -205,14 +205,7 @@ pub async fn fetch_nodejs_locator<'a>(context: &InstallContext<'a>, locator: &Lo
                     .prepare_npm_entries(&package_subdir_for_entries)
                     .collect_vec();
 
-            let archive
-                = entries.into_iter()
-                    .update_crc32()
-                    .compress(compression_algorithm)
-                    .collect::<Vec<_>>()
-                    .to_zip();
-
-            Ok(archive)
+            Ok(cache_packer.pack(entries)?)
         }).await??;
 
         Ok(archive)

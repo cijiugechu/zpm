@@ -1,5 +1,4 @@
 use zpm_formats::iter_ext::IterExt;
-use zpm_formats::zip::ToZip;
 use zpm_primitives::{Locator, RegistryReference};
 
 use crate::{
@@ -63,13 +62,13 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
 
     let package_cache = context.package_cache
         .expect("The package cache is required for fetching npm packages");
+    let cache_packer
+        = package_cache.packer();
 
     let package_subdir
         = params.ident.nm_subdir();
     let package_subdir_for_entries
         = package_subdir.clone();
-    let compression_algorithm
-        = package_cache.compression_algorithm;
 
     let authorization
         = http_npm::get_authorization(&GetAuthorizationOptions {
@@ -102,14 +101,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
                     .prepare_npm_entries(&package_subdir_for_entries)
                     .collect::<Vec<_>>();
 
-            let archive
-                = entries.into_iter()
-                    .update_crc32()
-                    .compress(compression_algorithm)
-                    .collect::<Vec<_>>()
-                    .to_zip();
-
-            Ok(archive)
+            Ok(cache_packer.pack(entries)?)
         }).await??;
 
         Ok(archive)

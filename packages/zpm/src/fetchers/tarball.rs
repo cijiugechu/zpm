@@ -1,5 +1,4 @@
 use zpm_formats::iter_ext::IterExt;
-use zpm_formats::zip::ToZip;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Locator, TarballReference};
 
@@ -10,8 +9,12 @@ use crate::{
 use super::PackageData;
 
 pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, params: &TarballReference, is_mock_request: bool, dependencies: Vec<InstallOpResult>) -> Result<FetchResult, Error> {
-    let package_cache = context.package_cache
-        .expect("The package cache is required for fetching tarball packages");
+    let package_cache
+        = context.package_cache
+            .expect("The package cache is required for fetching tarball packages");
+
+    let cache_packer
+        = package_cache.packer();
 
     if is_mock_request {
         let archive_path = package_cache
@@ -34,8 +37,6 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         = locator.ident.nm_subdir();
     let package_subdir_for_entries
         = package_subdir.clone();
-    let compression_algorithm
-        = package_cache.compression_algorithm;
 
     let cached_blob = package_cache.upsert_blob(locator.clone(), ".zip", || async {
         let tgz_data
@@ -52,14 +53,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
                     .prepare_npm_entries(&package_subdir_for_entries)
                     .collect::<Vec<_>>();
 
-            let archive
-                = entries.into_iter()
-                    .update_crc32()
-                    .compress(compression_algorithm)
-                    .collect::<Vec<_>>()
-                    .to_zip();
-
-            Ok(archive)
+            Ok(cache_packer.pack(entries)?)
         }).await??;
 
         Ok(archive)

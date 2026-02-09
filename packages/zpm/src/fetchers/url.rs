@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use zpm_formats::iter_ext::IterExt;
-use zpm_formats::zip::ToZip;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Locator, UrlReference};
 
@@ -25,8 +24,12 @@ fn get_registry_base_from_url(url: &str) -> Option<String> {
 }
 
 pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, params: &UrlReference, is_mock_request: bool) -> Result<FetchResult, Error> {
-    let package_cache = context.package_cache
-        .expect("The package cache is required for fetching URL packages");
+    let package_cache
+        = context.package_cache
+            .expect("The package cache is required for fetching URL packages");
+
+    let cache_packer
+        = package_cache.packer();
 
     if is_mock_request {
         let archive_path = package_cache
@@ -45,8 +48,6 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
         = locator.ident.nm_subdir();
     let package_subdir_for_entries
         = package_subdir.clone();
-    let compression_algorithm
-        = package_cache.compression_algorithm;
 
     // Try to get authorization for the URL's registry
     let authorization = if let Some(registry_base) = get_registry_base_from_url(&params.url) {
@@ -80,14 +81,7 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
                     .prepare_npm_entries(&package_subdir_for_entries)
                     .collect::<Vec<_>>();
 
-            let archive
-                = entries.into_iter()
-                    .update_crc32()
-                    .compress(compression_algorithm)
-                    .collect::<Vec<_>>()
-                    .to_zip();
-
-            Ok(archive)
+            Ok(cache_packer.pack(entries)?)
         }).await??;
 
         Ok(archive)
