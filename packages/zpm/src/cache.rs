@@ -44,13 +44,6 @@ impl CacheEntry {
     }
 }
 
-pub struct CompositeCache {
-    pub compression_algorithm: Option<zpm_formats::CompressionAlgorithm>,
-
-    pub global_cache: Option<DiskCache>,
-    pub local_cache: Option<DiskCache>,
-}
-
 pub struct CachePacker {
     compression_algorithm: Option<zpm_formats::CompressionAlgorithm>,
 }
@@ -66,6 +59,13 @@ impl CachePacker {
 
         Ok(archive)
     }
+}
+
+pub struct CompositeCache {
+    pub compression_algorithm: Option<zpm_formats::CompressionAlgorithm>,
+
+    pub global_cache: Option<DiskCache>,
+    pub local_cache: Option<DiskCache>,
 }
 
 impl CompositeCache {
