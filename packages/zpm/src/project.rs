@@ -84,14 +84,14 @@ impl Project {
             let lock_p
                 = p.with_join_str(LOCKFILE_NAME);
 
-            if lock_p.fs_exists() {
+            if lock_p.fs_exists_blocking() {
                 return Ok((p.clone(), closest_pkg.unwrap_or(p)));
             }
 
             let pkg_p
                 = p.with_join_str(MANIFEST_NAME);
 
-            if pkg_p.fs_exists() {
+            if pkg_p.fs_exists_blocking() {
                 farthest_pkg = Some(p.clone());
 
                 if closest_pkg.is_none() {
@@ -274,13 +274,13 @@ impl Project {
     }
 
     fn lockfile_from(lockfile_path: &Path) -> Result<Lockfile, Error> {
-        if !lockfile_path.fs_exists() {
+        if !lockfile_path.fs_exists_blocking() {
             // Check for pnpm node_modules in the same directory
             if let Some(project_cwd) = lockfile_path.dirname() {
                 let pnpm_dir
                     = project_cwd.with_join_str("node_modules/.pnpm");
 
-                if pnpm_dir.fs_exists() {
+                if pnpm_dir.fs_exists_blocking() {
                     return from_pnpm_node_modules(&project_cwd);
                 }
             }
@@ -289,7 +289,7 @@ impl Project {
         }
 
         let src = lockfile_path
-            .fs_read_text()?;
+            .fs_read_text_blocking()?;
 
         if src.is_empty() {
             return Ok(Lockfile::new());
@@ -310,12 +310,12 @@ impl Project {
         let install_state_path
             = self.install_state_path();
 
-        if !install_state_path.fs_exists() {
+        if !install_state_path.fs_exists_blocking() {
             return Err(Error::InstallStateNotFound);
         }
 
         let src = install_state_path
-            .fs_read()?;
+            .fs_read_blocking()?;
 
         let install_state
             = rkyv::from_bytes::<InstallState, rkyv::rancor::BoxedError>(&src)
@@ -354,16 +354,16 @@ impl Project {
         //     let re_parsed_formatted = format!("{:#?}", re_parsed);
 
         //     Path::from("/tmp/zpm-install-state-before.json")
-        //         .fs_write_text(install_state_formatted)?;
+        //         .fs_write_text(install_state_formatted).await?;
         //     Path::from("/tmp/zpm-install-state-after.json")
-        //         .fs_write_text(re_parsed_formatted)?;
+        //         .fs_write_text(re_parsed_formatted).await?;
 
         //     panic!("The generated install state does not match the original install state. See /tmp/zpm-install-state-{{before,after}}.json for details.");
         // }
 
         link_info_path
-            .fs_create_parent()?
-            .fs_change(contents, false)?;
+            .fs_create_parent_blocking()?
+            .fs_change_blocking(contents, false)?;
 
         Ok(())
     }
@@ -378,7 +378,7 @@ impl Project {
         if self.config.settings.enable_immutable_installs.value {
             lockfile_path.fs_expect(contents, false)?;
         } else {
-            lockfile_path.fs_change(contents, false)?;
+            lockfile_path.fs_change_blocking(contents, false)?;
         }
 
         Ok(())
@@ -390,12 +390,12 @@ impl Project {
         let local_cache_path
             = self.local_cache_path();
 
-        global_cache_path.fs_create_dir_all()?;
+        global_cache_path.fs_create_dir_all_blocking()?;
 
         if !self.config.settings.enable_global_cache.value {
             if !self.config.settings.enable_immutable_cache.value {
-                local_cache_path.fs_create_dir_all()?;
-            } else if !local_cache_path.fs_exists() {
+                local_cache_path.fs_create_dir_all_blocking()?;
+            } else if !local_cache_path.fs_exists_blocking() {
                 return Err(Error::MissingCacheFolder(local_cache_path));
             }
         }
@@ -718,9 +718,9 @@ impl Project {
         };
 
         let cache_exists = if self.config.settings.enable_global_cache.value {
-            self.global_cache_path().fs_exists()
+            self.global_cache_path().fs_exists().await
         } else {
-            self.local_cache_path().fs_exists()
+            self.local_cache_path().fs_exists().await
         };
 
         if cache_exists {
@@ -773,7 +773,8 @@ impl Project {
                     = self.lockfile_path();
 
                 let lockfile_content = lockfile_path
-                    .fs_read_text()?;
+                    .fs_read_text()
+                    .await?;
 
                 if lockfile_content.contains("<<<<<<<") {
                     if self.config.settings.enable_immutable_installs.value {
