@@ -606,9 +606,9 @@ impl StreamReport {
         if let Error::RemoteManifestParseError { locator, origin, path, reason } = &error {
             self.report(ReportMessage::RemoteManifestParse {
                 locator: locator.to_print_string(),
-                origin: origin.clone(),
-                path: path.clone(),
-                reason: reason.clone(),
+                origin: origin.to_string(),
+                path: path.to_string(),
+                reason: reason.to_string(),
             });
             return;
         }

@@ -257,7 +257,7 @@ pub fn from_legacy_berry_lockfile(data: &str, lockfile_path: &Path) -> Result<Lo
     let payload: LegacyBerryLockfilePayload = serde_yaml::from_str(data)
         .map_err(|error| Error::LegacyLockfileParseError {
             path: lockfile_path.clone(),
-            reason: error.to_string(),
+            reason: error.to_string().into(),
         })?;
 
     let mut lockfile

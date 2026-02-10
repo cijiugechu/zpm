@@ -1,7 +1,7 @@
 use std::{future::Future, sync::Arc};
 
 use zpm_primitives::{Descriptor, Ident, Locator, Range};
-use zpm_utils::{DataType, Path, ToHumanString};
+use zpm_utils::{DataType, EcoString, Path, ToHumanString};
 use tokio::task::JoinError;
 
 fn render_backtrace(backtrace: &std::backtrace::Backtrace) -> String {
@@ -39,8 +39,8 @@ fn render_remote_manifest_reason(raw_reason: &str) -> String {
 
 pub fn remote_manifest_parse_error(
     locator: &Locator,
-    origin: impl Into<String>,
-    path: impl Into<String>,
+    origin: impl Into<EcoString>,
+    path: impl Into<EcoString>,
     parser_error: zpm_parsers::Error,
 ) -> Error {
     let raw_reason = match &parser_error {
@@ -52,7 +52,7 @@ pub fn remote_manifest_parse_error(
         locator: locator.clone(),
         origin: origin.into(),
         path: path.into(),
-        reason: render_remote_manifest_reason(&raw_reason),
+        reason: render_remote_manifest_reason(&raw_reason).into(),
     }
 }
 
@@ -191,9 +191,9 @@ pub enum Error {
     #[error("Invalid package metadata in {path} ({origin}): {reason}")]
     RemoteManifestParseError {
         locator: Locator,
-        origin: String,
-        path: String,
-        reason: String,
+        origin: EcoString,
+        path: EcoString,
+        reason: EcoString,
     },
 
     #[error("Semver error ({0})")]
@@ -220,7 +220,7 @@ pub enum Error {
     #[error("Package manifest failed to parse ({}): {reason}", path.to_print_string())]
     ManifestParseError {
         path: Path,
-        reason: String,
+        reason: EcoString,
     },
 
     #[error("Invalid descriptor ({0})")]
@@ -307,7 +307,7 @@ pub enum Error {
     #[error("An error occured while parsing the lockfile ({}): {reason}", path.to_print_string())]
     LockfileParseError {
         path: Path,
-        reason: String,
+        reason: EcoString,
     },
 
     #[error("Can't perform this operation without a git root")]
@@ -322,7 +322,7 @@ pub enum Error {
     #[error("An error occured while parsing the Yarn Berry lockfile ({}): {reason}", path.to_print_string())]
     LegacyLockfileParseError {
         path: Path,
-        reason: String,
+        reason: EcoString,
     },
 
     #[error("Failed to read pnpm node_modules directory")]

@@ -303,7 +303,7 @@ impl Project {
             = JsonDocument::hydrate_from_str(&src)
                 .map_err(|error| Error::LockfileParseError {
                     path: lockfile_path.clone(),
-                    reason: error.to_string(),
+                    reason: error.to_string().into(),
                 })?;
 
         Ok(lockfile)

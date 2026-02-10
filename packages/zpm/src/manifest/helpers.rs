@@ -28,7 +28,7 @@ pub fn read_manifest_with_size(abs_path: &Path, size: u64) -> Result<Manifest, E
 
             Error::ManifestParseError {
                 path: abs_path.clone(),
-                reason,
+                reason: reason.into(),
             }
         })
 }
