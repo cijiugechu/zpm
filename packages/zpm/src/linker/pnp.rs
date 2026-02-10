@@ -333,8 +333,16 @@ pub async fn link_project_pnp<'a>(project: &'a Project, install: &'a Install) ->
         if locator.reference.is_disk_reference() {
             is_physically_on_disk = true;
         } else if package_build_info.must_extract {
+            let berry_hash = yarn_berry_hash(locator)?;
+            let mut unplugged_wrapper_name = String::with_capacity(locator.ident.as_str().len() + 1 + 20 + 1 + berry_hash.len());
+            locator.ident.write_slug_to(&mut unplugged_wrapper_name);
+            unplugged_wrapper_name.push('-');
+            locator.reference.write_slug_to(&mut unplugged_wrapper_name);
+            unplugged_wrapper_name.push('-');
+            unplugged_wrapper_name.push_str(&berry_hash);
+
             let package_unplugged_wrapper_path = unplugged_path
-                .with_join_str(format!("{}-{}-{}", locator.ident.slug(), locator.reference.slug(), yarn_berry_hash(locator)?));
+                .with_join_str(&unplugged_wrapper_name);
 
             package_location_abs = package_unplugged_wrapper_path
                 .with_join(&physical_package_data.package_subpath());
@@ -401,9 +409,13 @@ pub async fn link_project_pnp<'a>(project: &'a Project, install: &'a Install) ->
                     let build_dir_base
                         = Path::temp_dir_pattern("zpm-<>")?;
 
+                    let mut build_rel = String::with_capacity(6 + 80);
+                    build_rel.push_str("build/");
+                    locator.write_slug_to(&mut build_rel);
+
                     let build_dir
                         = build_dir_base
-                            .with_join_str(format!("build/{}", locator.slug()));
+                            .with_join_str(&build_rel);
 
                     build_dir
                         .fs_create_dir_all()?;

@@ -6,26 +6,54 @@ use rkyv::Archive;
 use crate::{impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, ToFileString, ToHumanString};
 
 pub type Blake2b80 = Blake2b<U64>;
+const HASH64_LEN: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[rkyv(derive(PartialEq, Eq, Hash, PartialOrd, Ord))]
 pub struct Hash64 {
-    state: Vec<u8>,
+    state: [u8; HASH64_LEN],
+}
+
+pub struct Hash64Builder {
+    hasher: Blake2b80,
+}
+
+impl Hash64Builder {
+    pub fn new() -> Self {
+        Self {
+            hasher: Blake2b80::new(),
+        }
+    }
+
+    pub fn update(&mut self, data: &[u8]) {
+        self.hasher.update(data);
+    }
+
+    pub fn finish(self) -> Hash64 {
+        let state: [u8; HASH64_LEN] = self.hasher.finalize().into();
+        Hash64 { state }
+    }
 }
 
 impl Hash64 {
+    pub fn from_array(state: [u8; HASH64_LEN]) -> Self {
+        Hash64 { state }
+    }
+
     pub fn from_data<T: AsRef<[u8]>>(data: T) -> Self {
         let mut hasher = Blake2b80::new();
         hasher.update(data.as_ref());
 
-        Hash64 {state: hasher.finalize().to_vec()}
+        let state: [u8; HASH64_LEN] = hasher.finalize().into();
+        Hash64 { state }
     }
 
     pub fn from_string<T: ToFileString>(str: &T) -> Self {
         let mut hasher = Blake2b80::new();
         hasher.update(str.to_file_string().as_bytes());
 
-        Hash64 {state: hasher.finalize().to_vec()}
+        let state: [u8; HASH64_LEN] = hasher.finalize().into();
+        Hash64 { state }
     }
 
     pub fn mini(&self) -> String {
@@ -34,6 +62,12 @@ impl Hash64 {
 
     pub fn short(&self) -> String {
         hex::encode(&self.state[0..16])
+    }
+
+    pub fn write_short_hex_to(&self, output: &mut String) {
+        let mut encoded = [0u8; 32];
+        hex::encode_to_slice(&self.state[0..16], &mut encoded).expect("encoding to fixed-sized hex buffer must succeed");
+        output.push_str(std::str::from_utf8(&encoded).expect("hex output is always valid utf-8"));
     }
 }
 
@@ -50,7 +84,8 @@ impl<'a, I: Iterator<Item = &'a Hash64>> CollectHash for I {
             hasher.update(hash.state.as_slice());
         }
 
-        Hash64 {state: hasher.finalize().to_vec()}
+        let state: [u8; HASH64_LEN] = hasher.finalize().into();
+        Hash64 { state }
     }
 }
 
@@ -58,13 +93,15 @@ impl FromFileString for Hash64 {
     type Error = hex::FromHexError;
 
     fn from_file_string(src: &str) -> Result<Self, Self::Error> {
-        Ok(Hash64 {state: hex::decode(src)?})
+        let mut state = [0u8; HASH64_LEN];
+        hex::decode_to_slice(src, &mut state)?;
+        Ok(Hash64 { state })
     }
 }
 
 impl ToFileString for Hash64 {
     fn to_file_string(&self) -> String {
-        hex::encode(self.state.clone())
+        hex::encode(self.state)
     }
 }
 

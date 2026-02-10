@@ -2,7 +2,7 @@ use std::{hash::Hash, sync::Arc};
 
 use rkyv::Archive;
 use rstest::rstest;
-use zpm_utils::{impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, Hash64, ToFileString, ToHumanString};
+use zpm_utils::{Hash64Builder, impl_file_string_from_str, impl_file_string_serialization, DataType, FromFileString, Hash64, ToFileString, ToHumanString};
 
 use crate::{IdentError, ReferenceError};
 
@@ -64,11 +64,9 @@ impl Locator {
     }
 
     pub fn virtualized_for(&self, parent: &Locator) -> Locator {
-        let serialized = parent.to_file_string();
-
         let reference = Reference::Virtual(VirtualReference {
             inner: Box::new(self.reference.clone()),
-            hash: Hash64::from_string(&serialized),
+            hash: parent.file_string_hash(),
         });
 
         Locator {
@@ -78,11 +76,35 @@ impl Locator {
         }
     }
 
-    pub fn slug(&self) -> String {
-        let key
-            = Hash64::from_string(&self.to_file_string());
+    fn update_file_string_hash(&self, hasher: &mut Hash64Builder) {
+        hasher.update(self.ident.as_str().as_bytes());
+        hasher.update(b"@");
+        self.reference.update_file_string_hash(hasher);
 
-        format!("{}-{}-{}", self.ident.slug(), self.reference.slug(), key.short())
+        if let Some(parent) = &self.parent {
+            hasher.update(b"::parent=");
+            parent.update_file_string_hash(hasher);
+        }
+    }
+
+    fn file_string_hash(&self) -> Hash64 {
+        let mut hasher = Hash64Builder::new();
+        self.update_file_string_hash(&mut hasher);
+        hasher.finish()
+    }
+
+    pub fn write_slug_to(&self, output: &mut String) {
+        self.ident.write_slug_to(output);
+        output.push('-');
+        self.reference.write_slug_to(output);
+        output.push('-');
+        self.file_string_hash().write_short_hex_to(output);
+    }
+
+    pub fn slug(&self) -> String {
+        let mut slug = String::with_capacity(80);
+        self.write_slug_to(&mut slug);
+        slug
     }
 }
 

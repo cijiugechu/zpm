@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rkyv::Archive;
 use zpm_macro_enum::zpm_enum;
-use zpm_utils::{DataType, Hash64, Path, ToFileString, UrlEncoded};
+use zpm_utils::{DataType, Hash64, Hash64Builder, Path, ToFileString, UrlEncoded};
 
 use super::{Ident, Locator};
 
@@ -147,6 +147,153 @@ pub enum Reference {
 }
 
 impl Reference {
+    pub fn update_file_string_hash(&self, hasher: &mut Hash64Builder) {
+        match self {
+            Reference::Builtin(params) => {
+                hasher.update(b"builtin:");
+                hasher.update(params.version.to_file_string().as_bytes());
+            },
+
+            Reference::Shorthand(params) => {
+                hasher.update(b"npm:");
+                hasher.update(params.version.to_file_string().as_bytes());
+            },
+
+            Reference::Registry(params) => {
+                hasher.update(b"npm:");
+                hasher.update(params.ident.to_file_string().as_bytes());
+                hasher.update(b"@");
+                hasher.update(params.version.to_file_string().as_bytes());
+
+                if let Some(url) = &params.url {
+                    hasher.update(b"#");
+                    hasher.update(url.0.as_bytes());
+                }
+            },
+
+            Reference::Tarball(params) => {
+                hasher.update(b"file:");
+                hasher.update(params.path.as_bytes());
+            },
+
+            Reference::Folder(params) => {
+                hasher.update(b"file:");
+                hasher.update(params.path.as_bytes());
+            },
+
+            Reference::Link(params) => {
+                hasher.update(b"link:");
+                hasher.update(params.path.as_bytes());
+            },
+
+            Reference::Portal(params) => {
+                hasher.update(b"portal:");
+                hasher.update(params.path.as_bytes());
+            },
+
+            Reference::Patch(params) => {
+                hasher.update(b"patch:");
+                hasher.update(params.inner.to_file_string().as_bytes());
+                hasher.update(b"#");
+                hasher.update(params.path.as_bytes());
+
+                if let Some(checksum) = &params.checksum {
+                    hasher.update(b"&checksum=");
+                    hasher.update(checksum.to_file_string().as_bytes());
+                }
+            },
+
+            Reference::Virtual(params) => {
+                hasher.update(b"virtual:");
+                hasher.update(params.hash.to_file_string().as_bytes());
+                hasher.update(b"#");
+                params.inner.update_file_string_hash(hasher);
+            },
+
+            Reference::WorkspaceIdent(params) => {
+                hasher.update(b"workspace:");
+                hasher.update(params.ident.to_file_string().as_bytes());
+            },
+
+            Reference::WorkspacePath(params) => {
+                hasher.update(b"workspace:");
+                if params.path.is_empty() {
+                    hasher.update(b".");
+                } else {
+                    hasher.update(params.path.to_file_string().as_bytes());
+                }
+            },
+
+            Reference::Git(params) => {
+                hasher.update(b"git:");
+                hasher.update(params.git.to_file_string().as_bytes());
+            },
+
+            Reference::Url(params) => {
+                hasher.update(params.url.as_bytes());
+            },
+        }
+    }
+
+    pub fn write_slug_to(&self, output: &mut String) {
+        match self {
+            Reference::Builtin(params) => {
+                output.push_str("builtin-");
+                output.push_str(&params.version.to_file_string());
+            },
+
+            Reference::Shorthand(params) => {
+                output.push_str("npm-");
+                output.push_str(&params.version.to_file_string());
+            },
+
+            Reference::Git(_) => {
+                output.push_str("git");
+            },
+
+            Reference::Registry(params) => {
+                output.push_str("npm-");
+                output.push_str(&params.version.to_file_string());
+            },
+
+            Reference::Tarball(_) => {
+                output.push_str("file");
+            },
+
+            Reference::Folder(_) => {
+                output.push_str("file");
+            },
+
+            Reference::Link(_) => {
+                output.push_str("link");
+            },
+
+            Reference::Patch(_) => {
+                output.push_str("patch");
+            },
+
+            Reference::Portal(_) => {
+                output.push_str("portal");
+            },
+
+            Reference::Url(_) => {
+                output.push_str("url");
+            },
+
+            Reference::Virtual(_) => {
+                output.push_str("virtual");
+            },
+
+            Reference::WorkspaceIdent(_) => {
+                output.push_str("workspace");
+            },
+
+            Reference::WorkspacePath(_) => {
+                output.push_str("workspace");
+            },
+        }
+    }
+
     pub fn must_bind(&self) -> bool {
         // Keep this implementation in sync w/ Range::must_bind
 
@@ -192,58 +339,8 @@ impl Reference {
     }
 
     pub fn slug(&self) -> String {
-        match self {
-            Reference::Builtin(params) => {
-                format!("builtin-{}", params.version.to_file_string())
-            },
-
-            Reference::Shorthand(params) => {
-                format!("npm-{}", params.version.to_file_string())
-            },
-
-            Reference::Git(_) => {
-                "git".to_string()
-            },
-
-            Reference::Registry(params) => {
-                format!("npm-{}", params.version.to_file_string())
-            },
-
-            Reference::Tarball(_) => {
-                "file".to_string()
-            },
-
-            Reference::Folder(_) => {
-                "file".to_string()
-            },
-
-            Reference::Link(_) => {
-                "link".to_string()
-            },
-
-            Reference::Patch(_) => {
-                "patch".to_string()
-            },
-
-            Reference::Portal(_) => {
-                "portal".to_string()
-            },
-
-            Reference::Url(_) => {
-                "url".to_string()
-            },
-
-            Reference::Virtual(_) => {
-                "virtual".to_string()
-            },
-
-            Reference::WorkspaceIdent(_) => {
-                "workspace".to_string()
-            },
-
-            Reference::WorkspacePath(_) => {
-                "workspace".to_string()
-            },
-        }
+        let mut slug = String::with_capacity(16);
+        self.write_slug_to(&mut slug);
+        slug
     }
 }

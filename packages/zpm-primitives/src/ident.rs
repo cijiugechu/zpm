@@ -69,8 +69,22 @@ impl Ident {
         self.0.as_str()
     }
 
+    pub fn write_slug_to(&self, output: &mut String) {
+        output.reserve(self.0.len());
+
+        for ch in self.0.chars() {
+            if ch == '/' {
+                output.push('-');
+            } else {
+                output.push(ch);
+            }
+        }
+    }
+
     pub fn slug(&self) -> String {
-        self.0.replace("/", "-").into()
+        let mut slug = String::with_capacity(self.0.len());
+        self.write_slug_to(&mut slug);
+        slug
     }
 
     pub fn nm_subdir(&self) -> Path {

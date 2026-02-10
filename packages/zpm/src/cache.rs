@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -211,8 +212,12 @@ impl DiskCache {
     }
 
     pub fn key_path(&self, locator: &Locator, ext: &str) -> Path {
-        let key_name
-            = format!("{}-{}{}{}", locator.slug(), CACHE_VERSION, self.name_suffix, ext);
+        let mut key_name = String::with_capacity(96 + self.name_suffix.len() + ext.len());
+        locator.write_slug_to(&mut key_name);
+        key_name.push('-');
+        write!(&mut key_name, "{}", CACHE_VERSION).expect("writing cache version to String must succeed");
+        key_name.push_str(&self.name_suffix);
+        key_name.push_str(ext);
 
         let key_path = self.cache_path
             .with_join_str(&key_name);

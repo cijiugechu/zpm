@@ -73,12 +73,15 @@ pub async fn link_project_pnpm<'a>(project: &'a Project, install: &'a Install) -
 
     // First pass: copy all packages to store
     for (locator, resolution) in &tree.locator_resolutions {
+        let mut locator_slug = String::with_capacity(80);
+        locator.write_slug_to(&mut locator_slug);
+
         let physical_package_data = install.package_data
             .get(&locator.physical_locator())
             .unwrap_or_else(|| panic!("Failed to find physical package data for {}", locator.physical_locator().to_print_string()));
 
         let package_base_path = store_path
-            .with_join_str(&locator.slug());
+            .with_join_str(&locator_slug);
 
         let package_location_abs = match &physical_package_data {
             PackageData::Local {..} => {
@@ -240,6 +243,10 @@ pub async fn link_project_pnpm<'a>(project: &'a Project, install: &'a Install) -
 
     // Second pass: create symlinks in node_modules directories
     for (locator, resolution) in &tree.locator_resolutions {
+        let mut locator_slug = String::with_capacity(80);
+        locator.write_slug_to(&mut locator_slug);
+        let locator_store_path = store_path.with_join_str(&locator_slug);
+
         let workspace
             = project.try_workspace_by_locator(locator)?;
 
@@ -279,8 +286,8 @@ pub async fn link_project_pnpm<'a>(project: &'a Project, install: &'a Install) -
             // /path/to/project/node_modules/@types/no-deps
             let link_abs_path = match workspace {
                 Some(workspace) => workspace.path.with_join(&dep_name.nm_subdir()),
-                None if dep_name == &locator.ident => store_path.with_join_str(&locator.slug()).with_join(&locator.ident.nm_subdir()).with_join(&dep_name.nm_subdir()),
-                None => store_path.with_join_str(&locator.slug()).with_join(&dep_name.nm_subdir()),
+                None if dep_name == &locator.ident => locator_store_path.with_join(&locator.ident.nm_subdir()).with_join(&dep_name.nm_subdir()),
+                None => locator_store_path.with_join(&dep_name.nm_subdir()),
             };
 
             // /path/to/project/node_modules/@types
