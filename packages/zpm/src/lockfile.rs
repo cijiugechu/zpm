@@ -294,12 +294,12 @@ pub fn from_legacy_berry_lockfile(data: &str, lockfile_path: &Path) -> Result<Lo
                         url: params.url.clone(),
                     }.into());
 
-                lockfile.entries.insert(entry.resolution.clone(), LockfileEntry {
+                lockfile.entries.insert(aliased_locator.clone(), LockfileEntry {
                     checksum: None,
-                    resolution: Resolution::new_empty(aliased_locator, Default::default()),
+                    resolution: Resolution::new_empty(aliased_locator.clone(), Default::default()),
                 });
 
-                lockfile.resolutions.insert(descriptor, entry.resolution.clone());
+                lockfile.resolutions.insert(descriptor, aliased_locator);
             }
         }
     }
