@@ -181,7 +181,6 @@ pub enum ReportMessage {
 
 #[derive(Debug, Default)]
 struct RemoteManifestErrorAggregate {
-    count: u32,
     locators: BTreeSet<String>,
 }
 
@@ -330,7 +329,13 @@ impl Reporter {
             let mut entries = self.remote_manifest_errors
                 .iter()
                 .map(|((origin, path, reason), aggregate)| {
-                    (origin.clone(), path.clone(), reason.clone(), aggregate.count, aggregate.locators.clone())
+                    (
+                        origin.clone(),
+                        path.clone(),
+                        reason.clone(),
+                        aggregate.locators.len() as u32,
+                        aggregate.locators.clone(),
+                    )
                 })
                 .collect::<Vec<_>>();
 
@@ -394,7 +399,6 @@ impl Reporter {
             .entry((origin, path, reason))
             .or_default();
 
-        aggregate.count += 1;
         aggregate.locators.insert(locator);
     }
 
@@ -678,5 +682,78 @@ impl StreamReport {
     pub fn close(self) {
         self.break_request_tx.send(true).unwrap();
         self.handle.join().unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::{ReportCounters, Reporter, StreamReportConfig};
+
+    fn new_reporter() -> Reporter {
+        let (prompt_tx, _prompt_rx) = std::sync::mpsc::channel();
+
+        Reporter::new(
+            StreamReportConfig {
+                enable_progress_bars: false,
+                enable_timers: false,
+                include_version: false,
+                silent_or_error: false,
+            },
+            Arc::new(ReportCounters::default()),
+            prompt_tx,
+        )
+    }
+
+    #[test]
+    fn remote_manifest_summary_counts_unique_locators() {
+        let mut reporter = new_reporter();
+
+        reporter.on_remote_manifest_parse(
+            "sass-embedded-linux-x64@npm:1.97.3".to_string(),
+            "npm registry metadata".to_string(),
+            "package.json".to_string(),
+            "type mismatch: expected a sequence, got string \"glibc\" (line 1 column 1672)".to_string(),
+        );
+        reporter.on_remote_manifest_parse(
+            "sass-embedded-linux-x64@npm:1.97.3".to_string(),
+            "npm registry metadata".to_string(),
+            "package.json".to_string(),
+            "type mismatch: expected a sequence, got string \"glibc\" (line 1 column 1672)".to_string(),
+        );
+
+        let mut output = Vec::new();
+        reporter.on_end(&mut output);
+        let output = String::from_utf8(output).expect("report output should be valid utf8");
+
+        assert!(output.contains("Invalid package metadata in package.json (npm registry metadata): type mismatch: expected a sequence, got string \"glibc\" (line 1 column 1672)"));
+        assert!(!output.contains("2 packages have invalid package metadata"));
+    }
+
+    #[test]
+    fn remote_manifest_hidden_count_uses_unique_locator_count() {
+        let mut reporter = new_reporter();
+
+        for locator in [
+            "sass-embedded-linux-x64@npm:1.97.3",
+            "sass-embedded-linux-x64@npm:1.97.3",
+            "sass-embedded-linux-arm64@npm:1.97.3",
+            "sass-embedded-linux-arm64@npm:1.97.3",
+        ] {
+            reporter.on_remote_manifest_parse(
+                locator.to_string(),
+                "npm registry metadata".to_string(),
+                "package.json".to_string(),
+                "type mismatch: expected a sequence, got string \"glibc\" (line 1 column 1672)".to_string(),
+            );
+        }
+
+        let mut output = Vec::new();
+        reporter.on_end(&mut output);
+        let output = String::from_utf8(output).expect("report output should be valid utf8");
+
+        assert!(output.contains("2 packages have invalid package metadata in package.json (npm registry metadata):"));
+        assert!(!output.contains("(+2 more)"));
     }
 }
