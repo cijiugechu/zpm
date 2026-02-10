@@ -1,4 +1,4 @@
-use std::{cell::RefCell, future::Future, io::{self, Write}, sync::{Arc, LazyLock, atomic::AtomicU32, mpsc}, thread::JoinHandle, time::{Duration, SystemTime}};
+use std::{cell::RefCell, collections::{BTreeMap, BTreeSet}, future::Future, io::{self, Write}, sync::{Arc, LazyLock, atomic::AtomicU32, mpsc}, thread::JoinHandle, time::{Duration, SystemTime}};
 
 use colored::{Color, Colorize};
 use dialoguer::{Input, Password};
@@ -168,9 +168,21 @@ pub struct ReportCounters {
 pub enum ReportMessage {
     Line(Severity, String),
     LogFile(Path),
+    RemoteManifestParse {
+        locator: String,
+        origin: String,
+        path: String,
+        reason: String,
+    },
     PushSection(String),
     PopSection,
     Prompt(PromptType),
+}
+
+#[derive(Debug, Default)]
+struct RemoteManifestErrorAggregate {
+    count: u32,
+    locators: BTreeSet<String>,
 }
 
 struct Reporter {
@@ -184,6 +196,7 @@ struct Reporter {
     start_time: Option<SystemTime>,
     buffered_lines: Option<Vec<String>>,
     log_paths: Vec<Path>,
+    remote_manifest_errors: BTreeMap<(String, String, String), RemoteManifestErrorAggregate>,
     spinner_idx: Option<usize>,
     prompt_tx: mpsc::Sender<String>,
 }
@@ -202,6 +215,7 @@ impl Reporter {
             start_time: None,
             buffered_lines,
             log_paths: Vec::new(),
+            remote_manifest_errors: BTreeMap::new(),
             spinner_idx: None,
             prompt_tx,
         }
@@ -287,6 +301,10 @@ impl Reporter {
                 self.log_paths.push(log_path);
             },
 
+            ReportMessage::RemoteManifestParse { locator, origin, path, reason } => {
+                self.on_remote_manifest_parse(locator, origin, path, reason);
+            },
+
             ReportMessage::PushSection(name) => {
                 self.on_push_section(writer, &name);
             },
@@ -308,6 +326,47 @@ impl Reporter {
     }
 
     fn on_end<T: Write>(&mut self, writer: &mut T) {
+        if !self.remote_manifest_errors.is_empty() {
+            let mut entries = self.remote_manifest_errors
+                .iter()
+                .map(|((origin, path, reason), aggregate)| {
+                    (origin.clone(), path.clone(), reason.clone(), aggregate.count, aggregate.locators.clone())
+                })
+                .collect::<Vec<_>>();
+
+            entries.sort_by(|left, right| right.3.cmp(&left.3));
+
+            for (origin, path, reason, count, locators) in entries {
+                let summary = if count == 1 {
+                    format!("Invalid package metadata in {} ({}): {}", path, origin, reason)
+                } else {
+                    format!("{} packages have invalid package metadata in {} ({}): {}", count, path, origin, reason)
+                };
+
+                self.on_line(writer, Severity::Error, &summary);
+
+                let sample = locators
+                    .into_iter()
+                    .take(3)
+                    .collect_vec();
+
+                if !sample.is_empty() {
+                    let hidden_count = count.saturating_sub(sample.len() as u32);
+                    let suffix = if hidden_count > 0 {
+                        format!(" (+{} more)", hidden_count)
+                    } else {
+                        String::new()
+                    };
+
+                    self.on_line(
+                        writer,
+                        Severity::Error,
+                        &format!("Affected packages: {}{}", sample.join(", "), suffix),
+                    );
+                }
+            }
+        }
+
         for log_path in &self.log_paths {
             writeln!(writer, "\n{}\n", log_path.to_print_string()).unwrap();
 
@@ -328,6 +387,15 @@ impl Reporter {
         }
 
         self.write_line(writer, message, severity);
+    }
+
+    fn on_remote_manifest_parse(&mut self, locator: String, origin: String, path: String, reason: String) {
+        let aggregate = self.remote_manifest_errors
+            .entry((origin, path, reason))
+            .or_default();
+
+        aggregate.count += 1;
+        aggregate.locators.insert(locator);
     }
 
     fn on_push_section<T: Write>(&mut self, writer: &mut T, name: &str) {
@@ -535,6 +603,16 @@ impl StreamReport {
     }
 
     pub fn error(&self, error: Error) {
+        if let Error::RemoteManifestParseError { locator, origin, path, reason } = &error {
+            self.report(ReportMessage::RemoteManifestParse {
+                locator: locator.to_print_string(),
+                origin: origin.clone(),
+                path: path.clone(),
+                reason: reason.clone(),
+            });
+            return;
+        }
+
         if !matches!(error, Error::SilentError) {
             self.report(ReportMessage::Line(Severity::Error, self.with_content_prefix(error.to_string())));
         }

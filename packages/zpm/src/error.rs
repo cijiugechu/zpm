@@ -12,6 +12,50 @@ fn render_backtrace(backtrace: &std::backtrace::Backtrace) -> String {
     }
 }
 
+fn render_remote_manifest_reason(raw_reason: &str) -> String {
+    let first_line = raw_reason.lines().next().unwrap_or(raw_reason).trim();
+
+    if let Some(rest) = first_line.strip_prefix("invalid type: ")
+        && let Some((actual, expected_tail)) = rest.split_once(", expected ")
+    {
+        if let Some((expected, line_col)) = expected_tail.split_once(" at line ") {
+            return format!(
+                "type mismatch: expected {}, got {} (line {})",
+                expected.trim(),
+                actual.trim(),
+                line_col.trim(),
+            );
+        }
+
+        return format!(
+            "type mismatch: expected {}, got {}",
+            expected_tail.trim(),
+            actual.trim(),
+        );
+    }
+
+    first_line.to_string()
+}
+
+pub fn remote_manifest_parse_error(
+    locator: &Locator,
+    origin: impl Into<String>,
+    path: impl Into<String>,
+    parser_error: zpm_parsers::Error,
+) -> Error {
+    let raw_reason = match &parser_error {
+        zpm_parsers::Error::InvalidSyntax(message) => message.clone(),
+        _ => parser_error.to_string(),
+    };
+
+    Error::RemoteManifestParseError {
+        locator: locator.clone(),
+        origin: origin.into(),
+        path: path.into(),
+        reason: render_remote_manifest_reason(&raw_reason),
+    }
+}
+
 pub async fn set_timeout<F: Future>(timeout: std::time::Duration, f: F) -> Result<F::Output, Error> {
     let res = tokio::time::timeout(timeout, f).await
         .map_err(|_| Error::TaskTimeout)?;
@@ -143,6 +187,14 @@ pub enum Error {
 
     #[error("File parsing error ({0})")]
     FileParsingError(#[from] zpm_parsers::Error),
+
+    #[error("Invalid package metadata in {path} ({origin}): {reason}")]
+    RemoteManifestParseError {
+        locator: Locator,
+        origin: String,
+        path: String,
+        reason: String,
+    },
 
     #[error("Semver error ({0})")]
     SemverError(#[from] zpm_semver::Error),
@@ -507,6 +559,30 @@ pub enum Error {
     // Silent error; no particular message, just exit with an exit code 1
     #[error("")]
     SilentError,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_remote_manifest_reason;
+
+    #[test]
+    fn renders_manifest_type_mismatch_compactly() {
+        let reason = render_remote_manifest_reason(
+            "invalid type: string \"glibc\", expected a sequence at line 1 column 1687",
+        );
+
+        assert_eq!(
+            reason,
+            "type mismatch: expected a sequence, got string \"glibc\" (line 1 column 1687)"
+        );
+    }
+
+    #[test]
+    fn keeps_first_line_for_multiline_reasons() {
+        let reason = render_remote_manifest_reason("foo\nbar\nbaz");
+
+        assert_eq!(reason, "foo");
+    }
 }
 
 impl Error {
