@@ -296,12 +296,15 @@ impl Project {
         }
 
         if src.starts_with('#') {
-            return from_legacy_berry_lockfile(&src);
+            return from_legacy_berry_lockfile(&src, lockfile_path);
         }
 
         let lockfile: Lockfile
             = JsonDocument::hydrate_from_str(&src)
-                .map_err(|e| Error::LockfileParseError(e))?;
+                .map_err(|error| Error::LockfileParseError {
+                    path: lockfile_path.clone(),
+                    reason: error.to_string(),
+                })?;
 
         Ok(lockfile)
     }
@@ -780,7 +783,7 @@ impl Project {
             let mut lockfile
                 = self.lockfile();
 
-            if let Err(Error::LockfileParseError(_)) = lockfile {
+            if let Err(Error::LockfileParseError { .. }) = lockfile {
                 let lockfile_path
                     = self.lockfile_path();
 

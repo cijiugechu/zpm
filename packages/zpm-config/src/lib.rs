@@ -793,6 +793,18 @@ pub enum ConfigurationError {
 
     #[error(transparent)]
     SerdeError(#[from] Arc<serde_yaml::Error>),
+
+    #[error("Invalid user configuration file ({}): {message}", path.to_print_string())]
+    UserConfigParseError {
+        path: Path,
+        message: String,
+    },
+
+    #[error("Invalid project configuration file ({}): {message}", path.to_print_string())]
+    ProjectConfigParseError {
+        path: Path,
+        message: String,
+    },
 }
 
 impl From<std::io::Error> for ConfigurationError {
@@ -882,7 +894,11 @@ impl Configuration {
                         .fs_read_text_with_size(metadata.len())?;
 
                 let user_config: intermediate::Settings
-                    = serde_yaml::from_str(&user_config_text)?;
+                    = serde_yaml::from_str(&user_config_text)
+                        .map_err(|error| ConfigurationError::UserConfigParseError {
+                            path: user_config_path.clone(),
+                            message: error.to_string(),
+                        })?;
 
                 intermediate_user_config = Partial::Value(user_config);
             }
@@ -906,7 +922,11 @@ impl Configuration {
                         .fs_read_text_with_size(metadata.len())?;
 
                 let project_config: intermediate::Settings
-                    = serde_yaml::from_str(&project_config_text)?;
+                    = serde_yaml::from_str(&project_config_text)
+                        .map_err(|error| ConfigurationError::ProjectConfigParseError {
+                            path: project_config_path.clone(),
+                            message: error.to_string(),
+                        })?;
 
                 intermediate_project_config = Partial::Value(project_config);
             }

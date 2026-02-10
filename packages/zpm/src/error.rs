@@ -165,8 +165,11 @@ pub enum Error {
     #[error("Package manifest not found ({})", .0.to_print_string())]
     ManifestNotFound(Path),
 
-    #[error("Package manifest failed to parse ({}): {}", .0.to_print_string(), .1)]
-    ManifestParseError(Path, Arc<dyn std::error::Error + Send + Sync>),
+    #[error("Package manifest failed to parse ({}): {reason}", path.to_print_string())]
+    ManifestParseError {
+        path: Path,
+        reason: String,
+    },
 
     #[error("Invalid descriptor ({0})")]
     InvalidDescriptor(String),
@@ -249,8 +252,11 @@ pub enum Error {
     #[error("An error occured while reading the lockfile from disk")]
     LockfileReadError(Arc<std::io::Error>),
 
-    #[error("An error occured while parsing the lockfile: {0}")]
-    LockfileParseError(zpm_parsers::Error),
+    #[error("An error occured while parsing the lockfile ({}): {reason}", path.to_print_string())]
+    LockfileParseError {
+        path: Path,
+        reason: String,
+    },
 
     #[error("Can't perform this operation without a git root")]
     NoGitRoot,
@@ -261,8 +267,11 @@ pub enum Error {
     #[error("No merge base could be found between any of HEAD and {args}", args = .0.join(", "))]
     NoMergeBaseFound(Vec<String>),
 
-    #[error("An error occured while parsing the Yarn Berry lockfile: {0}")]
-    LegacyLockfileParseError(Arc<serde_yaml::Error>),
+    #[error("An error occured while parsing the Yarn Berry lockfile ({}): {reason}", path.to_print_string())]
+    LegacyLockfileParseError {
+        path: Path,
+        reason: String,
+    },
 
     #[error("Failed to read pnpm node_modules directory")]
     PnpmNodeModulesReadError,
