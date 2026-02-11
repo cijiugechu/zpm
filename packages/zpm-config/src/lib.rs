@@ -658,10 +658,16 @@ macro_rules! merge_optional_settings_impl {
                         )
                     });
 
-                    return inner.map_or_else(default, |inner| Self {
-                        value: Some(inner.value),
-                        source: inner.source,
-                    });
+                    return inner.map_or_else(
+                        || Self {
+                            value: None,
+                            source: Source::User,
+                        },
+                        |inner| Self {
+                            value: Some(inner.value),
+                            source: inner.source,
+                        }
+                    );
                 }
 
                 if let Partial::Value(project) = project {
@@ -674,10 +680,16 @@ macro_rules! merge_optional_settings_impl {
                         )
                     });
 
-                    return inner.map_or_else(default, |inner| Self {
-                        value: Some(inner.value),
-                        source: inner.source,
-                    });
+                    return inner.map_or_else(
+                        || Self {
+                            value: None,
+                            source: Source::Project,
+                        },
+                        |inner| Self {
+                            value: Some(inner.value),
+                            source: inner.source,
+                        }
+                    );
                 }
 
                 default()
