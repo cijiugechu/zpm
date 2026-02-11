@@ -703,8 +703,8 @@ macro_rules! merge_optional_settings_impl {
 
                 tree::Node {
                     label,
-                    value: Some(AbstractValue::new(self.value.clone())),
-                    children: None,
+                    value: None,
+                    children: Some(tree::TreeNodeChildren::Map(fields)),
                 }
             }
         }

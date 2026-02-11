@@ -352,7 +352,10 @@ impl HttpClient {
 
         let client = client_builder
             .build()
-            .map_err(|err| Error::DnsResolutionError(Arc::new(err)))?;
+            .map_err(|err| Error::HttpError {
+                inner: Arc::new(err),
+                extra: Some("Failed to build HTTP client from current network/proxy/TLS settings".to_string()),
+            })?;
 
         let config = HttpConfig {
             enforce_unsafe_http: config.settings.enforce_unsafe_http.value,
