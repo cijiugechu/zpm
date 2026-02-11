@@ -302,6 +302,12 @@ impl HttpClient {
             .use_rustls_tls()
             .dns_resolver(Arc::new(HickoryDnsResolver::default()));
 
+        if !config.settings.enable_strict_ssl.value {
+            client_builder = client_builder
+                .danger_accept_invalid_certs(true)
+                .danger_accept_invalid_hostnames(true);
+        }
+
         if let Some(http_proxy) = config.settings.http_proxy.value.as_ref() {
             client_builder = client_builder.proxy(Proxy::http(http_proxy)?);
         }
