@@ -1,5 +1,5 @@
 use zpm_formats::iter_ext::IterExt;
-use zpm_config::ChecksumBehavior;
+use zpm_config::{CacheMigrationMode, ChecksumBehavior};
 use zpm_primitives::{Locator, RegistryReference};
 use zpm_utils::Hash64;
 
@@ -11,6 +11,27 @@ use crate::{
 };
 
 use super::PackageData;
+
+fn should_rebuild_cache_entry_on_mismatch(context: &InstallContext) -> bool {
+    match context.cache_migration_mode {
+        CacheMigrationMode::Always => true,
+
+        CacheMigrationMode::RequiredOnly => {
+            let version_override = std::env::var("YARN_CACHE_VERSION_OVERRIDE")
+                .ok()
+                .and_then(|s| s.parse::<usize>().ok())
+                .unwrap_or(0);
+
+            let checkpoint_override = std::env::var("YARN_CACHE_CHECKPOINT_OVERRIDE")
+                .ok()
+                .and_then(|s| s.parse::<usize>().ok());
+
+            version_override > 0 && checkpoint_override.is_none()
+        },
+
+        CacheMigrationMode::MatchSpec => false,
+    }
+}
 
 pub fn try_fetch_locator_sync(context: &InstallContext, locator: &Locator, params: &RegistryReference, is_mock_request: bool) -> Result<Option<FetchResult>, Error> {
     if is_mock_request {
@@ -50,6 +71,13 @@ pub fn try_fetch_locator_sync(context: &InstallContext, locator: &Locator, param
         if &actual_checksum != expected_checksum {
             match context.checksum_behavior {
                 ChecksumBehavior::Throw => {
+                    if should_rebuild_cache_entry_on_mismatch(context) {
+                        archive_path
+                            .fs_rm_file()?;
+
+                        return Ok(None);
+                    }
+
                     return Err(Error::ChecksumMismatch(locator.clone()));
                 },
 

@@ -19,6 +19,11 @@
       "description": "Behavior to apply when cache entries don't match expected checksums",
       "default": "throw"
     },
+    "cacheMigrationMode": {
+      "type": "crate::CacheMigrationMode",
+      "description": "Behavior to apply when outdated cache entries are detected",
+      "default": "always"
+    },
     "compressionLevel": {
       "type": ["zpm_formats::CompressionAlgorithm", "null"],
       "description": "The compression level to use for the packed file"

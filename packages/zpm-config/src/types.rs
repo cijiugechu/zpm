@@ -43,3 +43,16 @@ pub enum ChecksumBehavior {
     #[literal("reset")]
     Reset,
 }
+
+#[zpm_enum(error = ConfigurationError, or_else = |s| Err(ConfigurationError::EnumError(s.to_string())))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CacheMigrationMode {
+    #[literal("required-only")]
+    RequiredOnly,
+
+    #[literal("match-spec")]
+    MatchSpec,
+
+    #[literal("always")]
+    Always,
+}

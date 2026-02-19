@@ -1,8 +1,9 @@
 use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData, sync::LazyLock};
 
 use chrono::{DateTime, Utc};
+use futures::future::try_join_all;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use zpm_config::{ChecksumBehavior, PackageExtension};
+use zpm_config::{CacheMigrationMode, ChecksumBehavior, PackageExtension};
 use zpm_primitives::{Descriptor, GitRange, Ident, Locator, PatchRange, PeerRange, Range, Reference, RegistrySemverRange, RegistryTagRange, SemverDescriptor, SemverPeerRange, WorkspaceIdentRange};
 use zpm_utils::{Hash64, IoResultExt, Path, System, ToHumanString, UrlEncoded};
 use rkyv::Archive;
@@ -32,6 +33,7 @@ pub struct InstallContext<'a> {
     pub systems: Option<&'a Vec<System>>,
     pub check_checksums: bool,
     pub checksum_behavior: ChecksumBehavior,
+    pub cache_migration_mode: CacheMigrationMode,
     pub expected_checksums: BTreeMap<Locator, Hash64>,
     pub check_resolutions: bool,
     pub prune_dev_dependencies: bool,
@@ -49,6 +51,7 @@ impl<'a> Default for InstallContext<'a> {
             systems: None,
             check_checksums: false,
             checksum_behavior: ChecksumBehavior::Throw,
+            cache_migration_mode: CacheMigrationMode::Always,
             expected_checksums: BTreeMap::new(),
             check_resolutions: false,
             prune_dev_dependencies: false,
@@ -78,6 +81,11 @@ impl<'a> InstallContext<'a> {
 
     pub fn set_checksum_behavior(mut self, checksum_behavior: ChecksumBehavior) -> Self {
         self.checksum_behavior = checksum_behavior;
+        self
+    }
+
+    pub fn set_cache_migration_mode(mut self, cache_migration_mode: CacheMigrationMode) -> Self {
+        self.cache_migration_mode = cache_migration_mode;
         self
     }
 
@@ -692,6 +700,10 @@ impl<'a> InstallManager<'a> {
             .filter_map(|(locator, entry)| entry.checksum.clone().map(|checksum| (locator.clone(), checksum)))
             .collect();
 
+        if self.context.check_checksums {
+            self.validate_cached_checksums()?;
+        }
+
         let cache
             = InstallCache::new(self.initial_lockfile.clone());
 
@@ -734,6 +746,10 @@ impl<'a> InstallManager<'a> {
 
                 _ => panic!("Unsupported install result ({:?})", entry),
             }
+        }
+
+        if self.context.check_checksums {
+            self.validate_unfetched_cached_entries().await?;
         }
 
         let missing_checksums = self.result.lockfile.entries.values()
@@ -835,6 +851,70 @@ impl<'a> InstallManager<'a> {
         }
 
         Ok(self.result)
+    }
+
+    fn validate_cached_checksums(&self) -> Result<(), Error> {
+        let Some(package_cache) = self.context.package_cache else {
+            return Ok(());
+        };
+
+        for (locator, expected_checksum) in &self.context.expected_checksums {
+            let Some(cache_entry) = package_cache.check_cache_entry(locator.clone(), ".zip")? else {
+                continue;
+            };
+
+            let archive_data = cache_entry.path
+                .fs_read_prealloc()?;
+
+            let actual_checksum
+                = Hash64::from_data(&archive_data);
+
+            if &actual_checksum != expected_checksum {
+                return Err(Error::ChecksumMismatch(locator.clone()));
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn validate_unfetched_cached_entries(&self) -> Result<(), Error> {
+        let Some(package_cache) = self.context.package_cache else {
+            return Ok(());
+        };
+
+        let mut locators = Vec::new();
+
+        for (locator, entry) in &self.initial_lockfile.entries {
+            if entry.checksum.is_some() {
+                continue;
+            }
+
+            if let Some(package_data) = self.result.package_data.get(locator) {
+                if !matches!(package_data, PackageData::MissingZip {..}) {
+                    continue;
+                }
+            }
+
+            if !matches!(locator.reference, Reference::Shorthand(_) | Reference::Registry(_)) {
+                continue;
+            }
+
+            if package_cache.check_cache_entry(locator.clone(), ".zip")?.is_none() {
+                continue;
+            }
+
+            locators.push(locator.clone());
+        }
+
+        let validation_tasks = locators.into_iter()
+            .map(|locator| async move {
+                fetch_locator(self.context.clone(), &locator, false, vec![]).await?;
+                Ok::<(), Error>(())
+            });
+
+        try_join_all(validation_tasks).await?;
+
+        Ok(())
     }
 
     fn record_resolution(&mut self, resolution: Resolution, original_resolution: Resolution, package_data: Option<PackageData>) -> Result<(), Error> {
