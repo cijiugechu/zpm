@@ -2,7 +2,7 @@ use std::{collections::{BTreeMap, BTreeSet}, hash::Hash, marker::PhantomData, sy
 
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use zpm_config::PackageExtension;
+use zpm_config::{ChecksumBehavior, PackageExtension};
 use zpm_primitives::{Descriptor, GitRange, Ident, Locator, PatchRange, PeerRange, Range, Reference, RegistrySemverRange, RegistryTagRange, SemverDescriptor, SemverPeerRange, WorkspaceIdentRange};
 use zpm_utils::{Hash64, IoResultExt, Path, System, ToHumanString, UrlEncoded};
 use rkyv::Archive;
@@ -31,6 +31,8 @@ pub struct InstallContext<'a> {
     pub project: Option<&'a Project>,
     pub systems: Option<&'a Vec<System>>,
     pub check_checksums: bool,
+    pub checksum_behavior: ChecksumBehavior,
+    pub expected_checksums: BTreeMap<Locator, Hash64>,
     pub check_resolutions: bool,
     pub prune_dev_dependencies: bool,
     pub enforced_resolutions: BTreeMap<Descriptor, Locator>,
@@ -46,6 +48,8 @@ impl<'a> Default for InstallContext<'a> {
             project: None,
             systems: None,
             check_checksums: false,
+            checksum_behavior: ChecksumBehavior::Throw,
+            expected_checksums: BTreeMap::new(),
             check_resolutions: false,
             prune_dev_dependencies: false,
             enforced_resolutions: BTreeMap::new(),
@@ -69,6 +73,11 @@ impl<'a> InstallContext<'a> {
 
     pub fn set_check_checksums(mut self, check_checksums: bool) -> Self {
         self.check_checksums = check_checksums;
+        self
+    }
+
+    pub fn set_checksum_behavior(mut self, checksum_behavior: ChecksumBehavior) -> Self {
+        self.checksum_behavior = checksum_behavior;
         self
     }
 
@@ -678,6 +687,11 @@ impl<'a> InstallManager<'a> {
     }
 
     pub async fn resolve_and_fetch(mut self) -> Result<Install, Error> {
+        self.context.expected_checksums = self.initial_lockfile.entries
+            .iter()
+            .filter_map(|(locator, entry)| entry.checksum.clone().map(|checksum| (locator.clone(), checksum)))
+            .collect();
+
         let cache
             = InstallCache::new(self.initial_lockfile.clone());
 

@@ -1,5 +1,7 @@
 use zpm_formats::iter_ext::IterExt;
+use zpm_config::ChecksumBehavior;
 use zpm_primitives::{Locator, RegistryReference};
+use zpm_utils::Hash64;
 
 use crate::{
     error::Error,
@@ -21,20 +23,70 @@ pub fn try_fetch_locator_sync(context: &InstallContext, locator: &Locator, param
         return Ok(Some(FetchResult::new_mock(archive_path, package_directory)));
     }
 
+    if context.check_checksums {
+        // In strict mode we always hit the remote source to validate checksums.
+        return Ok(None);
+    }
+
     let cache_entry = context.package_cache.unwrap()
         .check_cache_entry(locator.clone(), ".zip")?;
 
-    Ok(cache_entry.map(|cache_entry| {
-        let package_directory = cache_entry.path
-            .with_join(&params.ident.nm_subdir());
+    let Some(cache_entry) = cache_entry else {
+        return Ok(None);
+    };
 
-        FetchResult::new(PackageData::Zip {
-            archive_path: cache_entry.path,
-            checksum: cache_entry.checksum,
-            context_directory: package_directory.clone(),
-            package_directory,
-        })
-    }))
+    let archive_path
+        = cache_entry.path;
+    let package_directory = archive_path
+        .with_join(&params.ident.nm_subdir());
+
+    if let Some(expected_checksum) = context.expected_checksums.get(locator) {
+        let archive_data = archive_path
+            .fs_read_prealloc()?;
+
+        let actual_checksum
+            = Hash64::from_data(&archive_data);
+
+        if &actual_checksum != expected_checksum {
+            match context.checksum_behavior {
+                ChecksumBehavior::Throw => {
+                    return Err(Error::ChecksumMismatch(locator.clone()));
+                },
+
+                ChecksumBehavior::Update => {
+                    return Ok(Some(FetchResult::new(PackageData::Zip {
+                        archive_path,
+                        checksum: Some(actual_checksum),
+                        context_directory: package_directory.clone(),
+                        package_directory,
+                    })));
+                },
+
+                ChecksumBehavior::Ignore => {
+                    return Ok(Some(FetchResult::new(PackageData::Zip {
+                        archive_path,
+                        checksum: None,
+                        context_directory: package_directory.clone(),
+                        package_directory,
+                    })));
+                },
+
+                ChecksumBehavior::Reset => {
+                    archive_path
+                        .fs_rm_file()?;
+
+                    return Ok(None);
+                },
+            }
+        }
+    }
+
+    Ok(Some(FetchResult::new(PackageData::Zip {
+        archive_path,
+        checksum: cache_entry.checksum,
+        context_directory: package_directory.clone(),
+        package_directory,
+    })))
 }
 
 pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, params: &RegistryReference, is_mock_request: bool) -> Result<FetchResult, Error> {
@@ -62,8 +114,6 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
 
     let package_cache = context.package_cache
         .expect("The package cache is required for fetching npm packages");
-    let cache_packer
-        = package_cache.packer();
 
     let package_subdir
         = params.ident.nm_subdir();
@@ -80,31 +130,73 @@ pub async fn fetch_locator<'a>(context: &InstallContext<'a>, locator: &Locator, 
             allow_oidc: false,
         }).await?;
 
+    let fetch_and_pack = || {
+        let package_subdir_for_entries = package_subdir_for_entries.clone();
+        let cache_packer = package_cache.packer();
+
+        async {
+            let bytes
+                = http_npm::get(&http_npm::NpmHttpParams {
+                    http_client: &project.http_client,
+                    registry: &fetch_registry,
+                    path: &fetch_path,
+                    authorization: authorization.as_deref(),
+                    otp: None,
+                }).await?;
+
+            let archive = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, Error> {
+                let tar_data
+                    = zpm_formats::tar::unpack_tgz(&bytes)?;
+
+                let entries
+                    = zpm_formats::tar::entries_from_tar(&tar_data)?
+                        .into_iter()
+                        .strip_first_segment()
+                        .prepare_npm_entries(&package_subdir_for_entries)
+                        .collect::<Vec<_>>();
+
+                Ok(cache_packer.pack(entries)?)
+            }).await??;
+
+            Ok(archive)
+        }
+    };
+
+    if context.check_checksums {
+        let archive
+            = fetch_and_pack().await?;
+
+        let checksum
+            = Hash64::from_data(&archive);
+
+        if let Some(cache_entry) = package_cache.check_cache_entry(locator.clone(), ".zip")? {
+            let cached_archive = cache_entry.path
+                .fs_read_prealloc()?;
+
+            let cached_checksum
+                = Hash64::from_data(&cached_archive);
+
+            if cached_checksum != checksum {
+                return Err(Error::ChecksumMismatch(locator.clone()));
+            }
+        }
+
+        let archive_path = package_cache
+            .key_path(locator, ".zip");
+
+        let package_directory = archive_path
+            .with_join(&package_subdir);
+
+        return Ok(FetchResult::new(PackageData::Zip {
+            archive_path,
+            checksum: Some(checksum),
+            context_directory: package_directory.clone(),
+            package_directory,
+        }));
+    }
+
     let cached_blob = package_cache.ensure_blob(locator.clone(), ".zip", || async {
-        let bytes
-            = http_npm::get(&http_npm::NpmHttpParams {
-                http_client: &project.http_client,
-                registry: &fetch_registry,
-                path: &fetch_path,
-                authorization: authorization.as_deref(),
-                otp: None,
-            }).await?;
-
-        let archive = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, Error> {
-            let tar_data
-                = zpm_formats::tar::unpack_tgz(&bytes)?;
-
-            let entries
-                = zpm_formats::tar::entries_from_tar(&tar_data)?
-                    .into_iter()
-                    .strip_first_segment()
-                    .prepare_npm_entries(&package_subdir_for_entries)
-                    .collect::<Vec<_>>();
-
-            Ok(cache_packer.pack(entries)?)
-        }).await??;
-
-        Ok(archive)
+        fetch_and_pack().await
     }).await?.into_info();
 
     let package_directory = cached_blob.path

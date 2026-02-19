@@ -84,7 +84,7 @@ pub enum Error {
     #[error("The linked package at {} doesn't have a name", .0.to_print_string())]
     LinkedPackageMissingName(Path),
 
-    #[error("Checksum mismatch for {}", .0.to_print_string())]
+    #[error("[YN0018] Checksum mismatch for {}", .0.to_print_string())]
     ChecksumMismatch(Locator),
 
     #[error("[YN0028] The lockfile would have been created by this install, which is explicitly forbidden.")]

@@ -27,3 +27,19 @@ pub enum PnpFallbackMode {
     #[literal("all")]
     All,
 }
+
+#[zpm_enum(error = ConfigurationError, or_else = |s| Err(ConfigurationError::EnumError(s.to_string())))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChecksumBehavior {
+    #[literal("throw")]
+    Throw,
+
+    #[literal("update")]
+    Update,
+
+    #[literal("ignore")]
+    Ignore,
+
+    #[literal("reset")]
+    Reset,
+}

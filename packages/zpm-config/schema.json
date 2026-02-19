@@ -14,6 +14,11 @@
       },
       "default": ["main", "master"]
     },
+    "checksumBehavior": {
+      "type": "crate::ChecksumBehavior",
+      "description": "Behavior to apply when cache entries don't match expected checksums",
+      "default": "throw"
+    },
     "compressionLevel": {
       "type": ["zpm_formats::CompressionAlgorithm", "null"],
       "description": "The compression level to use for the packed file"
