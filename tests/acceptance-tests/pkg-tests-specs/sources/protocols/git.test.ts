@@ -1,5 +1,5 @@
 import {execUtils, semverUtils} from '@yarnpkg/core';
-import {npath}                  from '@yarnpkg/fslib';
+import {npath, ppath, xfs}      from '@yarnpkg/fslib';
 import {tests}                  from 'pkg-tests-core';
 
 const TESTED_URLS = {
@@ -152,6 +152,99 @@ describe(`Protocols`, () => {
             name: `pkg-b`,
             version: `1.0.0`,
           });
+        },
+      ),
+    );
+
+    tests.testIf(
+      () => process.platform !== `win32`,
+      `it should respect cloneConcurrency when cloning git repositories`,
+      makeTemporaryEnv(
+        {
+          dependencies: {
+            [`pkg-a`]: tests.startPackageServer().then(url => `${url}/repositories/deep-projects.git#cwd=projects/pkg-a`),
+            [`pkg-b`]: tests.startPackageServer().then(url => `${url}/repositories/deep-projects.git#cwd=projects/pkg-b`),
+            [`lib-a`]: tests.startPackageServer().then(url => `${url}/repositories/deep-projects.git#cwd=projects/pkg-a&workspace=lib`),
+            [`lib-b`]: tests.startPackageServer().then(url => `${url}/repositories/deep-projects.git#cwd=projects/pkg-b&workspace=lib`),
+          },
+        },
+        {
+          cloneConcurrency: 1,
+        },
+        async ({path, run, source}) => {
+          const {stdout: gitPathStdout} = await execUtils.execvp(`sh`, [`-lc`, `command -v git`], {cwd: path});
+          const realGitPath = gitPathStdout.trim();
+
+          const shellQuote = (value: string) => `'${value.replace(/'/g, `'\"'\"'`)}'`;
+
+          const binDir = ppath.join(path, `bin`);
+          const metricsDir = ppath.join(path, `.clone-metrics`);
+          const stateFile = ppath.join(metricsDir, `state`);
+          const wrapperPath = ppath.join(binDir, `git`);
+
+          await xfs.mkdirPromise(binDir, {recursive: true});
+          await xfs.mkdirPromise(metricsDir, {recursive: true});
+          await xfs.writeFilePromise(stateFile, `0\n0\n`);
+
+          await xfs.writeFilePromise(wrapperPath, [
+            `#!/bin/sh`,
+            `set -eu`,
+            `REAL_GIT=${shellQuote(realGitPath)}`,
+            `METRICS_DIR=${shellQuote(npath.fromPortablePath(metricsDir))}`,
+            `LOCK_DIR="$METRICS_DIR/lock"`,
+            `STATE_FILE="$METRICS_DIR/state"`,
+            ``,
+            `acquire_lock() {`,
+            `  while ! mkdir "$LOCK_DIR" 2>/dev/null; do`,
+            `    sleep 0.01`,
+            `  done`,
+            `}`,
+            ``,
+            `release_lock() {`,
+            `  rmdir "$LOCK_DIR"`,
+            `}`,
+            ``,
+            `decrement_counter() {`,
+            `  acquire_lock`,
+            `  current=$(sed -n '1p' "$STATE_FILE")`,
+            `  max=$(sed -n '2p' "$STATE_FILE")`,
+            `  current=$((current - 1))`,
+            `  printf '%s\\n%s\\n' "$current" "$max" > "$STATE_FILE"`,
+            `  release_lock`,
+            `}`,
+            ``,
+            `if [ "\${1:-}" = "clone" ]; then`,
+            `  acquire_lock`,
+            `  current=$(sed -n '1p' "$STATE_FILE")`,
+            `  max=$(sed -n '2p' "$STATE_FILE")`,
+            `  current=$((current + 1))`,
+            `  if [ "$current" -gt "$max" ]; then`,
+            `    max="$current"`,
+            `  fi`,
+            `  printf '%s\\n%s\\n' "$current" "$max" > "$STATE_FILE"`,
+            `  release_lock`,
+            `  sleep 0.2`,
+            `  set +e`,
+            `  "$REAL_GIT" "$@"`,
+            `  exit_code=$?`,
+            `  set -e`,
+            `  decrement_counter`,
+            `  exit "$exit_code"`,
+            `fi`,
+            ``,
+            `exec "$REAL_GIT" "$@"`,
+            ``,
+          ].join(`\n`));
+
+          await xfs.chmodPromise(wrapperPath, 0o755);
+
+          await run(`install`);
+
+          const [currentLine, maxLine] = (await xfs.readFilePromise(stateFile, `utf8`)).trim().split(/\r\n|\r|\n/);
+
+          expect(Number(currentLine)).toBe(0);
+          expect(Number(maxLine)).toBeGreaterThan(0);
+          expect(Number(maxLine)).toBeLessThanOrEqual(1);
         },
       ),
     );
