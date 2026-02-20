@@ -21,6 +21,110 @@ const TESTED_URLS = {
   [`https://github.com/yarnpkg/util-deprecate.git#b3562c2798507869edb767da869cd7b85487726d`]: {version: `1.0.0`, runOnCI: true},
 };
 
+const makeCloneMetricsWrapper = ({realGitPath, metricsDir}: {realGitPath: string, metricsDir: string}) => `
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const {spawn} = require('child_process');
+
+const realGitPath = ${JSON.stringify(realGitPath)};
+const metricsDir = ${JSON.stringify(metricsDir)};
+const stateFile = path.join(metricsDir, 'state');
+const lockDir = path.join(metricsDir, 'lock');
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function withLock(fn) {
+  while (true) {
+    try {
+      await fs.promises.mkdir(lockDir);
+      break;
+    } catch (error) {
+      if (error && error.code === 'EEXIST') {
+        await sleep(10);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    await fs.promises.rmdir(lockDir);
+  }
+}
+
+async function readState() {
+  const content = await fs.promises.readFile(stateFile, 'utf8');
+  const [currentLine = '0', maxLine = '0'] = content.trim().split(/\\r\\n|\\r|\\n/);
+
+  return {
+    current: Number(currentLine),
+    max: Number(maxLine),
+  };
+}
+
+async function writeState(current, max) {
+  await fs.promises.writeFile(stateFile, \`\${current}\\n\${max}\\n\`);
+}
+
+async function incrementCounter() {
+  await withLock(async () => {
+    const {current, max} = await readState();
+    const nextCurrent = current + 1;
+    const nextMax = Math.max(max, nextCurrent);
+
+    await writeState(nextCurrent, nextMax);
+  });
+}
+
+async function decrementCounter() {
+  await withLock(async () => {
+    const {current, max} = await readState();
+    await writeState(current - 1, max);
+  });
+}
+
+function runGit(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(realGitPath, args, {stdio: 'inherit'});
+
+    child.on('error', reject);
+    child.on('exit', code => {
+      resolve(typeof code === 'number' ? code : 1);
+    });
+  });
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args[0] === 'clone') {
+    await incrementCounter();
+    await sleep(200);
+
+    const exitCode = await (async () => {
+      try {
+        return await runGit(args);
+      } finally {
+        await decrementCounter();
+      }
+    })();
+
+    process.exit(exitCode);
+  }
+
+  process.exit(await runGit(args));
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
+`.trimStart();
+
 describe(`Protocols`, () => {
   describe(`git:`, () => {
     for (const [url, {version, runOnCI}] of Object.entries(TESTED_URLS)) {
@@ -172,10 +276,8 @@ describe(`Protocols`, () => {
           cloneConcurrency: 1,
         },
         async ({path, run, source}) => {
-          const {stdout: gitPathStdout} = await execUtils.execvp(`sh`, [`-lc`, `command -v git`], {cwd: path});
+          const {stdout: gitPathStdout} = await execUtils.execvp(`which`, [`git`], {cwd: path});
           const realGitPath = gitPathStdout.trim();
-
-          const shellQuote = (value: string) => `'${value.replace(/'/g, `'\"'\"'`)}'`;
 
           const binDir = ppath.join(path, `bin`);
           const metricsDir = ppath.join(path, `.clone-metrics`);
@@ -185,56 +287,10 @@ describe(`Protocols`, () => {
           await xfs.mkdirPromise(binDir, {recursive: true});
           await xfs.mkdirPromise(metricsDir, {recursive: true});
           await xfs.writeFilePromise(stateFile, `0\n0\n`);
-
-          await xfs.writeFilePromise(wrapperPath, [
-            `#!/bin/sh`,
-            `set -eu`,
-            `REAL_GIT=${shellQuote(realGitPath)}`,
-            `METRICS_DIR=${shellQuote(npath.fromPortablePath(metricsDir))}`,
-            `LOCK_DIR="$METRICS_DIR/lock"`,
-            `STATE_FILE="$METRICS_DIR/state"`,
-            ``,
-            `acquire_lock() {`,
-            `  while ! mkdir "$LOCK_DIR" 2>/dev/null; do`,
-            `    sleep 0.01`,
-            `  done`,
-            `}`,
-            ``,
-            `release_lock() {`,
-            `  rmdir "$LOCK_DIR"`,
-            `}`,
-            ``,
-            `decrement_counter() {`,
-            `  acquire_lock`,
-            `  current=$(sed -n '1p' "$STATE_FILE")`,
-            `  max=$(sed -n '2p' "$STATE_FILE")`,
-            `  current=$((current - 1))`,
-            `  printf '%s\\n%s\\n' "$current" "$max" > "$STATE_FILE"`,
-            `  release_lock`,
-            `}`,
-            ``,
-            `if [ "\${1:-}" = "clone" ]; then`,
-            `  acquire_lock`,
-            `  current=$(sed -n '1p' "$STATE_FILE")`,
-            `  max=$(sed -n '2p' "$STATE_FILE")`,
-            `  current=$((current + 1))`,
-            `  if [ "$current" -gt "$max" ]; then`,
-            `    max="$current"`,
-            `  fi`,
-            `  printf '%s\\n%s\\n' "$current" "$max" > "$STATE_FILE"`,
-            `  release_lock`,
-            `  sleep 0.2`,
-            `  set +e`,
-            `  "$REAL_GIT" "$@"`,
-            `  exit_code=$?`,
-            `  set -e`,
-            `  decrement_counter`,
-            `  exit "$exit_code"`,
-            `fi`,
-            ``,
-            `exec "$REAL_GIT" "$@"`,
-            ``,
-          ].join(`\n`));
+          await xfs.writeFilePromise(wrapperPath, makeCloneMetricsWrapper({
+            realGitPath,
+            metricsDir: npath.fromPortablePath(metricsDir),
+          }));
 
           await xfs.chmodPromise(wrapperPath, 0o755);
 
