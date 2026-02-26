@@ -5,6 +5,7 @@ use zpm_switch::{extract_bin_meta, BinMeta};
 
 mod debug;
 mod npm;
+mod tasks;
 
 mod add;
 mod bin;
@@ -33,6 +34,7 @@ mod set_version_from_sources;
 mod unlink;
 mod unplug;
 mod up;
+mod up_recursive;
 mod version;
 mod workspaces_focus;
 mod workspaces_foreach;
@@ -63,6 +65,7 @@ pub enum YarnCli {
     PrintChangedWorkspaces(debug::print_changed_workspaces::PrintChangedWorkspaces),
     PrintHoisting(debug::print_hoisting::PrintHoisting),
     PrintPlatform(debug::print_platform::PrintPlatform),
+    ResolveTask(debug::resolve_task::ResolveTask),
     SyncFs(debug::sync_fs::SyncFs),
 
     Login(npm::login::Login),
@@ -103,9 +106,12 @@ pub enum YarnCli {
     Rebuild(rebuild::Rebuild),
     Remove(remove::Remove),
     Run(run::Run),
+    TaskPush(tasks::push::TaskPush),
+    TaskRun(tasks::run::TaskRun),
     Unlink(unlink::Unlink),
     Unplug(unplug::Unplug),
     Up(up::Up),
+    UpRecursive(up_recursive::UpRecursive),
     WorkspacesFocus(workspaces_focus::WorkspacesFocus),
     WorkspacesForeach(workspaces_foreach::WorkspacesForeach),
     WorkspacesList(workspaces_list::WorkspacesList),
