@@ -76,13 +76,13 @@ jobs:
         working-directory: ../head
         run: ./target/release/yarn-bin debug bench gatsby install-full-cold
 
-      - name: Run benchmark warm no-lockfile (base)
+      - name: Run benchmark warm with lockfile (base)
         working-directory: ../base
-        run: ./target/release/yarn-bin debug bench gatsby install-cache-only
+        run: ./target/release/yarn-bin debug bench gatsby install-cache-and-lock
 
-      - name: Run benchmark warm no-lockfile (head)
+      - name: Run benchmark warm with lockfile (head)
         working-directory: ../head
-        run: ./target/release/yarn-bin debug bench gatsby install-cache-only
+        run: ./target/release/yarn-bin debug bench gatsby install-cache-and-lock
 
       - name: Generate benchmark comment
         uses: actions/github-script@v7
@@ -106,7 +106,7 @@ jobs:
 
             const benches = [
               {mode: 'install-full-cold', label: 'gatsby install-full-cold'},
-              {mode: 'install-cache-only', label: 'gatsby install-cache-only (warm, no lockfile)'},
+              {mode: 'install-cache-and-lock', label: 'gatsby install-cache-and-lock (warm, with lockfile)'},
             ];
 
             const mergedResults = {
