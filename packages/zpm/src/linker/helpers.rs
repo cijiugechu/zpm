@@ -170,6 +170,16 @@ pub fn fs_materialize_unplugged_from_global_cache(project: &Project, locator: &L
             return Ok(false);
         };
 
+        // This optimization primarily targets the warm cache + existing lockfile scenario
+        // (e.g. repeated installs that delete `.yarn/` but keep `yarn.lock`).
+        //
+        // In a fully cold install where no lockfile exists yet, building the global unplugged
+        // cache provides no immediate benefit and can regress end-to-end time, so keep the
+        // original behavior (extract straight into the project).
+        if !project.lockfile_path().fs_exists() {
+            return fs_extract_archive(dest_package_root, package_data);
+        }
+
         let global_base = project
             .global_unplugged_path();
 
