@@ -772,30 +772,15 @@ impl Path {
     pub fn fs_clonefile(&self, new_path: &Path) -> Result<&Self, PathError> {
         #[cfg(target_os = "macos")]
         {
-            use std::ffi::CString;
-
-            let from = CString::new(self.path.as_str())
-                .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "nul byte in path"))?;
-            let to = CString::new(new_path.path.as_str())
-                .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "nul byte in path"))?;
-
-            let res = unsafe { libc::clonefile(from.as_ptr(), to.as_ptr(), 0) };
-            if res == 0 {
-                return Ok(self);
-            }
-
-            return Err(std::io::Error::last_os_error().into());
+            let _ = reflink_copy::reflink_or_copy(self.to_path_buf(), new_path.to_path_buf())?;
+            return Ok(self);
         }
 
         #[cfg(target_os = "linux")]
         {
-            use std::os::unix::{fs::PermissionsExt, io::AsRawFd};
+            use std::os::unix::fs::PermissionsExt;
 
-            struct ReflinkState {
-                use_reflink: bool,
-            }
-
-            fn clone_tree_linux(src: &Path, dst: &Path, state: &mut ReflinkState) -> Result<(), PathError> {
+            fn clone_tree_linux(src: &Path, dst: &Path) -> Result<(), PathError> {
                 let metadata = src.fs_symlink_metadata()?;
                 let file_type = metadata.file_type();
 
@@ -814,7 +799,7 @@ impl Path {
                         let entry_path = Path::try_from(entry.path())?;
                         let entry_name = Path::try_from(entry.file_name())?;
                         let entry_dest = dst.with_join(&entry_name);
-                        clone_tree_linux(&entry_path, &entry_dest, state)?;
+                        clone_tree_linux(&entry_path, &entry_dest)?;
                     }
 
                     return Ok(());
@@ -824,68 +809,17 @@ impl Path {
                     let mode = metadata.permissions().mode();
 
                     dst.fs_create_parent()?;
-
-                    if state.use_reflink {
-                        let src_file = std::fs::File::open(src.to_path_buf())?;
-                        let dst_file = std::fs::OpenOptions::new()
-                            .write(true)
-                            .create(true)
-                            .truncate(true)
-                            .open(dst.to_path_buf())?;
-
-                        let src_fd = src_file.as_raw_fd();
-                        let dst_fd = dst_file.as_raw_fd();
-
-                        let mut attempts: u8 = 0;
-
-                        loop {
-                            let rc = unsafe { libc::ioctl(dst_fd, libc::FICLONE, src_fd) };
-                            if rc == 0 {
-                                dst.fs_set_permissions(std::fs::Permissions::from_mode(mode))?;
-                                return Ok(());
-                            }
-
-                            let err = std::io::Error::last_os_error();
-                            if err.kind() == std::io::ErrorKind::Interrupted && attempts < 2 {
-                                attempts += 1;
-                                continue;
-                            }
-
-                            let disable_reflink = err.raw_os_error().is_some_and(|errno| matches!(
-                                errno,
-                                libc::EXDEV
-                                    | libc::EOPNOTSUPP
-                                    | libc::ENOTSUP
-                                    | libc::ENOSYS
-                                    | libc::EINVAL
-                                    | libc::EPERM
-                                    | libc::EACCES
-                                    | libc::EBADF
-                            ));
-
-                            if disable_reflink {
-                                state.use_reflink = false;
-                                break;
-                            }
-
-                            return Err(err.into());
-                        }
-                    }
-
-                    std::fs::copy(src.to_path_buf(), dst.to_path_buf())?;
+                    let _ = reflink_copy::reflink_or_copy(src.to_path_buf(), dst.to_path_buf())?;
                     dst.fs_set_permissions(std::fs::Permissions::from_mode(mode))?;
+
                     return Ok(());
                 }
 
                 Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "unsupported file type").into())
             }
 
-            let mut state = ReflinkState {
-                use_reflink: true,
-            };
-
-            clone_tree_linux(self, new_path, &mut state)?;
-            Ok(self)
+            clone_tree_linux(self, new_path)?;
+            return Ok(self);
         }
 
         #[cfg(not(any(target_os = "macos", target_os = "linux")))]
