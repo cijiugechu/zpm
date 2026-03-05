@@ -5,6 +5,7 @@ use zpm_config::{Configuration, ConfigurationContext};
 use zpm_macro_enum::zpm_enum;
 use zpm_parsers::JsonDocument;
 use zpm_primitives::{Descriptor, Ident, Locator, Range, Reference, WorkspaceIdentReference, WorkspaceMagicRange, WorkspacePathReference};
+use zpm_tasks::{parse as parse_taskfile, ResolvedTasks, TaskId};
 use zpm_utils::{Glob, LastModifiedAt, Path, ToFileString, ToHumanString};
 use serde::Deserialize;
 use zpm_formats::zip::ZipSupport;
@@ -21,6 +22,7 @@ use crate::{
     manifest_finder::CachedManifestFinder,
     report::{StreamReport, StreamReportConfig, with_report_result},
     script::{Binary, ScriptEnvironment},
+    tasks::TASK_FILE_NAME,
 };
 
 pub const LOCKFILE_NAME: &str = "yarn.lock";
@@ -50,7 +52,7 @@ pub enum InstallMode {
 pub struct RunInstallOptions {
     pub check_checksums: bool,
     pub check_resolutions: bool,
-    pub enforced_resolutions: BTreeMap<Descriptor, Locator>,
+    pub enforced_resolutions: BTreeMap<Descriptor, Option<Locator>>,
     pub prune_dev_dependencies: bool,
     pub mode: Option<InstallMode>,
     pub refresh_lockfile: bool,
@@ -71,6 +73,7 @@ pub struct Project {
     pub last_modified_at: LastModifiedAt,
     pub install_state: Option<InstallState>,
     pub http_client: std::sync::Arc<HttpClient>,
+    pub clone_limiter: std::sync::Arc<tokio::sync::Semaphore>,
 }
 
 impl Project {
@@ -142,6 +145,16 @@ impl Project {
             config.settings.enable_global_cache.source = config.settings.enable_migration_mode.source;
         }
 
+        let clone_concurrency
+            = config.settings.clone_concurrency.value;
+
+        if clone_concurrency == 0 {
+            return Err(Error::InvalidConfigValue("cloneConcurrency".to_string(), "must be >= 1".to_string()));
+        }
+
+        let clone_limiter
+            = Arc::new(tokio::sync::Semaphore::new(clone_concurrency));
+
         let root_workspace
             = Workspace::from_root_path(&project_cwd)?;
 
@@ -179,6 +192,7 @@ impl Project {
             last_modified_at,
             install_state: None,
             http_client,
+            clone_limiter,
         })
     }
 
@@ -436,11 +450,21 @@ impl Project {
     }
 
     pub fn active_package(&self) -> Result<Locator, Error> {
-        let install_state = self.install_state.as_ref()
-            .ok_or(Error::InstallStateNotFound)?;
+        let install_state
+            = self.install_state.as_ref()
+                .ok_or(Error::InstallStateNotFound)?;
 
-        let active_package = install_state.packages_by_location.get(&self.package_cwd)
-            .ok_or(Error::ActivePackageNotFound)?;
+        let Some(active_package) = install_state.packages_by_location.get(&self.package_cwd) else {
+            let is_workspace
+                = self.try_workspace_by_rel_path(&self.package_cwd)?
+                    .is_some();
+
+            return Err(if is_workspace {
+                Error::WorkspaceNotInstalled
+            } else {
+                Error::ActivePackageNotFound
+            });
+        };
 
         Ok(active_package.clone())
     }
@@ -648,7 +672,8 @@ impl Project {
     }
 
     pub fn find_binary(&self, name: &str) -> Result<Binary, Error> {
-        let active_package = self.active_package()?;
+        let active_package
+            = self.active_package()?;
 
         self.package_visible_binaries(&active_package)?
             .remove(name)
@@ -656,7 +681,8 @@ impl Project {
     }
 
     pub fn find_script(&self, name: &str) -> Result<(Locator, String), Error> {
-        let active_package = self.active_package()?;
+        let active_package
+            = self.active_package()?;
 
         self.find_package_script(&active_package, name)
     }
@@ -740,6 +766,7 @@ impl Project {
             silent_or_error: true,
             mode: None,
             roots: None,
+            ..Default::default()
         }).await?;
 
         Ok(())
@@ -830,6 +857,50 @@ impl Project {
             Ok(install_result)
         }).await
     }
+
+    /// Resolve a task and all its dependencies.
+    pub fn resolve_task(&self, root_task: &TaskId) -> Result<ResolvedTasks, Error> {
+        let get_task_file = |ident: &Ident, path: Option<&str>| {
+            let workspace = self.workspace_by_ident(ident).ok()?;
+            let task_file_path = match path {
+                Some(custom_path) => workspace.path.with_join_str(custom_path),
+                None => workspace.taskfile_path(),
+            };
+            let content = task_file_path.fs_read_text().ok()?;
+            parse_taskfile(&content).ok()
+        };
+
+        let resolve_ident_glob = |glob: &zpm_primitives::IdentGlob, context: &Ident| {
+            // Get the context workspace to check its dependencies
+            let Some(context_ws) = self.workspace_by_ident(context).ok() else {
+                return vec![];
+            };
+
+            // Only match workspaces that are dependencies of the context workspace
+            self.workspaces
+                .iter()
+                .filter(|ws| {
+                    glob.check(&ws.name)
+                        && (context_ws.manifest.remote.dependencies.contains_key(&ws.name)
+                            || context_ws.manifest.dev_dependencies.contains_key(&ws.name))
+                })
+                .map(|ws| ws.name.clone())
+                .collect()
+        };
+
+        let is_dependency = |workspace: &Ident, include_ident: &Ident| {
+            let Some(ws) = self.workspace_by_ident(workspace).ok() else {
+                return false;
+            };
+
+            // Check if include_ident is in workspace's dependencies or devDependencies
+            ws.manifest.remote.dependencies.contains_key(include_ident)
+                || ws.manifest.dev_dependencies.contains_key(include_ident)
+        };
+
+        zpm_tasks::resolve(root_task, get_task_file, resolve_ident_glob, is_dependency)
+            .map_err(Error::TaskResolveError)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -912,6 +983,10 @@ impl Workspace {
 
     pub fn manifest_path(&self) -> Path {
         self.path.with_join_str(MANIFEST_NAME)
+    }
+
+    pub fn taskfile_path(&self) -> Path {
+        self.path.with_join_str(TASK_FILE_NAME)
     }
 
     pub async fn workspaces(&self) -> Result<Vec<Workspace>, Error> {
