@@ -866,7 +866,7 @@ impl Project {
                 Some(custom_path) => workspace.path.with_join_str(custom_path),
                 None => workspace.taskfile_path(),
             };
-            let content = task_file_path.fs_read_text().ok()?;
+            let content = task_file_path.fs_read_text_blocking().ok()?;
             parse_taskfile(&content).ok()
         };
 
