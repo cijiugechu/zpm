@@ -13,6 +13,7 @@ use crate::{
 };
 
 static UNPLUG_SCRIPTS: &[&str] = &["preinstall", "install", "postinstall"];
+pub const CONTENT_FLAGS_CACHE_EXT: &str = ".cflags";
 
 static UNPLUG_EXT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\.(exe|bin|h|hh|hpp|c|cc|cpp|java|jar|node)$").unwrap()
@@ -106,6 +107,17 @@ fn extract_binaries(name: Option<Ident>, bin: Option<BinField>) -> BTreeMap<Stri
 }
 
 impl ContentFlags {
+    pub fn to_cache_bytes(flags: &ContentFlags) -> Result<Vec<u8>, Error> {
+        rkyv::to_bytes::<rkyv::rancor::BoxedError>(flags)
+            .map(|bytes| bytes.to_vec())
+            .map_err(|_| Error::InvalidContentFlagsCache)
+    }
+
+    pub fn from_cache_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        rkyv::from_bytes::<ContentFlags, rkyv::rancor::BoxedError>(bytes)
+            .map_err(|_| Error::InvalidContentFlagsCache)
+    }
+
     pub fn extract(locator: &Locator, package_data: &PackageData) -> Result<Self, Error> {
         if matches!(locator.reference, Reference::Link(_)) {
             return Ok(Self::default());
@@ -189,5 +201,30 @@ impl ContentFlags {
             prefer_extracted,
             suggest_extracted,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::str::FromStr;
+
+    use zpm_utils::Path;
+
+    use super::ContentFlags;
+
+    #[test]
+    fn content_flags_cache_bytes_roundtrip() {
+        let flags = ContentFlags {
+            binaries: BTreeMap::from_iter([("bin".to_string(), Path::from_str("bin.js").unwrap())]),
+            build_commands: vec![],
+            prefer_extracted: Some(false),
+            suggest_extracted: true,
+        };
+
+        let bytes = ContentFlags::to_cache_bytes(&flags).unwrap();
+        let restored = ContentFlags::from_cache_bytes(&bytes).unwrap();
+
+        assert_eq!(restored, flags);
     }
 }

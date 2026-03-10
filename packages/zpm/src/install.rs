@@ -13,7 +13,7 @@ use crate::{
     build,
     cache::CompositeCache,
     constraints::check_constraints,
-    content_flags::ContentFlags,
+    content_flags::{CONTENT_FLAGS_CACHE_EXT, ContentFlags},
     error::Error,
     fetchers::{PackageData, SyncFetchAttempt, fetch_locator, patch::has_builtin_patch, try_fetch_locator_sync},
     graph::{GraphCache, GraphIn, GraphOut, GraphTasks},
@@ -875,11 +875,27 @@ impl<'a> InstallManager<'a> {
     }
 
     fn record_fetch(&mut self, locator: Locator, package_data: PackageData) -> Result<(), Error> {
-        let content_flags
-            = self.previous_state
-                .and_then(|previous_state| previous_state.content_flags.get(&locator))
-                .cloned()
-                .map_or_else(|| ContentFlags::extract(&locator, &package_data), Ok)?;
+        let content_flags = if let Some(content_flags) = self.previous_state
+            .and_then(|previous_state| previous_state.content_flags.get(&locator))
+            .cloned()
+        {
+            content_flags
+        } else if let Some(cache) = self.context.package_cache {
+            if let Some(bytes) = cache.read_blob(&locator, CONTENT_FLAGS_CACHE_EXT)? {
+                ContentFlags::from_cache_bytes(&bytes)?
+            } else {
+                let content_flags
+                    = ContentFlags::extract(&locator, &package_data)?;
+                let bytes
+                    = ContentFlags::to_cache_bytes(&content_flags)?;
+
+                cache.write_blob(&locator, CONTENT_FLAGS_CACHE_EXT, &bytes)?;
+
+                content_flags
+            }
+        } else {
+            ContentFlags::extract(&locator, &package_data)?
+        };
 
         self.result.package_data.insert(locator.clone(), package_data);
 
@@ -1008,6 +1024,105 @@ fn normalize_resolution(context: &InstallContext<'_>, descriptor: &mut Descripto
     };
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use zpm_utils::{FromFileString, Path};
+
+    use super::{InstallContext, InstallManager, InstallState};
+    use crate::{
+        cache::{CompositeCache, DiskCache},
+        content_flags::{CONTENT_FLAGS_CACHE_EXT, ContentFlags},
+        fetchers::PackageData,
+    };
+
+    fn test_cache_path(label: &str) -> Path {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+
+        Path::from_str(&format!("/tmp/zpm-content-flags-tests-{label}-{now}")).unwrap()
+    }
+
+    #[test]
+    fn record_fetch_prefers_previous_state_before_sidecar() {
+        let locator = zpm_primitives::Locator::from_file_string("pkg@link:.").unwrap();
+        let previous_flags = ContentFlags {
+            prefer_extracted: Some(false),
+            suggest_extracted: true,
+            ..Default::default()
+        };
+        let sidecar_flags = ContentFlags {
+            prefer_extracted: Some(true),
+            suggest_extracted: false,
+            ..Default::default()
+        };
+
+        let mut previous_state = InstallState::default();
+        previous_state.content_flags.insert(locator.clone(), previous_flags.clone());
+
+        let cache = CompositeCache::new(
+            None,
+            None,
+            Some(DiskCache::new(test_cache_path("prev-state"), "".to_string(), false)),
+        );
+        cache.write_blob(
+            &locator,
+            CONTENT_FLAGS_CACHE_EXT,
+            &ContentFlags::to_cache_bytes(&sidecar_flags).unwrap(),
+        ).unwrap();
+
+        let context = InstallContext::default()
+            .with_package_cache(Some(&cache));
+        let mut manager = InstallManager::new()
+            .with_context(context)
+            .with_previous_state(Some(&previous_state));
+
+        manager.record_fetch(locator.clone(), PackageData::Abstract).unwrap();
+
+        assert_eq!(
+            manager.result.install_state.content_flags.get(&locator),
+            Some(&previous_flags),
+        );
+    }
+
+    #[test]
+    fn record_fetch_uses_sidecar_when_previous_state_is_missing() {
+        let locator = zpm_primitives::Locator::from_file_string("pkg@link:.").unwrap();
+        let sidecar_flags = ContentFlags {
+            prefer_extracted: Some(true),
+            suggest_extracted: true,
+            ..Default::default()
+        };
+
+        let cache = CompositeCache::new(
+            None,
+            None,
+            Some(DiskCache::new(test_cache_path("sidecar-hit"), "".to_string(), false)),
+        );
+        cache.write_blob(
+            &locator,
+            CONTENT_FLAGS_CACHE_EXT,
+            &ContentFlags::to_cache_bytes(&sidecar_flags).unwrap(),
+        ).unwrap();
+
+        let context = InstallContext::default()
+            .with_package_cache(Some(&cache));
+        let mut manager = InstallManager::new()
+            .with_context(context);
+
+        manager.record_fetch(locator.clone(), PackageData::Abstract).unwrap();
+
+        assert_eq!(
+            manager.result.install_state.content_flags.get(&locator),
+            Some(&sidecar_flags),
+        );
+    }
 }
 
 const BUILTIN_EXTENSIONS_JSON: &str = include_str!("../data/builtin-extensions.json");

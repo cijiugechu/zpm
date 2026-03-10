@@ -118,6 +118,30 @@ impl CompositeCache {
         panic!("Expected at least one cache to be set");
     }
 
+    pub fn read_blob(&self, key: &Locator, ext: &str) -> Result<Option<Vec<u8>>, Error> {
+        if let Some(ref cache) = self.local_cache {
+            return cache.read_blob(key, ext);
+        }
+
+        if let Some(ref cache) = self.global_cache {
+            return cache.read_blob(key, ext);
+        }
+
+        panic!("Expected at least one cache to be set");
+    }
+
+    pub fn write_blob(&self, key: &Locator, ext: &str, data: &[u8]) -> Result<(), Error> {
+        if let Some(ref cache) = self.local_cache {
+            return cache.write_blob(key, ext, data);
+        }
+
+        if let Some(ref cache) = self.global_cache {
+            return cache.write_blob(key, ext, data);
+        }
+
+        panic!("Expected at least one cache to be set");
+    }
+
     async fn load<R, F>(func: F) -> Result<Vec<u8>, Error>
     where
         R: Future<Output = Result<Vec<u8>, Error>>,
@@ -243,6 +267,28 @@ impl DiskCache {
                 checksum: None,
             }
         }))
+    }
+
+    pub fn read_blob(&self, key: &Locator, ext: &str) -> Result<Option<Vec<u8>>, Error> {
+        let key_path
+            = self.key_path(key, ext);
+
+        match key_path.if_exists() {
+            Some(path) => Ok(Some(path.fs_read()?)),
+            None => Ok(None),
+        }
+    }
+
+    pub fn write_blob(&self, key: &Locator, ext: &str, data: &[u8]) -> Result<(), Error> {
+        if self.immutable {
+            return Err(Error::ImmutableCache(key.clone()));
+        }
+
+        self.key_path(key, ext)
+            .fs_create_parent()?
+            .fs_write(data)?;
+
+        Ok(())
     }
 
     pub async fn ensure_blob<R, F>(&self, key: Locator, ext: &str, func: F) -> Result<CacheEntry, Error>
