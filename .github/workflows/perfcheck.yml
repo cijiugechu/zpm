@@ -55,11 +55,11 @@ jobs:
 
       - name: Build Yarn (base)
         working-directory: ../base
-        run: cargo build --release -p zpm --bin yarn-bin
+        run: cargo build --profile release-lto -p zpm --bin yarn-bin
 
       - name: Build Yarn (head)
         working-directory: ../head
-        run: cargo build --release -p zpm --bin yarn-bin
+        run: cargo build --profile release-lto -p zpm --bin yarn-bin
 
       - name: Start mock proxy
         working-directory: ../head
